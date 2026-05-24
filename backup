@@ -1,1 +1,2142 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Report Qur'an Learning</title>
+  
+  <!-- PWA Meta Tags untuk Tampilan Layaknya Aplikasi Asli (Native Feel) -->
+  <meta name="theme-color" content="#064e3b"> 
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Qur'an App">
 
+  <!-- Icon Browser & Apple Home Screen (PWA) -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  
+  <!-- SUPABASE SDK & INTEGRASI DATABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://paaeqxpnmhnmqdqnznzz.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYWVxeHBubWhubXFkcW56bnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzkxNjAsImV4cCI6MjA5NDMxNTE2MH0.Z-SkN1R9DkPYSzyQMEtsPdhPU_Rx1QK62lWaPOMgwAY'; 
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    window.elementSdk = {
+      init: function(config) { if (config && config.onConfigChange) config.onConfigChange(config.defaultConfig || {}); },
+      setConfig: function(cfg) {}
+    };
+
+    window.dataSdk = {
+      init: async function(handler) {
+        window._dataHandler = handler;
+        await this.fetchAll();
+        return { isOk: true };
+      },
+      
+      fetchAll: async function() {
+        try {
+          const [usersRes, studentsRes, reportsRes, settingsRes] = await Promise.all([
+            supabaseClient.from('users').select('*'),
+            supabaseClient.from('students').select('*'),
+            supabaseClient.from('reports').select('*'),
+            supabaseClient.from('settings').select('*')
+          ]);
+
+          let combinedData = [];
+          if (usersRes.data) usersRes.data.forEach(u => combinedData.push({...u, __backendId: u.id, type: u.role === 'guru' ? 'teacher' : 'user'}));
+          if (studentsRes.data) studentsRes.data.forEach(s => combinedData.push({...s, __backendId: s.id, type: 'student'}));
+          if (reportsRes.data) reportsRes.data.forEach(r => combinedData.push({...r, __backendId: r.id, type: 'report'}));
+          if (settingsRes.data) settingsRes.data.forEach(set => combinedData.push({...set, __backendId: set.id, type: 'setting'}));
+          
+          if(window._dataHandler) window._dataHandler.onDataChanged(combinedData);
+        } catch (e) {
+          console.error("Gagal mengambil data dari Supabase", e);
+        }
+      },
+
+      create: async function(data, skipFetch = false) {
+        let table = '', payload = {};
+        if (data.type === 'student') {
+          table = 'students';
+          payload = { name: data.name, grade: data.grade, kelas: data.kelas, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, target_juz: data.target_juz, target_hafalan_surat: data.target_hafalan_surat, target_hafalan_ayat_dari: data.target_hafalan_ayat_dari, target_hafalan_ayat_sampai: data.target_hafalan_ayat_sampai };
+        } else if (data.type === 'report') {
+          table = 'reports';
+          payload = { student_id: data.student_id, report_type: data.report_type, tanggal: data.tanggal, status: data.status, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, juz: data.juz, surat: data.surat, ayat_dari: data.ayat_dari, ayat_sampai: data.ayat_sampai };
+        } else if (data.type === 'teacher' || data.type === 'user') {
+          table = 'users';
+          payload = { name: data.name, email: data.email, password: data.password, role: data.role, nip: data.nip, phone: data.phone, specialization: data.specialization };
+        } else if (data.type === 'setting') {
+          table = 'settings';
+          payload = { subject: data.subject, data: data.data };
+        }
+        const { error } = await supabaseClient.from(table).insert([payload]);
+        if (!error && !skipFetch) await this.fetchAll();
+        return { isOk: !error };
+      },
+
+      update: async function(data, skipFetch = false) {
+        let table = '', payload = {};
+        if (data.type === 'student') {
+          table = 'students';
+          payload = { name: data.name, grade: data.grade, kelas: data.kelas, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, target_juz: data.target_juz, target_hafalan_surat: data.target_hafalan_surat, target_hafalan_ayat_dari: data.target_hafalan_ayat_dari, target_hafalan_ayat_sampai: data.target_hafalan_ayat_sampai };
+        } else if (data.type === 'teacher' || data.type === 'user') {
+          table = 'users';
+          payload = { name: data.name, email: data.email, password: data.password, role: data.role, nip: data.nip, phone: data.phone, specialization: data.specialization };
+        } else if (data.type === 'setting') {
+          table = 'settings';
+          payload = { data: data.data }; 
+        }
+        const { error } = await supabaseClient.from(table).update(payload).eq('id', data.__backendId);
+        if (!error && !skipFetch) await this.fetchAll();
+        return { isOk: !error };
+      },
+
+      delete: async function(data, skipFetch = false) {
+        let table = '';
+        if (data.type === 'student') table = 'students';
+        else if (data.type === 'report') table = 'reports';
+        else if (data.type === 'teacher' || data.type === 'user') table = 'users';
+        else if (data.type === 'setting') table = 'settings';
+        const { error } = await supabaseClient.from(table).delete().eq('id', data.__backendId);
+        if (!error && !skipFetch) await this.fetchAll();
+        return { isOk: !error };
+      }
+    };
+  </script>
+
+  <style>
+    html, body { height: 100%; margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+    .sidebar-item { transition: all 0.2s ease-in-out; }
+    .sidebar-item:hover { background: rgba(255,255,255,0.1); }
+    .sidebar-item.active { background: rgba(255,255,255,0.2); font-weight: 600; border-left: 4px solid #34d399; }
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .toast { animation: slideIn 0.3s ease, slideOut 0.3s ease 2.7s; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    @keyframes slideOut { from { transform: translateX(0); } to { transform: translateX(100%); } }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="h-full bg-slate-50">
+  <div id="app" class="h-full w-full flex flex-col md:flex-row overflow-hidden"></div>
+  <script>
+// ============ DATA & STATE ============
+let allData = [];
+let currentUser = null;
+let currentPage = 'dashboard';
+let isSidebarOpen = false;
+
+// Filter State untuk Laporan
+let reportFilterType = '';
+let reportFilterGrade = '';
+let reportFilterClass = '';
+
+const quranData = {
+  1: [{name:'Al-Fatihah',ayat:7},{name:'Al-Baqarah',ayat:286}], 2: [{name:'Al-Baqarah',ayat:286}], 3: [{name:'Ali Imran',ayat:200}],
+  4: [{name:'An-Nisa',ayat:176}], 5: [{name:'An-Nisa',ayat:176},{name:'Al-Maidah',ayat:120}], 6: [{name:'Al-Maidah',ayat:120},{name:'Al-An\'am',ayat:165}],
+  7: [{name:'Al-An\'am',ayat:165},{name:'Al-A\'raf',ayat:206}], 8: [{name:'Al-A\'raf',ayat:206},{name:'Al-Anfal',ayat:75}], 9: [{name:'Al-Anfal',ayat:75},{name:'At-Taubah',ayat:129}],
+  10: [{name:'At-Taubah',ayat:129},{name:'Yunus',ayat:109},{name:'Hud',ayat:123}], 11: [{name:'Hud',ayat:123},{name:'Yusuf',ayat:111}], 12: [{name:'Yusuf',ayat:111},{name:'Ar-Ra\'d',ayat:43},{name:'Ibrahim',ayat:52},{name:'Al-Hijr',ayat:99}],
+  13: [{name:'Al-Hijr',ayat:99},{name:'An-Nahl',ayat:128}], 14: [{name:'An-Nahl',ayat:128},{name:'Al-Isra',ayat:111},{name:'Al-Kahf',ayat:110}], 15: [{name:'Al-Kahf',ayat:110},{name:'Maryam',ayat:98},{name:'Taha',ayat:135}],
+  16: [{name:'Taha',ayat:135},{name:'Al-Anbiya',ayat:112},{name:'Al-Hajj',ayat:78}], 17: [{name:'Al-Hajj',ayat:78},{name:'Al-Mu\'minun',ayat:118},{name:'An-Nur',ayat:64},{name:'Al-Furqan',ayat:77}], 18: [{name:'Al-Furqan',ayat:77},{name:'Asy-Syu\'ara',ayat:227},{name:'An-Naml',ayat:93},{name:'Al-Qasas',ayat:88}],
+  19: [{name:'Al-Qasas',ayat:88},{name:'Al-Ankabut',ayat:69},{name:'Ar-Rum',ayat:60},{name:'Luqman',ayat:34},{name:'As-Sajdah',ayat:30},{name:'Al-Ahzab',ayat:73}], 20: [{name:'Al-Ahzab',ayat:73},{name:'Saba',ayat:54},{name:'Fatir',ayat:45},{name:'Ya Sin',ayat:83}],
+  21: [{name:'Ya Sin',ayat:83},{name:'As-Saffat',ayat:182},{name:'Sad',ayat:88},{name:'Az-Zumar',ayat:75}], 22: [{name:'Az-Zumar',ayat:75},{name:'Ghafir',ayat:85},{name:'Fussilat',ayat:54},{name:'Asy-Syura',ayat:53}], 23: [{name:'Asy-Syura',ayat:53},{name:'Az-Zukhruf',ayat:89},{name:'Ad-Dukhan',ayat:59},{name:'Al-Jasiyah',ayat:37},{name:'Al-Ahqaf',ayat:35},{name:'Muhammad',ayat:38},{name:'Al-Fath',ayat:29}],
+  24: [{name:'Al-Fath',ayat:29},{name:'Al-Hujurat',ayat:18},{name:'Qaf',ayat:45},{name:'Az-Zariyat',ayat:60},{name:'At-Tur',ayat:49},{name:'An-Najm',ayat:62},{name:'Al-Qamar',ayat:55},{name:'Ar-Rahman',ayat:78}], 25: [{name:'Ar-Rahman',ayat:78},{name:'Al-Waqi\'ah',ayat:96},{name:'Al-Hadid',ayat:29},{name:'Al-Mujadilah',ayat:22},{name:'Al-Hasyr',ayat:24},{name:'Al-Mumtahanah',ayat:13},{name:'As-Saff',ayat:14},{name:'Al-Jumu\'ah',ayat:11},{name:'Al-Munafiqun',ayat:11},{name:'At-Tagabun',ayat:18},{name:'At-Talaq',ayat:12},{name:'At-Tahrim',ayat:12}],
+  26: [{name:'Al-Mulk',ayat:30},{name:'Al-Qalam',ayat:52},{name:'Al-Haqqah',ayat:52},{name:'Al-Ma\'arij',ayat:44},{name:'Nuh',ayat:28},{name:'Al-Jinn',ayat:28},{name:'Al-Muzzammil',ayat:20},{name:'Al-Muddassir',ayat:56},{name:'Al-Qiyamah',ayat:40},{name:'Al-Insan',ayat:31},{name:'Al-Mursalat',ayat:50}],
+  27: [{name:'An-Naba',ayat:40},{name:'An-Nazi\'at',ayat:46},{name:'Abasa',ayat:42},{name:'At-Takwir',ayat:29},{name:'Al-Infitar',ayat:19},{name:'Al-Mutaffifin',ayat:36},{name:'Al-Insyiqaq',ayat:25},{name:'Al-Buruj',ayat:22},{name:'At-Tariq',ayat:17},{name:'Al-A\'la',ayat:19},{name:'Al-Gasiyah',ayat:26},{name:'Al-Fajr',ayat:30},{name:'Al-Balad',ayat:20},{name:'Asy-Syams',ayat:15},{name:'Al-Lail',ayat:21},{name:'Ad-Duha',ayat:11},{name:'Asy-Syarh',ayat:8},{name:'At-Tin',ayat:8},{name:'Al-Alaq',ayat:19}],
+  28: [{name:'Al-Alaq',ayat:19},{name:'Al-Qadr',ayat:5},{name:'Al-Bayyinah',ayat:8},{name:'Az-Zalzalah',ayat:8},{name:'Al-Adiyat',ayat:11},{name:'Al-Qari\'ah',ayat:11},{name:'At-Takasur',ayat:8},{name:'Al-Asr',ayat:3},{name:'Al-Humazah',ayat:9},{name:'Al-Fil',ayat:5},{name:'Quraisy',ayat:4},{name:'Al-Ma\'un',ayat:7},{name:'Al-Kausar',ayat:3},{name:'Al-Kafirun',ayat:6},{name:'An-Nasr',ayat:3},{name:'Al-Lahab',ayat:5},{name:'Al-Ikhlas',ayat:4},{name:'Al-Falaq',ayat:5},{name:'An-Nas',ayat:6}],
+  29: [{name:'Al-Mulk',ayat:30},{name:'Al-Qalam',ayat:52},{name:'Al-Haqqah',ayat:52},{name:'Al-Ma\'arij',ayat:44},{name:'Nuh',ayat:28},{name:'Al-Jinn',ayat:28},{name:'Al-Muzzammil',ayat:20},{name:'Al-Muddassir',ayat:56},{name:'Al-Qiyamah',ayat:40},{name:'Al-Insan',ayat:31},{name:'Al-Mursalat',ayat:50}],
+  30: [{name:'An-Naba',ayat:40},{name:'An-Nazi\'at',ayat:46},{name:'Abasa',ayat:42},{name:'At-Takwir',ayat:29},{name:'Al-Infitar',ayat:19},{name:'Al-Mutaffifin',ayat:36},{name:'Al-Insyiqaq',ayat:25},{name:'Al-Buruj',ayat:22},{name:'At-Tariq',ayat:17},{name:'Al-A\'la',ayat:19},{name:'Al-Gasiyah',ayat:26},{name:'Al-Fajr',ayat:30},{name:'Al-Balad',ayat:20},{name:'Asy-Syams',ayat:15},{name:'Al-Lail',ayat:21},{name:'Ad-Duha',ayat:11},{name:'Asy-Syarh',ayat:8},{name:'At-Tin',ayat:8},{name:'Al-Alaq',ayat:19},{name:'Al-Qadr',ayat:5},{name:'Al-Bayyinah',ayat:8},{name:'Az-Zalzalah',ayat:8},{name:'Al-Adiyat',ayat:11},{name:'Al-Qari\'ah',ayat:11},{name:'At-Takasur',ayat:8},{name:'Al-Asr',ayat:3},{name:'Al-Humazah',ayat:9},{name:'Al-Fil',ayat:5},{name:'Quraisy',ayat:4},{name:'Al-Ma\'un',ayat:7},{name:'Al-Kausar',ayat:3},{name:'Al-Kafirun',ayat:6},{name:'An-Nasr',ayat:3},{name:'Al-Lahab',ayat:5},{name:'Al-Ikhlas',ayat:4},{name:'Al-Falaq',ayat:5},{name:'An-Nas',ayat:6}]
+};
+
+function getSuratByJuz(juz) { return quranData[juz] || []; }
+function getAyatCount(juz, surat) { const s = getSuratByJuz(juz).find(x => x.name === surat); return s ? s.ayat : 0; }
+
+// --- MEMBANGUN URUTAN PROGRESS HAFALAN (SDIT STANDARD) ---
+let hafalanProgressPath = [];
+for (let j = 30; j >= 1; j--) {
+   if (quranData[j]) {
+      [...quranData[j]].reverse().forEach(s => {
+         if (!hafalanProgressPath.includes(s.name)) {
+            hafalanProgressPath.push(s.name);
+         }
+      });
+   }
+}
+
+// --- Database Helpers ---
+function getStudents() { return allData.filter(d => d.type === 'student'); }
+function getTeachers() { return allData.filter(d => d.type === 'teacher'); }
+function getReports() { return allData.filter(d => d.type === 'report'); }
+function getUsers() { return allData.filter(d => d.type === 'user'); }
+
+function getLatestStudentStatus(reportsList) {
+  const latest = {};
+  const sortedReports = [...reportsList].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+  sortedReports.forEach(r => {
+    latest[r.student_id] = r;
+  });
+  return Object.values(latest);
+}
+
+// --- LOGIC PENILAIAN "TUNTAS" TARGET ---
+function getBacaanScore(type, jilid, hal) {
+  if (type === 'quran') return 999999;
+  return (parseInt(jilid) || 1) * 1000 + (parseInt(hal) || 1);
+}
+
+function getJuzRank(j) {
+  if(j===30) return 1; if(j===29) return 2; if(j===28) return 3;
+  if(j===27) return 4; if(j===26) return 5; return j + 5; 
+}
+
+function getHafalanScore(juz, surat, ayat) {
+   const suratIndex = hafalanProgressPath.indexOf(surat);
+   if (suratIndex === -1) return 0;
+   return (suratIndex * 1000) + (parseInt(ayat) || 1);
+}
+
+function calculateTuntasMetrics(studentsList, reportsList) {
+  let tuntasBacaan = 0; let tuntasHafalan = 0;
+  let evaluatedBacaan = 0; let evaluatedHafalan = 0;
+
+  studentsList.forEach(student => {
+    const grade = student.grade;
+    const stReports = reportsList.filter(r => r.student_id === student.__backendId);
+    
+    const bacaanReports = stReports.filter(r => r.report_type === 'iqro' || r.report_type === 'quran').sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+    const hafalanReports = stReports.filter(r => r.report_type === 'hafalan').sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+    const tIqro = allData.find(x => x.type === 'setting' && x.subject === `iqro_target_${grade}`)?.data || {target_iqro_jilid:1, target_iqro_halaman:120};
+    const tHafalan = allData.find(x => x.type === 'setting' && x.subject === `hafalan_target_${grade}`)?.data || {target_hafalan_juz:30, target_surat_awal:'', target_ayat_akhir:1};
+
+    const targetBacaanScore = getBacaanScore('iqro', tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
+    const targetHafalanScore = getHafalanScore(tHafalan.target_hafalan_juz, tHafalan.target_surat_awal, tHafalan.target_ayat_akhir);
+
+    if (bacaanReports.length > 0) {
+       evaluatedBacaan++;
+       const latest = bacaanReports[0];
+       if (getBacaanScore(latest.report_type, latest.iqro_jilid, latest.iqro_halaman) >= targetBacaanScore) tuntasBacaan++;
+    }
+    if (hafalanReports.length > 0) {
+       evaluatedHafalan++;
+       const latest = hafalanReports[0];
+       if (getHafalanScore(latest.juz, latest.surat, latest.ayat_sampai) >= targetHafalanScore) tuntasHafalan++;
+    }
+  });
+
+  return { tuntasBacaan, tuntasHafalan, evaluatedBacaan, evaluatedHafalan };
+}
+
+const defaultGrades = ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"];
+function getGradeKelasMap() {
+  const setting = allData.find(x => x.type === 'setting' && x.subject === 'grade_kelas_map');
+  let parsed = null;
+  if (setting && setting.data) {
+    try { parsed = typeof setting.data === 'string' ? JSON.parse(setting.data) : setting.data; } catch(e){}
+  }
+  return parsed || {
+    "Grade 1": ["1 A", "1 B"], "Grade 2": ["2 A"], "Grade 3": ["3 A"], 
+    "Grade 4": ["4 A"], "Grade 5": ["5 A"], "Grade 6": ["6 A"]
+  };
+}
+
+async function saveGradeKelasMap(mapObj) {
+  let setting = allData.find(x => x.type === 'setting' && x.subject === 'grade_kelas_map');
+  if (setting) {
+    setting.data = mapObj; 
+    await window.dataSdk.update(setting);
+  } else {
+    await window.dataSdk.create({ type: 'setting', subject: 'grade_kelas_map', data: mapObj, name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0 });
+  }
+}
+
+function getAllClassesFlat() {
+  const map = getGradeKelasMap();
+  let list = [];
+  Object.values(map).forEach(classes => { list = list.concat(classes); });
+  return list;
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg, type='success') {
+  const colors = { success: 'bg-emerald-500', error: 'bg-red-500', warning: 'bg-amber-500' };
+  const div = document.createElement('div');
+  div.className = `toast fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 font-medium`;
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
+// ============ SESSION & NAV ============
+function saveSession() { localStorage.setItem('ikasi_session_v2', JSON.stringify(currentUser)); }
+function loadSession() {
+  const s = localStorage.getItem('ikasi_session_v2');
+  if (s) { currentUser = JSON.parse(s); return true; }
+  return false;
+}
+function clearSession() { localStorage.removeItem('ikasi_session_v2'); currentUser = null; }
+
+async function refreshAndGoHome() {
+  showToast('Menyegarkan data...', 'success');
+  if (window.dataSdk.fetchAll) await window.dataSdk.fetchAll();
+  navigate('dashboard');
+}
+
+// ============ RENDER ENGINE ============
+function render() {
+  const app = document.getElementById('app');
+  if (!currentUser) { 
+    app.className = "h-full w-full overflow-auto";
+    renderLogin(app); 
+  } else { 
+    app.className = "h-full w-full flex flex-col md:flex-row overflow-hidden bg-slate-50";
+    renderMain(app); 
+  }
+  if(window.lucide) lucide.createIcons();
+}
+
+function renderLogin(app) {
+  app.innerHTML = `
+  <div class="h-full w-full flex items-center justify-center bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-600 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-md fade-in">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="book-open" class="w-8 h-8 text-emerald-600"></i></div>
+        <h1 class="text-2xl font-bold text-slate-800">Qur'an Learning</h1>
+        <p class="text-slate-500 mt-1">Sistem Manajemen Pembelajaran Al-Qur'an</p>
+      </div>
+      <div id="login-form">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Username / Email</label>
+          <input id="login-user" type="text" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan username">
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+          <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan password">
+        </div>
+        <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition">Masuk</button>
+        <button onclick="loginAsVisitor()" class="w-full mt-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition">Masuk sebagai Pengunjung</button>
+        <p id="login-error" class="text-red-500 text-sm mt-3 hidden"></p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function handleLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!user || !pass) { showLoginError('Harap isi semua field'); return; }
+  
+  const allAccounts = allData.filter(d => d.type === 'user' || d.type === 'teacher');
+  const found = allAccounts.find(u => (u.name === user || u.email === user) && u.password === pass);
+  
+  if (found) { currentUser = { name: found.name, role: found.role, id: found.__backendId }; saveSession(); render(); return; }
+  if (user === 'admin' && pass === 'admin123') { currentUser = { name: 'Admin', role: 'admin', id: 'default' }; saveSession(); render(); return; }
+  showLoginError('Username atau password salah');
+}
+
+function loginAsVisitor() { currentUser = { name: 'Pengunjung', role: 'visitor', id: 'visitor' }; saveSession(); render(); }
+function showLoginError(msg) { const el = document.getElementById('login-error'); el.textContent = msg; el.classList.remove('hidden'); }
+function handleLogout() { clearSession(); currentPage = 'dashboard'; render(); }
+
+// ============ MAIN LAYOUT & SIDEBAR ============
+function toggleSidebar() {
+  isSidebarOpen = !isSidebarOpen;
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (isSidebarOpen) {
+    sidebar.classList.remove('-translate-x-full');
+    backdrop.classList.remove('hidden');
+  } else {
+    sidebar.classList.add('-translate-x-full');
+    backdrop.classList.add('hidden');
+  }
+}
+
+function updateSidebarActiveState() {
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    if (el.dataset.page === currentPage) {
+      el.classList.add('active', 'text-white');
+      el.classList.remove('text-emerald-100', 'border-transparent');
+      el.style.borderLeftColor = '#34d399';
+    } else {
+      el.classList.remove('active', 'text-white');
+      el.classList.add('text-emerald-100');
+      el.style.borderLeftColor = 'transparent';
+    }
+  });
+}
+
+function navigate(page) { 
+  currentPage = page; 
+  if (window.innerWidth < 768 && isSidebarOpen) toggleSidebar();
+  renderPage(); 
+}
+
+function renderMain(app) {
+  const isAdmin = currentUser.role === 'admin';
+  
+  const menuItems = [
+    { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard' },
+    { id: 'students', icon: 'users', label: 'Data Siswa' },
+    { id: 'teachers', icon: 'user-check', label: 'Data Guru' },
+    { id: 'report-bacaan', icon: 'book', label: 'Laporan Bacaan' },
+    { id: 'report-hafalan', icon: 'bookmark', label: 'Laporan Hafalan' },
+    { id: 'reports', icon: 'file-text', label: 'Rekap Laporan' },
+    { id: 'statistics', icon: 'bar-chart-2', label: 'Statistik' },
+  ];
+  if (isAdmin) {
+    menuItems.push({ id: 'settings', icon: 'settings', label: 'Pengaturan' });
+    menuItems.push({ id: 'user-management', icon: 'shield', label: 'Manajemen User' });
+    menuItems.push({ id: 'guru-account', icon: 'user-cog', label: 'Akun Guru' });
+  }
+
+  app.innerHTML = `
+  <!-- Mobile Header -->
+  <header class="md:hidden bg-emerald-800 text-white flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] shadow-md z-40 w-full shrink-0">
+    <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onclick="refreshAndGoHome()">
+      <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4"></i></div>
+      <h1 class="font-bold text-lg">Qur'an Learning</h1>
+    </div>
+    <button onclick="toggleSidebar()" class="p-2 bg-emerald-700 rounded-lg hover:bg-emerald-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
+  </header>
+
+  <!-- Sidebar Backdrop (Mobile) -->
+  <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-64 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white flex flex-col h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-50 shadow-2xl md:shadow-none pt-[env(safe-area-inset-top)] md:pt-0 pb-[env(safe-area-inset-bottom)]">
+    <div class="p-5 border-b border-emerald-700 hidden md:block cursor-pointer hover:bg-emerald-800/50 transition" onclick="refreshAndGoHome()">
+      <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5 text-emerald-300"></i> Qur'an Learning</h1>
+      <p class="text-emerald-300 text-xs mt-1 ml-7">${currentUser.name} (${currentUser.role})</p>
+    </div>
+    <div class="p-5 border-b border-emerald-700 md:hidden flex justify-between items-center">
+       <div>
+         <p class="font-semibold">${currentUser.name}</p>
+         <p class="text-emerald-300 text-xs">${currentUser.role}</p>
+       </div>
+       <button onclick="toggleSidebar()" class="p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+    </div>
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      ${menuItems.map(m => `
+        <button data-page="${m.id}" onclick="navigate('${m.id}')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm border-l-4 border-transparent">
+          <i data-lucide="${m.icon}" class="w-4 h-4"></i> ${m.label}
+        </button>
+      `).join('')}
+    </nav>
+    <div class="p-4 border-t border-emerald-700">
+      <button onclick="handleLogout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm text-emerald-200 hover:text-white hover:bg-white/10 transition">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-content" class="flex-1 overflow-y-auto h-full p-4 md:p-6 bg-slate-50 w-full pb-[max(1.5rem,env(safe-area-inset-bottom))]"></main>
+  `;
+  
+  renderPage();
+}
+
+function renderPage() {
+  const main = document.getElementById('main-content');
+  if (!main) return;
+  
+  const adminPages = ['settings', 'user-management', 'guru-account'];
+  if (adminPages.includes(currentPage) && currentUser.role !== 'admin') {
+    currentPage = 'dashboard'; 
+  }
+
+  window.scrollTo(0,0);
+  updateSidebarActiveState();
+
+  switch(currentPage) {
+    case 'dashboard': renderDashboard(main); break;
+    case 'students': renderStudents(main); break;
+    case 'teachers': renderTeachers(main); break;
+    case 'report-bacaan': renderReportBacaan(main); break;
+    case 'report-hafalan': renderReportHafalan(main); break;
+    case 'reports': renderReports(main); break;
+    case 'statistics': renderStatistics(main); break;
+    case 'settings': renderSettings(main); break;
+    case 'user-management': renderUserManagement(main); break;
+    case 'guru-account': renderGuruAccount(main); break;
+    default: renderDashboard(main);
+  }
+  if(window.lucide) lucide.createIcons();
+}
+
+// ============ DASHBOARD ============
+function renderDashboard(el) {
+  const students = getStudents();
+  const reports = getReports();
+  const map = getGradeKelasMap();
+  
+  const metrics = calculateTuntasMetrics(students, reports);
+  const totalReports = reports.length;
+  
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">Dashboard Utama</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="card-hover bg-white rounded-xl p-4 md:p-5 shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="users" class="w-5 h-5 text-blue-600"></i></div>
+        <div><p class="text-xl md:text-2xl font-bold text-slate-800">${students.length}</p><p class="text-xs text-slate-500">Total Siswa Terdaftar</p></div>
+      </div>
+      <div class="card-hover bg-white rounded-xl p-4 md:p-5 shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-3">
+        <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="book-open-check" class="w-5 h-5 text-emerald-600"></i></div>
+        <div><p class="text-xl md:text-2xl font-bold text-emerald-600">${metrics.tuntasBacaan}</p><p class="text-xs text-slate-500">Siswa Tuntas Bacaan</p></div>
+      </div>
+      <div class="card-hover bg-white rounded-xl p-4 md:p-5 shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-3">
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="bookmark-check" class="w-5 h-5 text-purple-600"></i></div>
+        <div><p class="text-xl md:text-2xl font-bold text-purple-600">${metrics.tuntasHafalan}</p><p class="text-xs text-slate-500">Siswa Tuntas Hafalan</p></div>
+      </div>
+      <div class="card-hover bg-white rounded-xl p-4 md:p-5 shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-3">
+        <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="history" class="w-5 h-5 text-amber-600"></i></div>
+        <div><p class="text-xl md:text-2xl font-bold text-amber-600">${totalReports}</p><p class="text-xs text-slate-500">Total Histori Laporan</p></div>
+      </div>
+    </div>
+    
+    <h3 class="text-lg font-semibold text-slate-700 mb-4">Capaian Target Kurikulum Per Tingkat</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      ${Object.keys(map).map(gradeName => {
+        const gradeClasses = map[gradeName] || [];
+        const ks = students.filter(s => s.grade === gradeName);
+        const stMetrics = calculateTuntasMetrics(ks, reports);
+        
+        const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((stMetrics.tuntasBacaan/stMetrics.evaluatedBacaan)*100) : 0;
+        const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((stMetrics.tuntasHafalan/stMetrics.evaluatedHafalan)*100) : 0;
+        
+        return `
+        <div class="card-hover bg-white rounded-xl p-5 shadow-sm border border-slate-100 cursor-pointer" onclick="navigate('students');filterByGrade('${gradeName}')">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="font-bold text-slate-700">${gradeName}</h4>
+            <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-semibold">${ks.length} Siswa</span>
+          </div>
+          
+          <div class="mb-3">
+            <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5"><span>Target Bacaan</span><span class="text-emerald-600">${pctBacaan}%</span></div>
+            <div class="w-full bg-slate-100 rounded-full h-2"><div class="h-2 rounded-full bg-emerald-500" style="width:${pctBacaan}%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5"><span>Target Hafalan</span><span class="text-purple-600">${pctHafalan}%</span></div>
+            <div class="w-full bg-slate-100 rounded-full h-2"><div class="h-2 rounded-full bg-purple-500" style="width:${pctHafalan}%"></div></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ============ STUDENTS ============
+let studentFilterClass = "";
+let studentFilterGrade = null;
+
+function filterByGrade(grade) { studentFilterGrade = grade; studentFilterClass = ""; renderPage(); }
+function filterByClass(className) { studentFilterClass = className; renderPage(); }
+
+function renderStudents(el) {
+  const isVisitor = currentUser.role === 'visitor';
+  const map = getGradeKelasMap();
+  const gradeList = Object.keys(map);
+  
+  let students = getStudents();
+  if (studentFilterGrade) students = students.filter(s => s.grade === studentFilterGrade);
+  if (studentFilterClass) students = students.filter(s => s.kelas === studentFilterClass);
+  
+  const displayKelas = studentFilterGrade ? (map[studentFilterGrade] || []) : getAllClassesFlat();
+  
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+      <h2 class="text-2xl font-bold text-slate-800">Data Siswa</h2>
+    </div>
+
+    <!-- PENCARIAN CEPAT (EDIT) & TAMBAH SISWA -->
+    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center relative z-20">
+      <div class="w-full md:w-1/2 lg:w-1/3 relative">
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Pencarian Cepat (Edit Siswa)</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+          </div>
+          <input type="text" id="search-edit-student" placeholder="Ketik nama siswa..." class="w-full pl-10 px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition" autocomplete="off" oninput="filterStudents('edit', this.value)" onfocus="filterStudents('edit', this.value)">
+          <input type="hidden" id="edit-student" value="">
+          <div id="dropdown-edit-student" class="absolute z-[60] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
+        </div>
+      </div>
+      ${!isVisitor ? `<button onclick="showAddStudent()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md shrink-0 transition"><i data-lucide="user-plus" class="w-5 h-5"></i>Tambah Siswa Baru</button>` : ''}
+    </div>
+    
+    <div class="mb-4">
+      <h3 class="text-sm font-semibold text-slate-600 mb-2">Filter Tingkat (Grade)</h3>
+      <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scroll">
+        <button onclick="studentFilterGrade=null;studentFilterClass='';renderPage()" class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${!studentFilterGrade?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Semua</button>
+        ${gradeList.map(g => `<button onclick="filterByGrade('${g}')" class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${studentFilterGrade===g?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">${g}</button>`).join('')}
+      </div>
+    </div>
+    
+    ${(studentFilterGrade && displayKelas.length > 0) ? `
+    <div class="mb-6">
+      <h3 class="text-sm font-semibold text-slate-600 mb-2">Filter Kelas</h3>
+      <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scroll">
+        <button onclick="studentFilterClass='';renderPage()" class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${!studentFilterClass?'bg-blue-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Semua Kelas</button>
+        ${displayKelas.map(k => `<button onclick="filterByClass('${k}')" class="shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${studentFilterClass===k?'bg-blue-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">${k}</button>`).join('')}
+      </div>
+    </div>
+    ` : ''}
+    
+    <div id="student-modal" class="hidden relative z-[100]"></div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-sm min-w-[700px]">
+          <thead class="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama</th>
+              <th class="text-left px-4 py-3 font-semibold text-slate-600">Tingkat</th>
+              <th class="text-left px-4 py-3 font-semibold text-slate-600">Kelas</th>
+              <th class="text-left px-4 py-3 font-semibold text-slate-600">Target Iqro'</th>
+              <th class="text-left px-4 py-3 font-semibold text-slate-600">Target Hafalan</th>
+              ${!isVisitor?'<th class="text-center px-4 py-3 font-semibold text-slate-600">Aksi</th>':''}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            ${students.length ? students.map(s => `
+              <tr class="hover:bg-slate-50/50 transition">
+                <td class="px-4 py-3 font-bold text-slate-700">${s.name}</td>
+                <td class="px-4 py-3 text-slate-500">${s.grade || '-'}</td>
+                <td class="px-4 py-3"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200">${s.kelas || '-'}</span></td>
+                <td class="px-4 py-3 text-xs font-semibold text-emerald-600">Jilid ${s.iqro_jilid||'-'} Hal ${s.iqro_halaman||'-'}</td>
+                <td class="px-4 py-3 text-xs font-semibold text-purple-600">${s.target_hafalan_surat ? `${s.target_hafalan_surat} (Ayt ${s.target_hafalan_ayat_dari||'-'}-${s.target_hafalan_ayat_sampai||'-'})` : 'Juz ' + (s.target_juz||'-')}</td>
+                ${!isVisitor?`<td class="px-4 py-3 flex justify-center gap-2">
+                  <button onclick="editStudent('${s.__backendId}')" class="p-1.5 hover:bg-blue-50 rounded text-blue-600 transition"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                  <button onclick="confirmDeleteStudent('${s.__backendId}')" class="p-1.5 hover:bg-red-50 rounded text-red-600 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>`:''}
+              </tr>
+            `).join('') : '<tr><td colspan="6" class="px-4 py-12 text-center text-slate-400">Belum ada data siswa. Silakan tambah siswa baru.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showAddStudent() {
+  const map = getGradeKelasMap();
+  const gradeList = Object.keys(map);
+  
+  const modal = document.getElementById('student-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] fade-in">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <h3 class="font-bold text-lg text-slate-800">Tambah Siswa Baru</h3>
+        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Lengkap</label><input id="s-name" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Masukkan nama siswa"></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tingkat (Grade)</label><select id="s-grade" onchange="handleGradeChangeForm()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"><option value="">-- Pilih Tingkat --</option>${gradeList.map(g => `<option value="${g}">${g}</option>`).join('')}</select></div>
+        </div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50"><option value="">Pilih Tingkat Terlebih Dahulu</option></select></div>
+        
+        <div class="border-t border-slate-100 pt-4">
+          <h4 class="text-sm font-bold text-emerald-700 mb-3 flex items-center gap-2"><i data-lucide="book" class="w-4 h-4"></i> Target Iqro'</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Jilid (1-6)</label><input id="s-jilid" type="number" min="1" max="6" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" value="1"></div>
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Halaman</label><input id="s-hal" type="number" min="1" max="120" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" value="1"></div>
+          </div>
+        </div>
+        
+        <div class="border-t border-slate-100 pt-4">
+          <h4 class="text-sm font-bold text-purple-700 mb-3 flex items-center gap-2"><i data-lucide="bookmark" class="w-4 h-4"></i> Target Hafalan Al-Qur'an</h4>
+          <div class="bg-slate-50 p-3 rounded-xl mb-3 flex gap-4">
+            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" id="hafal-juz" name="hafal-type" value="juz" checked onchange="updateHafalanMode()" class="text-purple-600 focus:ring-purple-500"> <span>Berdasarkan Juz</span></label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" id="hafal-surat" name="hafal-type" value="surat" onchange="updateHafalanMode()" class="text-purple-600 focus:ring-purple-500"> <span>Berdasarkan Surat</span></label>
+          </div>
+          
+          <div id="hafal-juz-mode">
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Target Juz Selesai (1-30)</label><input id="s-target-juz" type="number" min="1" max="30" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value="30"></div>
+          </div>
+          
+          <div id="hafal-surat-mode" class="hidden space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Juz</label><select id="s-hafal-juz" onchange="updateHafalanSuratDropdown()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select></div>
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Surat</label><select id="s-hafal-surat" onchange="updateHafalanAyatMax()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white"></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Dari Ayat</label><input id="s-hafal-ayat-dari" type="number" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value="1"></div>
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Ayat</label><input id="s-hafal-ayat-sampai" type="number" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value="1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
+        <button onclick="closeStudentModal()" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition">Batal</button>
+        <button onclick="saveStudent()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-200 transition">Simpan Siswa</button>
+      </div>
+    </div>
+  </div>`;
+  updateHafalanSuratDropdown();
+  if(window.lucide) lucide.createIcons();
+}
+
+function handleGradeChangeForm() {
+  updateKelasOptionsForm();
+  const grade = document.getElementById('s-grade').value;
+  if (!grade) return;
+  
+  const iqroSetting = allData.find(x => x.type === 'setting' && x.subject === 'iqro_target_' + grade);
+  const hafalanSetting = allData.find(x => x.type === 'setting' && x.subject === 'hafalan_target_' + grade);
+  
+  if (iqroSetting && iqroSetting.data) {
+    document.getElementById('s-jilid').value = iqroSetting.data.target_iqro_jilid || 1;
+    document.getElementById('s-hal').value = iqroSetting.data.target_iqro_halaman || 120;
+  }
+  
+  if (hafalanSetting && hafalanSetting.data) {
+    const hData = hafalanSetting.data;
+    document.getElementById('hafal-surat').checked = true;
+    document.getElementById('hafal-juz').checked = false; 
+    updateHafalanMode();
+    
+    document.getElementById('s-hafal-juz').value = hData.target_hafalan_juz || 30;
+    updateHafalanSuratDropdown(); 
+    
+    setTimeout(() => {
+      if (hData.target_surat_awal) {
+        const suratEl = document.getElementById('s-hafal-surat');
+        if (suratEl) suratEl.value = hData.target_surat_awal;
+        updateHafalanAyatMax(); 
+      }
+      const dariEl = document.getElementById('s-hafal-ayat-dari');
+      const sampaiEl = document.getElementById('s-hafal-ayat-sampai');
+      if (dariEl) dariEl.value = hData.target_ayat_awal || 1;
+      if (sampaiEl) sampaiEl.value = hData.target_ayat_akhir || 1;
+    }, 100);
+  }
+}
+
+function updateKelasOptionsForm(selectedKelasVal = "") {
+  const grade = document.getElementById('s-grade').value;
+  const sel = document.getElementById('s-kelas');
+  
+  if (!grade) {
+    sel.innerHTML = '<option value="">Pilih Tingkat Terlebih Dahulu</option>';
+    sel.classList.add('bg-slate-50');
+    return;
+  }
+  
+  const map = getGradeKelasMap();
+  const classes = map[grade] || [];
+  
+  sel.classList.remove('bg-slate-50');
+  sel.classList.add('bg-white');
+  
+  if(classes.length === 0) {
+    sel.innerHTML = '<option value="">(Belum ada kelas di tingkat ini)</option>';
+  } else {
+    sel.innerHTML = `<option value="">-- Pilih Kelas --</option>` + classes.map(k => `<option value="${k}" ${k===selectedKelasVal?'selected':''}>${k}</option>`).join('');
+  }
+}
+
+function updateHafalanMode() {
+  const juzMode = document.getElementById('hafal-juz').checked;
+  const hafalJuzMode = document.getElementById('hafal-juz-mode');
+  const hafalSuratMode = document.getElementById('hafal-surat-mode');
+  if (hafalJuzMode) hafalJuzMode.classList.toggle('hidden', !juzMode);
+  if (hafalSuratMode) hafalSuratMode.classList.toggle('hidden', juzMode);
+}
+
+function updateHafalanSuratDropdown() {
+  const juzEl = document.getElementById('s-hafal-juz');
+  const suratEl = document.getElementById('s-hafal-surat');
+  if (!juzEl || !suratEl) return;
+  const juz = parseInt(juzEl.value);
+  const surats = getSuratByJuz(juz);
+  suratEl.innerHTML = surats.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  updateHafalanAyatMax();
+}
+
+function updateHafalanAyatMax() {
+  const juzEl = document.getElementById('s-hafal-juz');
+  const suratEl = document.getElementById('s-hafal-surat');
+  const sampaiEl = document.getElementById('s-hafal-ayat-sampai');
+  const dariEl = document.getElementById('s-hafal-ayat-dari');
+  if (!juzEl || !suratEl || !sampaiEl || !dariEl) return;
+  
+  const juz = parseInt(juzEl.value);
+  const surat = suratEl.value;
+  const max = getAyatCount(juz, surat);
+  sampaiEl.max = max;
+  dariEl.max = max;
+  if(parseInt(sampaiEl.value) > max) sampaiEl.value = max;
+}
+
+function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); document.getElementById('student-modal').innerHTML = ''; }
+
+async function saveStudent() {
+  const name = document.getElementById('s-name').value.trim();
+  const grade = document.getElementById('s-grade').value;
+  const kelas = document.getElementById('s-kelas').value;
+  if (!name || !grade || !kelas) { showToast('Isi nama, grade, dan kelas', 'error'); return; }
+  
+  let hafalanData = {};
+  if (document.getElementById('hafal-juz').checked) {
+    hafalanData = { target_juz: parseInt(document.getElementById('s-target-juz').value) };
+  } else {
+    hafalanData = {
+      target_hafalan_surat: document.getElementById('s-hafal-surat').value,
+      target_hafalan_ayat_dari: parseInt(document.getElementById('s-hafal-ayat-dari').value),
+      target_hafalan_ayat_sampai: parseInt(document.getElementById('s-hafal-ayat-sampai').value)
+    };
+  }
+  
+  const r = await window.dataSdk.create({
+    type: 'student', name, grade, kelas,
+    iqro_jilid: parseInt(document.getElementById('s-jilid').value),
+    iqro_halaman: parseInt(document.getElementById('s-hal').value),
+    ...hafalanData,
+    email:'',password:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
+  });
+  if (r.isOk) { showToast('Siswa berhasil ditambahkan'); closeStudentModal(); }
+  else showToast('Gagal menyimpan','error');
+}
+
+function editStudent(id) {
+  const s = allData.find(d => d.__backendId === id);
+  if (!s) return;
+  
+  const map = getGradeKelasMap();
+  const gradeList = Object.keys(map);
+  
+  const modal = document.getElementById('student-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] fade-in">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <h3 class="font-bold text-lg text-slate-800">Edit Data Siswa</h3>
+        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama</label><input id="s-name" value="${s.name}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tingkat (Grade)</label><select id="s-grade" onchange="handleGradeChangeForm()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"><option value="">Pilih Tingkat</option>${gradeList.map(g => `<option value="${g}" ${s.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+        </div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></select></div>
+        
+        <div class="border-t border-slate-100 pt-4">
+          <h4 class="text-sm font-bold text-emerald-700 mb-3 flex items-center gap-2"><i data-lucide="book" class="w-4 h-4"></i> Target Iqro'</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Jilid (1-6)</label><input id="s-jilid" type="number" min="1" max="6" value="${s.iqro_jilid||1}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></div>
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Halaman (1-120)</label><input id="s-hal" type="number" min="1" max="120" value="${s.iqro_halaman||1}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></div>
+          </div>
+        </div>
+        
+        <div class="border-t border-slate-100 pt-4">
+          <h4 class="text-sm font-bold text-purple-700 mb-3 flex items-center gap-2"><i data-lucide="bookmark" class="w-4 h-4"></i> Target Hafalan Al-Qur'an</h4>
+          <div class="bg-slate-50 p-3 rounded-xl mb-3 flex gap-4">
+            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" id="hafal-juz" name="hafal-type" value="juz" ${!s.target_hafalan_surat ? 'checked' : ''} onchange="updateHafalanMode()" class="text-purple-600 focus:ring-purple-500"> <span>Berdasarkan Juz</span></label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" id="hafal-surat" name="hafal-type" value="surat" ${s.target_hafalan_surat ? 'checked' : ''} onchange="updateHafalanMode()" class="text-purple-600 focus:ring-purple-500"> <span>Berdasarkan Surat</span></label>
+          </div>
+          
+          <div id="hafal-juz-mode" class="${s.target_hafalan_surat ? 'hidden' : ''}">
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Target Juz (1-30)</label><input id="s-target-juz" type="number" min="1" max="30" value="${s.target_juz || 30}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"></div>
+          </div>
+          
+          <div id="hafal-surat-mode" class="${s.target_hafalan_surat ? '' : 'hidden'} space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Juz</label><select id="s-hafal-juz" onchange="updateHafalanSuratDropdown()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}</select></div>
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Surat</label><select id="s-hafal-surat" onchange="updateHafalanAyatMax()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white"></select></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Dari Ayat</label><input id="s-hafal-ayat-dari" type="number" min="1" value="${s.target_hafalan_ayat_dari || 1}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"></div>
+              <div><label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Ayat</label><input id="s-hafal-ayat-sampai" type="number" min="1" value="${s.target_hafalan_ayat_sampai || 1}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
+        <button onclick="closeStudentModal()" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition">Batal</button>
+        <button onclick="updateStudent('${id}')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-200 transition">Update</button>
+      </div>
+    </div>
+  </div>`;
+  updateKelasOptionsForm(s.kelas);
+  updateHafalanSuratDropdown();
+  
+  setTimeout(() => {
+    if (s.target_hafalan_surat) {
+      const suratEl = document.getElementById('s-hafal-surat');
+      if (suratEl) suratEl.value = s.target_hafalan_surat;
+      updateHafalanAyatMax();
+      const dariEl = document.getElementById('s-hafal-ayat-dari');
+      const sampaiEl = document.getElementById('s-hafal-ayat-sampai');
+      if (dariEl) dariEl.value = s.target_hafalan_ayat_dari || 1;
+      if (sampaiEl) sampaiEl.value = s.target_hafalan_ayat_sampai || 1;
+    }
+  }, 100);
+
+  if(window.lucide) lucide.createIcons();
+}
+
+async function updateStudent(id) {
+  const s = allData.find(d => d.__backendId === id);
+  if (!s) return;
+  s.name = document.getElementById('s-name').value.trim();
+  s.grade = document.getElementById('s-grade').value;
+  s.kelas = document.getElementById('s-kelas').value;
+  s.iqro_jilid = parseInt(document.getElementById('s-jilid').value);
+  s.iqro_halaman = parseInt(document.getElementById('s-hal').value);
+  
+  if (document.getElementById('hafal-juz').checked) {
+    s.target_juz = parseInt(document.getElementById('s-target-juz').value);
+    s.target_hafalan_surat = '';
+    s.target_hafalan_ayat_dari = 0;
+    s.target_hafalan_ayat_sampai = 0;
+  } else {
+    s.target_juz = 0;
+    s.target_hafalan_surat = document.getElementById('s-hafal-surat').value;
+    s.target_hafalan_ayat_dari = parseInt(document.getElementById('s-hafal-ayat-dari').value);
+    s.target_hafalan_ayat_sampai = parseInt(document.getElementById('s-hafal-ayat-sampai').value);
+  }
+  
+  const r = await window.dataSdk.update(s);
+  if (r.isOk) { showToast('Data siswa diperbarui'); closeStudentModal(); }
+  else showToast('Gagal update','error');
+}
+
+let pendingDeleteId = null;
+function confirmDeleteStudent(id) {
+  pendingDeleteId = id;
+  const modal = document.getElementById('student-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center fade-in">
+      <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="alert-triangle" class="w-8 h-8 text-red-500"></i></div>
+      <h3 class="font-bold text-xl text-slate-800 mb-2">Hapus Data?</h3>
+      <p class="text-sm text-slate-500 mb-6">Data yang dihapus tidak dapat dikembalikan lagi ke dalam sistem.</p>
+      <div class="flex gap-3">
+        <button onclick="closeStudentModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="doDelete()" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-semibold shadow-md shadow-red-200 transition">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+async function doDelete() {
+  const item = allData.find(d => d.__backendId === pendingDeleteId);
+  if (item) { const r = await window.dataSdk.delete(item); if(r.isOk) showToast('Data berhasil dihapus'); }
+  closeStudentModal();
+}
+
+// ============ TEACHERS ============
+function renderTeachers(el) {
+  const isVisitor = currentUser.role === 'visitor';
+  const teachers = getTeachers();
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <h2 class="text-2xl font-bold text-slate-800">Data Guru</h2>
+      ${!isVisitor?`<button onclick="showAddTeacher()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Tambah Guru</button>`:''}
+    </div>
+    <div id="teacher-modal" class="hidden relative z-[100]"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      ${teachers.length ? teachers.map(t => `
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 card-hover flex items-start gap-4">
+          <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center shrink-0"><i data-lucide="user" class="w-6 h-6 text-emerald-600"></i></div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-slate-800 truncate">${t.name}</h4>
+            <p class="text-xs text-slate-500 mt-1 truncate">NIP: ${t.nip||'-'}</p>
+            <p class="text-xs text-emerald-600 font-medium mt-1">${t.specialization||'Guru'}</p>
+          </div>
+          ${!isVisitor?`<button onclick="deleteTeacher('${t.__backendId}')" class="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`:''}
+        </div>
+      `).join('') : '<div class="col-span-full py-12 text-center text-slate-400">Belum ada data guru</div>'}
+    </div>
+  </div>`;
+}
+
+function showAddTeacher() { 
+  const modal = document.getElementById('teacher-modal'); modal.classList.remove('hidden');
+  modal.innerHTML = `<div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="font-bold text-lg text-slate-800 mb-4">Tambah Guru</h3><div class="space-y-3"><div><label class="text-sm font-semibold text-slate-600">Nama</label><input id="t-name" class="w-full mt-1 px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm"></div><div><label class="text-sm font-semibold text-slate-600">NIP</label><input id="t-nip" class="w-full mt-1 px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm"></div><div><label class="text-sm font-semibold text-slate-600">No. Telepon</label><input id="t-phone" class="w-full mt-1 px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm"></div><div><label class="text-sm font-semibold text-slate-600">Spesialisasi</label><input id="t-spec" class="w-full mt-1 px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Hafalan / Iqro'"></div></div><div class="flex gap-2 mt-6"><button onclick="document.getElementById('teacher-modal').classList.add('hidden')" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl text-sm font-semibold text-slate-700">Batal</button><button onclick="saveTeacher()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-emerald-200">Simpan</button></div></div></div>`;
+}
+
+async function saveTeacher() { const name = document.getElementById('t-name').value; if(!name)return; await window.dataSdk.create({type:'teacher',name,nip:document.getElementById('t-nip').value,phone:document.getElementById('t-phone').value,specialization:document.getElementById('t-spec').value,email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',address:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Guru ditambahkan'); document.getElementById('teacher-modal').classList.add('hidden'); renderPage(); }
+async function deleteTeacher(id) { const item = allData.find(d=>d.__backendId===id); if(item) await window.dataSdk.delete(item); renderPage(); }
+
+// ============ SETTINGS ============
+let activeSettingsTab = 'kelas-names';
+
+function renderSettings(el) {
+  const map = getGradeKelasMap();
+  const grades = Object.keys(map);
+
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengaturan Sistem</h2>
+    
+    <div class="flex overflow-x-auto gap-1 mb-6 border-b border-slate-200 hide-scroll">
+      <button onclick="activeSettingsTab='kelas-names';renderPage()" class="shrink-0 px-5 py-3 text-sm font-semibold transition ${activeSettingsTab==='kelas-names'?'border-b-2 border-emerald-600 text-emerald-700':'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}">Manajemen Kelas</button>
+      <button onclick="activeSettingsTab='targets';renderPage()" class="shrink-0 px-5 py-3 text-sm font-semibold transition ${activeSettingsTab==='targets'?'border-b-2 border-emerald-600 text-emerald-700':'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}">Target Kurikulum</button>
+    </div>
+    
+    ${activeSettingsTab==='kelas-names' ? `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        ${grades.map(gradeName => {
+          const classesInGrade = map[gradeName] || [];
+          return `
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+              <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i data-lucide="layers" class="w-5 h-5 text-emerald-500"></i> ${gradeName}</h3>
+              <button onclick="showAddKelasModal('${gradeName}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-lg transition">+ Tambah Kelas</button>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${classesInGrade.length > 0 ? classesInGrade.map(className => `
+                <div class="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl">
+                  <span class="font-medium text-slate-700 text-sm">${className}</span>
+                  <button onclick="deleteKelasDynamic('${gradeName}', '${className}')" class="text-slate-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>
+              `).join('') : '<div class="col-span-full text-center text-sm text-slate-400 py-3 italic">Belum ada kelas di tingkat ini</div>'}
+            </div>
+          </div>
+          `;
+        }).join('')}
+      </div>
+      
+      <div class="space-y-6">
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg shadow-emerald-200">
+          <h3 class="font-bold text-lg mb-2">Informasi</h3>
+          <p class="text-emerald-50 text-sm leading-relaxed mb-4">Tambahkan kelas secara spesifik di setiap tingkat (grade) sesuai dengan tahun ajaran berjalan. Data ini akan otomatis tampil di menu siswa dan laporan.</p>
+          <div class="bg-white/20 rounded-xl p-4 flex items-center gap-4">
+            <div class="text-4xl font-black">${getAllClassesFlat().length}</div>
+            <div class="text-sm font-medium leading-tight">Total Kelas<br>Aktif</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="kelas-modal" class="hidden relative z-[100]"></div>
+    ` : activeSettingsTab==='targets' ? `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="book" class="w-5 h-5 text-emerald-500"></i> Target Iqro' Per Tingkat</h3>
+        <div class="space-y-4">
+          ${grades.map((gradeName, idx) => {
+            const s = allData.find(x=>x.type==='setting' && x.subject===`iqro_target_${gradeName}`);
+            return `<div class="flex items-center gap-3"><span class="text-sm font-medium w-24 truncate" title="${gradeName}">${gradeName}:</span><input id="set-iqro-jilid-${idx}" type="number" min="1" max="6" value="${s?.data?.target_iqro_jilid||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Jilid</span><input id="set-iqro-hal-${idx}" type="number" min="1" max="120" value="${s?.data?.target_iqro_halaman||120}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Hal</span></div>`;
+          }).join('')}
+        </div>
+        <button onclick="saveSettingsIqro()" class="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Iqro'</button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="bookmark" class="w-5 h-5 text-blue-500"></i> Target Hafalan Per Tingkat</h3>
+        <div id="hafalan-settings" class="space-y-4">
+          ${grades.map((gradeName, idx) => {
+            const s = allData.find(x=>x.type==='setting' && x.subject===`hafalan_target_${gradeName}`);
+            const juz = s?.data?.target_hafalan_juz || 30;
+            const surats = getSuratByJuz(juz);
+            const surat = s?.data?.target_surat_awal || (surats[0]?.name || '');
+            const maxAyat = getAyatCount(juz, surat);
+            return `<div class="border border-slate-100 bg-slate-50/50 rounded-xl p-4">
+              <p class="text-sm font-bold text-slate-700 mb-3">${gradeName}</p>
+              <div class="flex items-center gap-2 flex-wrap mb-3">
+                <select id="set-haf-juz-${idx}" onchange="updateSettingSuratAyat(${idx})" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${Array.from({length:30},(_,i)=>`<option value="${i+1}" ${juz==i+1?'selected':''}>Juz ${i+1}</option>`).join('')}</select>
+                <select id="set-haf-surat-${idx}" onchange="updateSettingAyatMax(${idx})" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${surats.map(su=>`<option value="${su.name}" ${surat===su.name?'selected':''}>${su.name}</option>`).join('')}</select>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 w-10">Ayat</span>
+                <input id="set-haf-ayat-dari-${idx}" type="number" min="1" value="${s?.data?.target_ayat_awal||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                <span class="text-xs text-slate-400">s/d</span>
+                <input id="set-haf-ayat-sampai-${idx}" type="number" min="1" value="${s?.data?.target_ayat_akhir||maxAyat}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <button onclick="saveSettingsHafalan()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Hafalan</button>
+      </div>
+    </div>
+    ` : ''}
+  </div>`;
+}
+
+function updateSettingSuratAyat(idx) {
+  const juz = parseInt(document.getElementById(`set-haf-juz-${idx}`).value);
+  const surats = getSuratByJuz(juz);
+  const sel = document.getElementById(`set-haf-surat-${idx}`);
+  sel.innerHTML = surats.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  updateSettingAyatMax(idx);
+}
+
+function updateSettingAyatMax(idx) {
+  const juz = parseInt(document.getElementById(`set-haf-juz-${idx}`).value);
+  const surat = document.getElementById(`set-haf-surat-${idx}`).value;
+  const max = getAyatCount(juz, surat);
+  const m1 = document.getElementById(`set-haf-ayat-sampai-${idx}`);
+  const m2 = document.getElementById(`set-haf-ayat-dari-${idx}`);
+  if(m1) m1.max = max; 
+  if(m2) m2.max = max;
+  if (m1 && parseInt(m1.value) > max) m1.value = max;
+}
+
+async function saveSettingsIqro() {
+  const grades = Object.keys(getGradeKelasMap());
+  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
+  
+  let operations = [];
+  for (let i = 0; i < grades.length; i++) {
+    const gradeName = grades[i];
+    const subjectName = `iqro_target_${gradeName}`;
+    const existing = allData.find(x => x.type === 'setting' && x.subject === subjectName);
+    
+    const targetData = {
+      target_iqro_jilid: parseInt(document.getElementById(`set-iqro-jilid-${i}`).value) || 1,
+      target_iqro_halaman: parseInt(document.getElementById(`set-iqro-hal-${i}`).value) || 120
+    };
+    
+    if (existing) {
+      existing.data = targetData;
+      operations.push(window.dataSdk.update(existing, true));
+    } else {
+      operations.push(window.dataSdk.create({ type: 'setting', subject: subjectName, data: targetData, name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0 }, true));
+    }
+  }
+  await Promise.all(operations);
+  await window.dataSdk.fetchAll();
+  showToast("Target Iqro' per tingkat berhasil disimpan");
+}
+
+async function saveSettingsHafalan() {
+  const grades = Object.keys(getGradeKelasMap());
+  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
+  
+  let operations = [];
+  for (let i = 0; i < grades.length; i++) {
+    const gradeName = grades[i];
+    const subjectName = `hafalan_target_${gradeName}`;
+    const existing = allData.find(x => x.type === 'setting' && x.subject === subjectName);
+    
+    const targetData = {
+      target_hafalan_juz: parseInt(document.getElementById(`set-haf-juz-${i}`).value) || 30,
+      target_surat_awal: document.getElementById(`set-haf-surat-${i}`).value || '',
+      target_ayat_awal: parseInt(document.getElementById(`set-haf-ayat-dari-${i}`).value) || 1,
+      target_ayat_akhir: parseInt(document.getElementById(`set-haf-ayat-sampai-${i}`).value) || 1
+    };
+    
+    if (existing) {
+      existing.data = targetData;
+      operations.push(window.dataSdk.update(existing, true));
+    } else {
+      operations.push(window.dataSdk.create({ type: 'setting', subject: subjectName, data: targetData, name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0 }, true));
+    }
+  }
+  await Promise.all(operations);
+  await window.dataSdk.fetchAll();
+  showToast("Target Hafalan per tingkat berhasil disimpan");
+}
+
+function showAddKelasModal(gradeName) {
+  const modal = document.getElementById('kelas-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <h3 class="font-bold text-lg text-slate-800 mb-1">Tambah Kelas Baru</h3>
+      <p class="text-sm text-slate-500 mb-5">Akan ditambahkan ke: <span class="font-bold text-emerald-600">${gradeName}</span></p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Kelas</label>
+          <input id="k-name" class="w-full px-4 py-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Contoh: 1 Zaid, 1 Bilal">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeKelasModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="addKelasNameDynamic('${gradeName}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md transition">Simpan</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+function closeKelasModal() { document.getElementById('kelas-modal').classList.add('hidden'); }
+
+async function addKelasNameDynamic(gradeName) {
+  const inputEl = document.getElementById('k-name');
+  const className = inputEl.value.trim();
+  if (!className) { showToast('Nama kelas harus diisi', 'error'); return; }
+  
+  const map = getGradeKelasMap();
+  if (!map[gradeName]) map[gradeName] = [];
+  
+  if (map[gradeName].includes(className)) { 
+    showToast(`Kelas ${className} sudah ada di ${gradeName}`, 'warning'); 
+    return; 
+  }
+  
+  map[gradeName].push(className);
+  await saveGradeKelasMap(map);
+  
+  showToast(`Kelas ${className} berhasil ditambahkan`);
+  closeKelasModal();
+  renderPage();
+}
+
+async function deleteKelasDynamic(gradeName, className) {
+  const map = getGradeKelasMap();
+  if (map[gradeName]) {
+    map[gradeName] = map[gradeName].filter(c => c !== className);
+    await saveGradeKelasMap(map);
+    showToast(`Kelas ${className} dihapus`);
+    renderPage();
+  }
+}
+
+// ============ SEARCH SISWA HELPER ============
+function filterStudents(prefix, query) {
+  const students = getStudents();
+  const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+  const hiddenInput = document.getElementById(`${prefix}-student`);
+  
+  if (hiddenInput.dataset.name !== query) hiddenInput.value = ''; 
+
+  if (!query) {
+    renderDropdown(prefix, students.slice(0, 15)); 
+    dropdown.classList.remove('hidden');
+    return;
+  }
+  
+  const filtered = students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
+  renderDropdown(prefix, filtered.slice(0, 20)); 
+  dropdown.classList.remove('hidden');
+}
+
+function renderDropdown(prefix, list) {
+  const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+  if(list.length === 0) {
+     dropdown.innerHTML = '<div class="p-4 text-sm text-slate-500 text-center italic">Siswa tidak ditemukan</div>';
+     return;
+  }
+  dropdown.innerHTML = list.map(s => `
+    <div class="p-3 hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm transition" 
+         onmousedown="selectStudent('${prefix}', '${s.__backendId}', '${s.name.replace(/'/g, "\\'")}', '${s.kelas||s.grade||'-'}')">
+      <div class="font-bold text-slate-800">${s.name}</div>
+      <div class="text-xs text-slate-500 mt-0.5">Kelas: ${s.kelas||s.grade||'-'}</div>
+    </div>`
+  ).join('');
+}
+
+function selectStudent(prefix, id, name, kelas) {
+  if (prefix === 'edit') {
+    document.getElementById('dropdown-edit-student').classList.add('hidden');
+    document.getElementById('search-edit-student').value = '';
+    editStudent(id); 
+    return;
+  }
+  
+  const searchInput = document.getElementById(`search-${prefix}-student`);
+  const hiddenInput = document.getElementById(`${prefix}-student`);
+  
+  const displayText = `${name} (${kelas})`;
+  searchInput.value = displayText;
+  hiddenInput.value = id;
+  hiddenInput.dataset.name = displayText;
+  
+  document.getElementById(`dropdown-${prefix}-student`).classList.add('hidden');
+
+  // TRIGGER AUTO-FILL
+  autoFillReportForm(prefix, id);
+}
+
+function autoFillReportForm(prefix, studentId) {
+  const reports = getReports();
+  let reportType = '';
+  if (prefix === 'ri') reportType = 'iqro';
+  else if (prefix === 'rq') reportType = 'quran';
+  else if (prefix === 'rh') reportType = 'hafalan';
+
+  const stReports = reports.filter(r => r.student_id === studentId && r.report_type === reportType);
+  stReports.sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+  
+  if (stReports.length > 0) {
+    const latest = stReports[0];
+    if (prefix === 'ri') {
+      document.getElementById('ri-jilid').value = latest.iqro_jilid || 1;
+      document.getElementById('ri-hal').value = latest.iqro_halaman || 1;
+    } else if (prefix === 'rq') {
+      document.getElementById('rq-juz').value = latest.juz || 1;
+      updateQuranSuratDropdown(); 
+      setTimeout(() => {
+        const suratEl = document.getElementById('rq-surat');
+        if (suratEl && latest.surat) suratEl.value = latest.surat;
+        updateQuranAyatMax();
+        const dariEl = document.getElementById('rq-ayat-dari');
+        const sampaiEl = document.getElementById('rq-ayat-sampai');
+        if (dariEl) dariEl.value = latest.ayat_sampai || 1; 
+        if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1; 
+      }, 50);
+    } else if (prefix === 'rh') {
+      document.getElementById('rh-juz').value = latest.juz || 30;
+      updateSuratDropdownH();
+      setTimeout(() => {
+        const suratEl = document.getElementById('rh-surat');
+        if (suratEl && latest.surat) suratEl.value = latest.surat;
+        updateAyatMaxH();
+        const dariEl = document.getElementById('rh-ayat-dari');
+        const sampaiEl = document.getElementById('rh-ayat-sampai');
+        if (dariEl) dariEl.value = latest.ayat_sampai || 1;
+        if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+      }, 50);
+    }
+  } else {
+    // Jika belum pernah ada laporan, ambil target utama dari profil anak sebagai acuan
+    const student = getStudents().find(s => s.__backendId === studentId);
+    if (student) {
+       if (prefix === 'ri') {
+         document.getElementById('ri-jilid').value = student.iqro_jilid || 1;
+         document.getElementById('ri-hal').value = student.iqro_halaman || 1;
+       } else if (prefix === 'rh') {
+         if (student.target_juz && !student.target_hafalan_surat) {
+           document.getElementById('rh-juz').value = student.target_juz;
+           updateSuratDropdownH();
+         } else if (student.target_hafalan_surat) {
+           let foundJuz = 30;
+           for (let j = 1; j <= 30; j++) {
+             if (quranData[j] && quranData[j].find(x => x.name === student.target_hafalan_surat)) {
+               foundJuz = j; break;
+             }
+           }
+           document.getElementById('rh-juz').value = foundJuz;
+           updateSuratDropdownH();
+           setTimeout(() => {
+             const sEl = document.getElementById('rh-surat');
+             if(sEl) sEl.value = student.target_hafalan_surat;
+             updateAyatMaxH();
+             const dariEl = document.getElementById('rh-ayat-dari');
+             const sampaiEl = document.getElementById('rh-ayat-sampai');
+             if (dariEl) dariEl.value = student.target_hafalan_ayat_dari || 1;
+             if (sampaiEl) sampaiEl.value = student.target_hafalan_ayat_sampai || 1;
+           }, 50);
+         }
+       } else if (prefix === 'rq') {
+         document.getElementById('rq-juz').value = 1;
+         updateQuranSuratDropdown();
+         setTimeout(() => {
+            const dariEl = document.getElementById('rq-ayat-dari');
+            const sampaiEl = document.getElementById('rq-ayat-sampai');
+            if(dariEl) dariEl.value = 1;
+            if(sampaiEl) sampaiEl.value = 1;
+         }, 50);
+       }
+    }
+  }
+}
+
+document.addEventListener('mousedown', function(e) {
+  ['ri', 'rq', 'rh', 'edit'].forEach(prefix => {
+    const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+    const searchInput = document.getElementById(`search-${prefix}-student`);
+    if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {
+      dropdown.classList.add('hidden');
+    }
+  });
+});
+
+// ============ FORMS REPORT BACAAN & HAFALAN ============
+function renderReportBacaan(el) {
+  if (currentUser.role === 'visitor') return;
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">Input Laporan Bacaan</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><div class="p-1.5 bg-emerald-100 rounded-lg"><i data-lucide="book" class="w-4 h-4 text-emerald-600"></i></div> Bacaan Iqro'</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
+            <div class="relative w-full">
+              <input type="text" id="search-ri-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" autocomplete="off" oninput="filterStudents('ri', this.value)" onfocus="filterStudents('ri', this.value)">
+              <input type="hidden" id="ri-student" value="">
+              <div id="dropdown-ri-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Jilid</label><input id="ri-jilid" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Halaman</label><input id="ri-hal" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="ri-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+          <button onclick="saveReportIqro()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Iqro</button>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><div class="p-1.5 bg-blue-100 rounded-lg"><i data-lucide="scroll" class="w-4 h-4 text-blue-600"></i></div> Bacaan Al-Qur'an</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
+            <div class="relative w-full">
+              <input type="text" id="search-rq-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" autocomplete="off" oninput="filterStudents('rq', this.value)" onfocus="filterStudents('rq', this.value)">
+              <input type="hidden" id="rq-student" value="">
+              <div id="dropdown-rq-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Juz</label><select id="rq-juz" onchange="updateQuranSuratDropdown()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">Juz ${i+1}</option>`).join('')}</select></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Surat</label><select id="rq-surat" onchange="updateQuranAyatMax()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"></select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Ayat</label><input id="rq-ayat-dari" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sampai</label><input id="rq-ayat-sampai" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+          </div>
+          <button onclick="saveReportQuran()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Qur'an</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(() => { updateQuranSuratDropdown(); if(window.lucide) lucide.createIcons(); }, 100);
+}
+
+function renderReportHafalan(el) {
+  if (currentUser.role === 'visitor') return;
+  el.innerHTML = `
+  <div class="fade-in max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">Input Laporan Hafalan</h2>
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100">
+      <div class="space-y-5">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
+          <div class="relative w-full">
+            <input type="text" id="search-rh-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" autocomplete="off" oninput="filterStudents('rh', this.value)" onfocus="filterStudents('rh', this.value)">
+            <input type="hidden" id="rh-student" value="">
+            <div id="dropdown-rh-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Juz</label><select id="rh-juz" onchange="updateSuratDropdownH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">Juz ${i+1}</option>`).join('')}</select></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Surat</label><select id="rh-surat" onchange="updateAyatMaxH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"></select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Ayat</label><input id="rh-ayat-dari" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sampai</label><input id="rh-ayat-sampai" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+        </div>
+        <button onclick="saveReportHafalan()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold shadow-md mt-2 transition">Simpan Laporan Hafalan</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(() => updateSuratDropdownH(), 100);
+}
+
+function updateQuranSuratDropdown() { const j=parseInt(document.getElementById('rq-juz').value); document.getElementById('rq-surat').innerHTML=getSuratByJuz(j).map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); updateQuranAyatMax(); }
+function updateQuranAyatMax() { const j=parseInt(document.getElementById('rq-juz').value), s=document.getElementById('rq-surat').value, mx=getAyatCount(j,s); const m1=document.getElementById('rq-ayat-sampai'), m2=document.getElementById('rq-ayat-dari'); if(m1) m1.max=mx; if(m2) m2.max=mx; if(m1 && parseInt(m1.value) > mx) m1.value=mx; }
+function updateSuratDropdownH() { const j=parseInt(document.getElementById('rh-juz').value); document.getElementById('rh-surat').innerHTML=getSuratByJuz(j).map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); updateAyatMaxH(); }
+function updateAyatMaxH() { const j=parseInt(document.getElementById('rh-juz').value), s=document.getElementById('rh-surat').value, mx=getAyatCount(j,s); const m1=document.getElementById('rh-ayat-sampai'); const m2=document.getElementById('rh-ayat-dari'); if(m1) m1.max=mx; if(m2) m2.max=mx; if(m1 && parseInt(m1.value) > mx) m1.value=mx; }
+
+async function saveReportIqro(){ const st=document.getElementById('ri-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'iqro',student_id:st,iqro_jilid:parseInt(document.getElementById('ri-jilid').value),iqro_halaman:parseInt(document.getElementById('ri-hal').value),status:document.getElementById('ri-status').value,tanggal:document.getElementById('ri-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,subject:'iqro',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Iqro disimpan'); document.getElementById('ri-student').value=''; document.getElementById('search-ri-student').value=''; }
+async function saveReportQuran(){ const st=document.getElementById('rq-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Quran disimpan'); document.getElementById('rq-student').value=''; document.getElementById('search-rq-student').value=''; }
+async function saveReportHafalan(){ const st=document.getElementById('rh-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Hafalan disimpan'); document.getElementById('rh-student').value=''; document.getElementById('search-rh-student').value=''; }
+
+// ============ TABEL REKAP & RESPONSIVE ============
+function setReportFilter(field, val) {
+  if (field === 'type') reportFilterType = val;
+  if (field === 'grade') { reportFilterGrade = val; reportFilterClass = ''; }
+  if (field === 'kelas') reportFilterClass = val;
+  renderPage();
+}
+
+function renderReports(el) {
+  let reports = getReports();
+  const students = getStudents();
+  const map = getGradeKelasMap();
+  const gradeList = Object.keys(map);
+  const classList = reportFilterGrade ? (map[reportFilterGrade] || []) : getAllClassesFlat();
+
+  if (reportFilterType === 'bacaan') reports = reports.filter(r => r.report_type === 'iqro' || r.report_type === 'quran');
+  if (reportFilterType === 'hafalan') reports = reports.filter(r => r.report_type === 'hafalan');
+
+  if (reportFilterGrade || reportFilterClass) {
+    reports = reports.filter(r => {
+      const s = students.find(x => x.__backendId === r.student_id);
+      if (!s) return false;
+      if (reportFilterGrade && s.grade !== reportFilterGrade) return false;
+      if (reportFilterClass && s.kelas !== reportFilterClass) return false;
+      return true;
+    });
+  }
+
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <h2 class="text-2xl font-bold text-slate-800 mb-6">Rekap Histori Laporan</h2>
+    
+    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">
+      <h3 class="text-sm font-semibold text-slate-600 mb-3">Filter Laporan</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+           <label class="block text-xs font-semibold text-slate-500 mb-1">Kategori</label>
+           <select onchange="setReportFilter('type', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+             <option value="" ${reportFilterType===''?'selected':''}>Semua Kategori</option>
+             <option value="bacaan" ${reportFilterType==='bacaan'?'selected':''}>📖 Bacaan (Iqro / Qur'an)</option>
+             <option value="hafalan" ${reportFilterType==='hafalan'?'selected':''}>📚 Hafalan</option>
+           </select>
+        </div>
+        <div>
+           <label class="block text-xs font-semibold text-slate-500 mb-1">Tingkat (Grade)</label>
+           <select onchange="setReportFilter('grade', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+             <option value="" ${reportFilterGrade===''?'selected':''}>Semua Tingkat</option>
+             ${gradeList.map(g => `<option value="${g}" ${reportFilterGrade===g?'selected':''}>${g}</option>`).join('')}
+           </select>
+        </div>
+        <div>
+           <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
+           <select onchange="setReportFilter('kelas', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none ${!reportFilterGrade && 'bg-slate-50'}">
+             <option value="" ${reportFilterClass===''?'selected':''}>Semua Kelas</option>
+             ${classList.map(k => `<option value="${k}" ${reportFilterClass===k?'selected':''}>${k}</option>`).join('')}
+           </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-sm min-w-[600px]">
+          <thead class="bg-slate-50 border-b border-slate-100">
+            <tr><th class="text-left px-5 py-4 font-semibold text-slate-600">Tanggal</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Siswa</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Tipe</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Detail</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Status</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            ${reports.length ? reports.sort((a,b)=>new Date(b.tanggal) - new Date(a.tanggal)).map(r => {
+              const student = students.find(s=>s.__backendId===r.student_id);
+              let detail = r.report_type==='iqro'? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` : `Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})`;
+              const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
+              return `<tr class="hover:bg-slate-50/50 transition">
+                <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>
+                <td class="px-5 py-3 font-semibold text-slate-800">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
+                <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
+                <td class="px-5 py-3 text-slate-600">${detail}</td>
+                <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
+              </tr>`;
+            }).join('') : '<tr><td colspan="5" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ STATISTICS ============
+let statsPeriod = 'semua';
+
+function getReportsByPeriod(period) {
+  const reports = getReports();
+  const now = new Date();
+  if (period === 'semua') return reports;
+  if (period === 'harian') return reports.filter(r => r.tanggal === today());
+  if (period === 'mingguan') {
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+    return reports.filter(r => { const d = new Date(r.tanggal); return d >= weekStart && d <= weekEnd; });
+  }
+  if (period === 'bulanan') return reports.filter(r => new Date(r.tanggal).getMonth() === now.getMonth() && new Date(r.tanggal).getFullYear() === now.getFullYear());
+  if (period === 'tahunan') return reports.filter(r => new Date(r.tanggal).getFullYear() === now.getFullYear());
+  return reports;
+}
+
+function renderStatistics(el) {
+  const reports = getReportsByPeriod(statsPeriod);
+  const latestReports = getLatestStudentStatus(reports);
+  const students = getStudents();
+  const map = getGradeKelasMap();
+  
+  const lancar = latestReports.filter(r=>r.status==='Lancar').length;
+  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
+  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const total = latestReports.length || 1;
+  const maxVal = Math.max(lancar, mengulang, tidakLancar, 1);
+  
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <h2 class="text-2xl font-bold text-slate-800">Statistik Laporan</h2>
+      <div class="flex gap-2 w-full md:w-auto">
+        <button onclick="exportStatsPDF()" class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"><i data-lucide="file-pdf" class="w-4 h-4"></i>Unduh PDF</button>
+        <button onclick="printStats()" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"><i data-lucide="printer" class="w-4 h-4"></i>Cetak</button>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-2 hide-scroll">
+      <button onclick="statsPeriod='semua';renderPage()" class="shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition ${statsPeriod==='semua'?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Semua</button>
+      <button onclick="statsPeriod='harian';renderPage()" class="shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition ${statsPeriod==='harian'?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Harian</button>
+      <button onclick="statsPeriod='mingguan';renderPage()" class="shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition ${statsPeriod==='mingguan'?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Mingguan</button>
+      <button onclick="statsPeriod='bulanan';renderPage()" class="shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition ${statsPeriod==='bulanan'?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Bulanan</button>
+      <button onclick="statsPeriod='tahunan';renderPage()" class="shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition ${statsPeriod==='tahunan'?'bg-emerald-600 text-white shadow-md':'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}">Tahunan</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-700 mb-4">Status Kelancaran (Berdasarkan Update Terakhir)</h3>
+        <div class="space-y-4">
+          <div><div class="flex justify-between text-sm mb-1"><span class="text-emerald-600 font-bold">Lancar</span><span class="font-semibold text-slate-700">${lancar} <span class="text-slate-400 font-normal">(${Math.round(lancar/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-emerald-500" style="width:${lancar/maxVal*100}%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span class="text-amber-600 font-bold">Mengulang</span><span class="font-semibold text-slate-700">${mengulang} <span class="text-slate-400 font-normal">(${Math.round(mengulang/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-amber-500" style="width:${mengulang/maxVal*100}%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span class="text-red-600 font-bold">Tidak Lancar</span><span class="font-semibold text-slate-700">${tidakLancar} <span class="text-slate-400 font-normal">(${Math.round(tidakLancar/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-red-500" style="width:${tidakLancar/maxVal*100}%"></div></div></div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-700 mb-4">Progress Ketuntasan Target Per Tingkat</h3>
+        <div class="space-y-4">
+          ${Object.keys(map).map(gradeName => {
+            const ks = students.filter(s => s.grade === gradeName);
+            const stMetrics = calculateTuntasMetrics(ks, reports);
+            const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((stMetrics.tuntasBacaan/stMetrics.evaluatedBacaan)*100) : 0;
+            const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((stMetrics.tuntasHafalan/stMetrics.evaluatedHafalan)*100) : 0;
+            
+            return `
+            <div>
+              <div class="flex justify-between text-sm mb-1"><span class="font-bold text-slate-700">${gradeName} <span class="font-normal text-slate-400 text-xs">(${ks.length} Siswa)</span></span></div>
+              <div class="mb-1.5">
+                 <div class="flex justify-between text-[10px] text-slate-500 mb-0.5"><span>Target Bacaan</span><span>${pctBacaan}%</span></div>
+                 <div class="w-full bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-emerald-500" style="width:${pctBacaan}%"></div></div>
+              </div>
+              <div>
+                 <div class="flex justify-between text-[10px] text-slate-500 mb-0.5"><span>Target Hafalan</span><span>${pctHafalan}%</span></div>
+                 <div class="w-full bg-slate-100 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-purple-500" style="width:${pctHafalan}%"></div></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ EXPORT & PRINT ============
+function getPeriodLabel() {
+  const todayDate = new Date();
+  if (statsPeriod === 'semua') return 'Semua Data';
+  if (statsPeriod === 'harian') return `Harian - ${todayDate.toLocaleDateString('id-ID')}`;
+  if (statsPeriod === 'mingguan') return `Mingguan - ${todayDate.toLocaleDateString('id-ID')}`;
+  if (statsPeriod === 'bulanan') return `Bulan ${todayDate.toLocaleString('id-ID', {month:'long', year:'numeric'})}`;
+  if (statsPeriod === 'tahunan') return `Tahun ${todayDate.getFullYear()}`;
+  return '';
+}
+
+function exportStatsPDF() {
+  const reports = getReportsByPeriod(statsPeriod);
+  const latestReports = getLatestStudentStatus(reports);
+  const students = getStudents();
+  const map = getGradeKelasMap();
+  const lancar = latestReports.filter(r=>r.status==='Lancar').length;
+  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
+  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const total = latestReports.length || 1;
+  const reportCount = reports.length;
+  const avg = latestReports.length > 0 ? Math.round(lancar/latestReports.length*100) : 0;
+  
+  let htmlContent = `
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Laporan Statistik</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+        h1 { color: #059669; border-bottom: 2px solid #059669; padding-bottom: 10px; }
+        h2 { color: #1e293b; margin-top: 20px; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #f1f5f9; padding: 10px; text-align: left; border: 1px solid #cbd5e1; font-weight: bold; }
+        td { padding: 10px; border: 1px solid #cbd5e1; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        .stats-box { margin-top: 15px; padding: 15px; background-color: #f1f5f9; border-left: 4px solid #059669; }
+        .period-label { color: #64748b; font-size: 12px; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <h1>📊 Laporan Statistik Pembelajaran Al-Qur'an</h1>
+      <div class="period-label">Periode: ${getPeriodLabel()}</div>
+      
+      <h2>1. Status Bacaan (Berdasarkan Update Terakhir Anak)</h2>
+      <table>
+        <tr><th>Status</th><th>Jumlah Anak</th><th>Persentase</th></tr>
+        <tr><td>Lancar</td><td>${lancar}</td><td>${latestReports.length > 0 ? Math.round(lancar/total*100) : 0}%</td></tr>
+        <tr><td>Mengulang</td><td>${mengulang}</td><td>${latestReports.length > 0 ? Math.round(mengulang/total*100) : 0}%</td></tr>
+        <tr><td>Tidak Lancar</td><td>${tidakLancar}</td><td>${latestReports.length > 0 ? Math.round(tidakLancar/total*100) : 0}%</td></tr>
+        <tr style="background-color: #ecfdf5;"><td><strong>Total Anak Disimak</strong></td><td><strong>${latestReports.length}</strong></td><td><strong>100%</strong></td></tr>
+      </table>
+      
+      <h2>2. Progress Ketuntasan Target Per Tingkat (Grade)</h2>
+      <table>
+        <tr><th>Grade</th><th>Total Siswa</th><th>Tuntas Bacaan</th><th>Tuntas Hafalan</th></tr>
+  `;
+  
+  Object.keys(map).forEach(gradeName => {
+    const ks = students.filter(s => s.grade === gradeName);
+    const stMetrics = calculateTuntasMetrics(ks, reports);
+    const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((stMetrics.tuntasBacaan/stMetrics.evaluatedBacaan)*100) : 0;
+    const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((stMetrics.tuntasHafalan/stMetrics.evaluatedHafalan)*100) : 0;
+    htmlContent += `<tr><td>${gradeName}</td><td>${ks.length}</td><td>${pctBacaan}%</td><td>${pctHafalan}%</td></tr>`;
+  });
+  
+  htmlContent += `</table>
+      
+      <h2>3. Tipe Laporan</h2>
+      <table>
+        <tr><th>Tipe</th><th>Total Entri Laporan</th></tr>
+        <tr><td>Iqro'</td><td>${reports.filter(r=>r.report_type==='iqro').length}</td></tr>
+        <tr><td>Hafalan</td><td>${reports.filter(r=>r.report_type==='hafalan').length}</td></tr>
+        <tr><td>Bacaan Al-Qur'an</td><td>${reports.filter(r=>r.report_type==='quran').length}</td></tr>
+      </table>
+      
+      <div class="stats-box">
+        <strong>📌 Ringkasan:</strong><br>
+        Total Siswa Terdaftar: ${students.length}<br>
+        Total Entri Laporan Masuk: ${reportCount}<br>
+        Rata-rata Kelancaran (Bukan Target): <strong>${avg}%</strong>
+      </div>
+      
+      <div class="stats-box" style="margin-top: 30px; border-left-color: #999;">
+        <small>Laporan ini dihasilkan dari Sistem IKASI Qur'an Learning<br>
+        Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}</small>
+      </div>
+    </body>
+  </html>`;
+  
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Statistik-${statsPeriod}-${today().replace(/-/g, '')}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+  showToast('PDF siap diunduh');
+}
+
+function printStats() {
+  const reports = getReportsByPeriod(statsPeriod);
+  const latestReports = getLatestStudentStatus(reports);
+  const students = getStudents();
+  const map = getGradeKelasMap();
+  const lancar = latestReports.filter(r=>r.status==='Lancar').length;
+  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
+  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const total = latestReports.length || 1;
+  const reportCount = reports.length;
+  const avg = latestReports.length > 0 ? Math.round(lancar/latestReports.length*100) : 0;
+  
+  let printContent = `
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Laporan Statistik - Cetak</title>
+      <style>
+        @media print {
+          body { margin: 0; padding: 10px; }
+          .no-print { display: none; }
+        }
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #059669; text-align: center; border-bottom: 3px solid #059669; padding-bottom: 10px; }
+        h2 { color: #1e293b; margin-top: 25px; font-size: 16px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #059669; color: white; padding: 10px; text-align: left; }
+        td { padding: 8px; border: 1px solid #cbd5e1; }
+        tr:nth-child(even) { background-color: #f1f5f9; }
+        .header-info { text-align: center; margin-bottom: 20px; color: #64748b; font-size: 12px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .stat-card { padding: 15px; background-color: #f1f5f9; border-left: 4px solid #059669; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #059669; }
+        .stat-label { font-size: 12px; color: #64748b; margin-top: 5px; }
+        button { padding: 10px 15px; background-color: #059669; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; }
+        button:hover { background-color: #047857; }
+        .no-print { text-align: center; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="no-print">
+          <button onclick="window.print()">🖨️ Cetak Dokumen</button>
+          <button onclick="window.close()">❌ Tutup</button>
+        </div>
+        
+        <h1>📊 Laporan Statistik Pembelajaran Al-Qur'an</h1>
+        <div class="header-info">
+          Periode: ${getPeriodLabel()}<br>
+          Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}
+        </div>
+        
+        <h2>1. Status Kelancaran (Berdasarkan Update Terakhir Anak)</h2>
+        <table>
+          <tr><th>Status</th><th>Jumlah Anak</th><th>Persentase</th></tr>
+          <tr><td style="font-weight:bold; color:#059669">✓ Lancar</td><td>${lancar}</td><td>${latestReports.length > 0 ? Math.round(lancar/total*100) : 0}%</td></tr>
+          <tr><td style="font-weight:bold; color:#f59e0b">⟲ Mengulang</td><td>${mengulang}</td><td>${latestReports.length > 0 ? Math.round(mengulang/total*100) : 0}%</td></tr>
+          <tr><td style="font-weight:bold; color:#ef4444">✗ Tidak Lancar</td><td>${tidakLancar}</td><td>${latestReports.length > 0 ? Math.round(tidakLancar/total*100) : 0}%</td></tr>
+          <tr style="background-color: #ecfdf5; font-weight: bold;"><td>Total</td><td>${total}</td><td>100%</td></tr>
+        </table>
+        
+        <h2>2. Progress Ketuntasan Target Per Tingkat (Grade)</h2>
+        <table>
+          <tr><th>Grade</th><th>Total Siswa</th><th>Tuntas Bacaan</th><th>Tuntas Hafalan</th></tr>
+  `;
+  
+  Object.keys(map).forEach(gradeName => {
+    const ks = students.filter(s => s.grade === gradeName);
+    const stMetrics = calculateTuntasMetrics(ks, reports);
+    const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((stMetrics.tuntasBacaan/stMetrics.evaluatedBacaan)*100) : 0;
+    const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((stMetrics.tuntasHafalan/stMetrics.evaluatedHafalan)*100) : 0;
+    printContent += `<tr><td><strong>${gradeName}</strong></td><td>${ks.length}</td><td><strong>${pctBacaan}%</strong></td><td><strong>${pctHafalan}%</strong></td></tr>`;
+  });
+  
+  printContent += `</table>
+        
+        <h2>3. Tipe Laporan yang Masuk</h2>
+        <table>
+          <tr><th>Jenis</th><th>Total Entri</th></tr>
+          <tr><td>📖 Iqro'</td><td>${reports.filter(r=>r.report_type==='iqro').length}</td></tr>
+          <tr><td>📚 Hafalan</td><td>${reports.filter(r=>r.report_type==='hafalan').length}</td></tr>
+          <tr><td>📕 Bacaan Al-Qur'an</td><td>${reports.filter(r=>r.report_type==='quran').length}</td></tr>
+          <tr style="background-color: #f1f5f9; font-weight: bold;"><td>Total Laporan</td><td>${reports.length}</td></tr>
+        </table>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${students.length}</div>
+            <div class="stat-label">Total Siswa Terdaftar</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${avg}%</div>
+            <div class="stat-label">Rata-rata Capaian Kelancaran</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${reportCount}</div>
+            <div class="stat-label">Total Entri Laporan (Periode Ini)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${getReports().filter(r=>r.tanggal===today()).length}</div>
+            <div class="stat-label">Laporan Dibuat Hari Ini</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #cbd5e1; text-align: center; color: #94a3b8; font-size: 12px;">
+          <p>Sistem Informasi Report Qur'an Learning</p>
+          <p style="margin-top: 50px;">Tanda Tangan:_________________</p>
+        </div>
+      </div>
+    </body>
+  </html>`;
+  
+  const printWindow = window.open('', '', 'height=600,width=800');
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+}
+
+// ============ USER MANAGEMENT ============
+function renderUserManagement(el) {
+  const users = getUsers();
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <h2 class="text-2xl font-bold text-slate-800">Manajemen Akses Sistem</h2>
+      <button onclick="showAddUser()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"><i data-lucide="plus" class="w-4 h-4"></i>Tambah Akses</button>
+    </div>
+    <div id="user-modal" class="hidden relative z-[100]"></div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-sm min-w-[600px]">
+          <thead class="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Nama Lengkap</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Username / Email</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Hak Akses (Role)</th>
+              <th class="text-center px-5 py-4 font-semibold text-slate-600">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr class="hover:bg-slate-50/50 transition">
+              <td class="px-5 py-3 font-semibold text-slate-800">Administrator Utama</td>
+              <td class="px-5 py-3 text-slate-500">admin</td>
+              <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">Admin</span></td>
+              <td class="px-5 py-3 text-center text-slate-400 text-xs italic">Default System</td>
+            </tr>
+            ${users.map(u => `
+              <tr class="hover:bg-slate-50/50 transition">
+                <td class="px-5 py-3 font-medium text-slate-700">${u.name}</td>
+                <td class="px-5 py-3 text-slate-500">${u.email||'-'}</td>
+                <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='guru'?'bg-blue-100 text-blue-700':'bg-slate-100 text-slate-700'}">${u.role.toUpperCase()}</span></td>
+                <td class="px-5 py-3 flex justify-center">
+                  <button onclick="deleteUser('${u.__backendId}')" class="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showAddUser() {
+  const modal = document.getElementById('user-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <h3 class="font-bold text-lg text-slate-800 mb-5">Berikan Akses Sistem Baru</h3>
+      <div class="space-y-4">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Pengguna</label><input id="u-name" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Contoh: Budi Santoso"></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Username / Email (Untuk Login)</label><input id="u-email" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Contoh: budi123"></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Password</label><input id="u-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Masukkan password kuat"></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Hak Akses (Role)</label><select id="u-role" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"><option value="guru">Guru (Terbatas)</option><option value="admin">Admin (Akses Penuh)</option></select></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="document.getElementById('user-modal').classList.add('hidden')" class="flex-1 border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="saveUser()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-emerald-200 transition">Simpan Akses</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+async function saveUser() {
+  const name = document.getElementById('u-name').value.trim();
+  const pass = document.getElementById('u-pass').value;
+  if (!name || !pass) { showToast('Nama dan Password wajib diisi','error'); return; }
+  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
+  const r = await window.dataSdk.create({
+    type:'user',name,email:document.getElementById('u-email').value,password:pass,role:document.getElementById('u-role').value,
+    kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
+  });
+  if(r.isOk){showToast('Hak akses berhasil ditambahkan');document.getElementById('user-modal').classList.add('hidden'); renderPage();}
+  else showToast('Gagal menambahkan','error');
+}
+
+async function deleteUser(id) {
+  const item = allData.find(d=>d.__backendId===id);
+  if(item){await window.dataSdk.delete(item);showToast('Akses pengguna dicabut'); renderPage();}
+}
+
+// ============ GURU ACCOUNT MANAGEMENT ============
+function renderGuruAccount(el) {
+  const gurus = getTeachers();
+  el.innerHTML = `
+  <div class="fade-in max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <h2 class="text-2xl font-bold text-slate-800">Kelola Akun Guru</h2>
+      <button onclick="showAddGuruAccount()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"><i data-lucide="plus" class="w-4 h-4"></i>Buat Akun Guru</button>
+    </div>
+    <div id="guru-account-modal" class="hidden relative z-[100]"></div>
+    
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-sm min-w-[650px]">
+          <thead class="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Nama Guru</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Username Login</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Status Akun</th>
+              <th class="text-center px-5 py-4 font-semibold text-slate-600">Tindakan Khusus</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            ${gurus.length ? gurus.map(g => `
+              <tr class="hover:bg-slate-50/50 transition">
+                <td class="px-5 py-3 font-semibold text-slate-800">${g.name}</td>
+                <td class="px-5 py-3 text-slate-600"><code class="bg-slate-100 px-3 py-1.5 rounded-lg text-xs border border-slate-200">${g.email || g.name}</code></td>
+                <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"><i data-lucide="check" class="w-3 h-3 inline mr-1"></i>Aktif</span></td>
+                <td class="px-5 py-3 flex justify-center gap-2">
+                  <button onclick="editGuruAccount('${g.__backendId}')" title="Edit Detail" class="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                  <button onclick="resetGuruPassword('${g.__backendId}')" title="Reset Password" class="p-2 hover:bg-amber-50 rounded-lg text-slate-400 hover:text-amber-600 transition"><i data-lucide="key" class="w-4 h-4"></i></button>
+                  <button onclick="confirmDeleteGuruAccount('${g.__backendId}')" title="Hapus Akun" class="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+              </tr>
+            `).join('') : '<tr><td colspan="4" class="px-5 py-12 text-center text-slate-400">Belum ada akun guru yang didaftarkan.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+function showAddGuruAccount() {
+  const modal = document.getElementById('guru-account-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <h3 class="font-bold text-lg text-slate-800 mb-5">Pendaftaran Akun Guru Baru</h3>
+      <div class="space-y-4">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Lengkap Guru</label><input id="ga-name" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Sesuai dengan nama asli"></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sandi (Password) Login</label><input id="ga-password" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Buatkan sandi sementara"></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeGuruAccountModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="saveGuruAccount()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-emerald-200 transition">Buat Akun</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+function closeGuruAccountModal() { document.getElementById('guru-account-modal').classList.add('hidden'); }
+
+async function saveGuruAccount() {
+  const name = document.getElementById('ga-name').value.trim();
+  const password = document.getElementById('ga-password').value;
+  if (!name || !password) { showToast('Nama dan sandi wajib diisi', 'error'); return; }
+  if (allData.length >= 999) { showToast('Batas data tercapai', 'warning'); return; }
+  
+  const r = await window.dataSdk.create({
+    type: 'teacher',
+    name,
+    email: name.toLowerCase().replace(/\s+/g, ''),
+    password,
+    nip: '', phone: '', specialization: '', address: '', role: 'guru',
+    kelas: 0, target_juz: 0, iqro_jilid: 0, iqro_halaman: 0, juz: 0, surat: '', ayat_dari: 0, ayat_sampai: 0, status: '', tanggal: '', student_id: '', report_type: '', subject: '', target_iqro_jilid: 0, target_iqro_halaman: 0, target_hafalan_juz: 0, target_surat_awal: '', target_surat_akhir: '', target_ayat_awal: 0, target_ayat_akhir: 0, standar_ketuntasan: 0, setting_kelas: 0
+  });
+  
+  if (r.isOk) { showToast('Akun guru berhasil dibuat. Username otomatis menyesuaikan nama.'); closeGuruAccountModal(); renderPage(); } 
+  else showToast('Gagal membuat akun', 'error');
+}
+
+function editGuruAccount(id) {
+  const guru = allData.find(d => d.__backendId === id);
+  if (!guru) return;
+  
+  const modal = document.getElementById('guru-account-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <h3 class="font-bold text-lg text-slate-800 mb-5">Edit Identitas Guru</h3>
+      <div class="space-y-4">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Lengkap</label><input id="ga-name" value="${guru.name}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Ubah Sandi</label><input id="ga-password" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="(Kosongkan jika tidak ingin diubah)"></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeGuruAccountModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="updateGuruAccount('${id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-emerald-200 transition">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function updateGuruAccount(id) {
+  const guru = allData.find(d => d.__backendId === id);
+  if (!guru) return;
+  
+  const name = document.getElementById('ga-name').value.trim();
+  const password = document.getElementById('ga-password').value;
+  if (!name) { showToast('Nama wajib diisi', 'error'); return; }
+  
+  guru.name = name;
+  if (password) guru.password = password;
+  
+  const r = await window.dataSdk.update(guru);
+  if (r.isOk) { showToast('Data guru berhasil diperbarui'); closeGuruAccountModal(); renderPage(); } 
+  else showToast('Gagal menyimpan perubahan', 'error');
+}
+
+async function resetGuruPassword(id) {
+  const guru = allData.find(d => d.__backendId === id);
+  if (!guru) return;
+  
+  const modal = document.getElementById('guru-account-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4"><i data-lucide="key" class="w-6 h-6 text-amber-600"></i></div>
+      <h3 class="font-bold text-lg text-slate-800 mb-1">Reset Password Paksa</h3>
+      <p class="text-sm text-slate-500 mb-5">Anda akan mereset sandi login untuk guru <strong>${guru.name}</strong>.</p>
+      
+      <div class="space-y-4">
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sandi Baru</label><input id="ga-new-password" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Ketikkan sandi baru"></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeGuruAccountModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="confirmResetPassword('${id}')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-amber-200 transition">Ganti Sandi</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+async function confirmResetPassword(id) {
+  const guru = allData.find(d => d.__backendId === id);
+  if (!guru) return;
+  
+  const newPassword = document.getElementById('ga-new-password').value;
+  if (!newPassword) { showToast('Mohon masukkan sandi baru', 'error'); return; }
+  
+  guru.password = newPassword;
+  const r = await window.dataSdk.update(guru);
+  if (r.isOk) { showToast(`Sandi untuk ${guru.name} berhasil direset`); closeGuruAccountModal(); renderPage(); } 
+  else showToast('Gagal mereset sandi', 'error');
+}
+
+let pendingDeleteGuruId = null;
+function confirmDeleteGuruAccount(id) {
+  pendingDeleteGuruId = id;
+  const guru = allData.find(d => d.__backendId === id);
+  if (!guru) return;
+  
+  const modal = document.getElementById('guru-account-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center fade-in">
+      <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="user-x" class="w-8 h-8 text-red-500"></i></div>
+      <h3 class="font-bold text-xl text-slate-800 mb-2">Hapus Akun Guru?</h3>
+      <p class="text-sm text-slate-500 mb-1">Aksi ini akan menghapus permanen akses login atas nama:</p>
+      <p class="font-bold text-slate-700 text-lg mb-6">${guru.name}</p>
+      <div class="flex gap-3">
+        <button onclick="closeGuruAccountModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-sm font-semibold transition">Kembali</button>
+        <button onclick="doDeleteGuruAccount()" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-semibold shadow-md shadow-red-200 transition">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+async function doDeleteGuruAccount() {
+  const guru = allData.find(d => d.__backendId === pendingDeleteGuruId);
+  if (guru) {
+    const r = await window.dataSdk.delete(guru);
+    if (r.isOk) { showToast(`Akun guru ${guru.name} dihapus dari sistem`); renderPage(); }
+    else showToast('Gagal menghapus', 'error');
+  }
+  closeGuruAccountModal();
+}
+
+// ============ INIT ============
+const defaultConfig = { app_title: 'Report Qur\'an Learning', font_family: 'Plus Jakarta Sans' };
+async function initApp() {
+  window.elementSdk.init({ defaultConfig, onConfigChange: async (cfg) => { document.body.style.fontFamily = `${cfg.font_family || defaultConfig.font_family}, sans-serif`; } });
+  await window.dataSdk.init({ onDataChanged(data) { allData = data; if (currentUser) renderPage(); if(window.lucide) lucide.createIcons(); } });
+  loadSession(); render();
+}
+initApp();
+  </script>
+</body>
+</html>
