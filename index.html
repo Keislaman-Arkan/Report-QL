@@ -19,6 +19,8 @@
 
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <!-- SheetJS untuk parsing file Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <!-- SUPABASE SDK & INTEGRASI DATABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -126,6 +128,15 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* Import Modal Styles */
+    .import-drop-zone { border: 2px dashed #cbd5e1; border-radius: 1rem; transition: all 0.2s; }
+    .import-drop-zone.dragover { border-color: #10b981; background-color: #f0fdf4; }
+    .import-preview-table th { background: #f8fafc; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+    .import-preview-table td { font-size: 12px; color: #334155; }
+    .import-preview-table tr.row-error td { background: #fff5f5; color: #dc2626; }
+    .import-preview-table tr.row-ok td { background: #f0fdf4; }
+    .badge-ok { background: #dcfce7; color: #166534; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+    .badge-err { background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
   </style>
 </head>
 <body class="h-full bg-slate-50">
@@ -576,7 +587,18 @@ function renderStudents(el) {
           <div id="dropdown-edit-student" class="absolute z-[60] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
         </div>
       </div>
-      ${!isVisitor ? `<button onclick="showAddStudent()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md shrink-0 transition"><i data-lucide="user-plus" class="w-5 h-5"></i>Tambah Siswa Baru</button>` : ''}
+      ${!isVisitor ? `
+      <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+        <button onclick="downloadStudentTemplate()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition">
+          <i data-lucide="download" class="w-4 h-4"></i>Unduh Template
+        </button>
+        <button onclick="showImportStudents()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>Import CSV/Excel
+        </button>
+        <button onclick="showAddStudent()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-md transition">
+          <i data-lucide="user-plus" class="w-5 h-5"></i>Tambah Siswa
+        </button>
+      </div>` : ''}
     </div>
     
     <div class="mb-4">
@@ -943,6 +965,374 @@ async function doDelete() {
   const item = allData.find(d => d.__backendId === pendingDeleteId);
   if (item) { const r = await window.dataSdk.delete(item); if(r.isOk) showToast('Data berhasil dihapus'); }
   closeStudentModal();
+}
+
+// ============ IMPORT SISWA CSV/EXCEL ============
+
+// Kolom template yang wajib ada
+const IMPORT_COLUMNS = ['name','grade','kelas','iqro_jilid','iqro_halaman','target_juz','target_hafalan_surat','target_hafalan_ayat_dari','target_hafalan_ayat_sampai'];
+
+function downloadStudentTemplate() {
+  const header = 'name,grade,kelas,iqro_jilid,iqro_halaman,target_juz,target_hafalan_surat,target_hafalan_ayat_dari,target_hafalan_ayat_sampai';
+  const example1 = 'Ahmad Fauzi,Grade 1,1 A,1,10,30,,,'; 
+  const example2 = 'Siti Aisyah,Grade 2,2 A,2,45,,An-Nas,1,6';
+  const notes = [
+    '# PETUNJUK PENGISIAN:',
+    '# - name        : Nama lengkap siswa (WAJIB)',
+    '# - grade       : Tingkat kelas, contoh: Grade 1 / Grade 2 / ... / Grade 6 (WAJIB)',
+    '# - kelas       : Nama kelas, harus sesuai dengan kelas yang ada di sistem (WAJIB)',
+    '# - iqro_jilid  : Angka 1-6 (target iqro jilid)',
+    '# - iqro_halaman: Angka 1-120 (target halaman iqro)',
+    '# - target_juz  : Angka 1-30, ISI HANYA JIKA target hafalan berdasarkan juz (kosongkan jika pakai surat)',
+    '# - target_hafalan_surat  : Nama surat, ISI HANYA JIKA target berdasarkan surat (contoh: An-Nas)',
+    '# - target_hafalan_ayat_dari : Nomor ayat awal',
+    '# - target_hafalan_ayat_sampai: Nomor ayat akhir',
+    '# Hapus baris-baris komentar (#) sebelum diimport!'
+  ].join('\n');
+  const csv = notes + '\n' + header + '\n' + example1 + '\n' + example2;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'template_import_siswa.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Template CSV berhasil diunduh!');
+}
+
+let importedRows = []; // Baris hasil parsing
+
+function showImportStudents() {
+  const modal = document.getElementById('student-modal');
+  modal.classList.remove('hidden');
+  importedRows = [];
+  modal.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 md:p-6">
+    <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col fade-in" style="max-height:92vh">
+      
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-blue-700 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-white">Import Siswa dari CSV / Excel</h3>
+            <p class="text-blue-100 text-xs mt-0.5">Data siswa akan diunggah langsung ke Supabase, UUID dibuat otomatis</p>
+          </div>
+        </div>
+        <button onclick="closeStudentModal()" class="text-white/70 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <!-- Step 1: Upload zona -->
+      <div id="import-step-upload" class="p-6 flex-1 overflow-y-auto">
+        
+        <!-- Info box -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex gap-3">
+          <i data-lucide="info" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5"></i>
+          <div class="text-sm text-blue-800">
+            <p class="font-bold mb-1">Format yang didukung: .csv dan .xlsx (Excel)</p>
+            <p>Baris pertama file harus berisi <strong>nama kolom header</strong>. Kolom wajib: <code class="bg-blue-100 px-1 rounded">name</code>, <code class="bg-blue-100 px-1 rounded">grade</code>, <code class="bg-blue-100 px-1 rounded">kelas</code>.</p>
+            <p class="mt-1">Belum punya template? <button onclick="downloadStudentTemplate()" class="text-blue-600 font-bold underline hover:text-blue-800">Unduh template CSV</button> terlebih dahulu.</p>
+          </div>
+        </div>
+
+        <!-- Drop zone -->
+        <div id="import-drop-zone" class="import-drop-zone flex flex-col items-center justify-center gap-3 py-12 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition"
+             onclick="document.getElementById('import-file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleImportDrop(event)">
+          <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
+            <i data-lucide="upload-cloud" class="w-8 h-8 text-blue-500"></i>
+          </div>
+          <div class="text-center">
+            <p class="font-bold text-slate-700">Klik atau seret file ke sini</p>
+            <p class="text-sm text-slate-400 mt-1">Mendukung file .csv dan .xlsx (Excel)</p>
+          </div>
+          <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" class="hidden" onchange="handleImportFile(this.files[0])">
+        </div>
+
+        <div id="import-file-status" class="hidden mt-4 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+          <i data-lucide="file-check" class="w-5 h-5 text-emerald-500 shrink-0"></i>
+          <span id="import-file-name" class="text-sm font-semibold text-slate-700 flex-1 truncate"></span>
+          <button onclick="clearImportFile()" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+
+      <!-- Step 2: Preview tabel -->
+      <div id="import-step-preview" class="hidden flex-1 overflow-y-auto">
+        <div class="px-6 pt-4 pb-2 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+          <div>
+            <h4 class="font-bold text-slate-800">Preview Data</h4>
+            <p id="import-preview-summary" class="text-xs text-slate-500 mt-0.5"></p>
+          </div>
+          <button onclick="clearImportFile()" class="text-xs text-slate-500 hover:text-red-500 flex items-center gap-1 font-medium">
+            <i data-lucide="refresh-ccw" class="w-3 h-3"></i> Ganti File
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="import-preview-table" class="import-preview-table w-full text-sm min-w-[700px]">
+            <thead>
+              <tr>
+                <th class="px-4 py-3 text-left">#</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Nama</th>
+                <th class="px-4 py-3 text-left">Grade</th>
+                <th class="px-4 py-3 text-left">Kelas</th>
+                <th class="px-4 py-3 text-left">Iqro Jilid</th>
+                <th class="px-4 py-3 text-left">Iqro Hal</th>
+                <th class="px-4 py-3 text-left">Target Juz</th>
+                <th class="px-4 py-3 text-left">Target Surat</th>
+                <th class="px-4 py-3 text-left">Ayat</th>
+                <th class="px-4 py-3 text-left">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="import-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
+        <div id="import-progress-bar" class="hidden w-full sm:w-2/3">
+          <div class="flex justify-between text-xs text-slate-600 font-semibold mb-1">
+            <span>Mengimpor data...</span>
+            <span id="import-progress-text">0 / 0</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2">
+            <div id="import-progress-fill" class="h-2 rounded-full bg-blue-500 transition-all" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="import-footer-btns" class="flex gap-3 w-full sm:w-auto justify-end">
+          <button onclick="closeStudentModal()" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition border border-slate-300">Batal</button>
+          <button id="import-submit-btn" onclick="doImportStudents()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-200 transition hidden flex items-center gap-2">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span id="import-submit-label">Simpan ke Database</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+function handleImportDrop(event) {
+  event.preventDefault();
+  document.getElementById('import-drop-zone').classList.remove('dragover');
+  const file = event.dataTransfer.files[0];
+  if (file) handleImportFile(file);
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const allowedTypes = ['.csv', '.xlsx', '.xls'];
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!allowedTypes.includes(ext)) {
+    showToast('Format file tidak didukung. Gunakan .csv atau .xlsx', 'error');
+    return;
+  }
+
+  // Tampilkan nama file
+  document.getElementById('import-file-status').classList.remove('hidden');
+  document.getElementById('import-file-name').textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let rows = [];
+      if (ext === '.csv') {
+        rows = parseCSV(e.target.result);
+      } else {
+        // Parse Excel menggunakan SheetJS
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        rows = jsonData;
+      }
+      showImportPreview(rows, file.name);
+    } catch(err) {
+      showToast('Gagal membaca file: ' + err.message, 'error');
+      console.error(err);
+    }
+  };
+  if (ext === '.csv') {
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSV(text) {
+  // Hapus baris komentar (diawali #)
+  const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#'));
+  if (lines.length < 2) throw new Error('File CSV kosong atau tidak ada data.');
+  
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[\"']/g,''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    // Handle quoted CSV values
+    const vals = [];
+    let inQuote = false, cur = '';
+    for (let c of line) {
+      if (c === '"') { inQuote = !inQuote; }
+      else if (c === ',' && !inQuote) { vals.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    vals.push(cur.trim());
+    
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function validateImportRow(row, idx) {
+  const errors = [];
+  const validGrades = Object.keys(getGradeKelasMap());
+  const validClasses = getAllClassesFlat();
+
+  if (!row.name || !String(row.name).trim()) errors.push('Nama kosong');
+  if (!row.grade || !String(row.grade).trim()) errors.push('Grade kosong');
+  else if (!validGrades.includes(String(row.grade).trim())) errors.push(`Grade "${row.grade}" tidak ada di sistem`);
+  if (!row.kelas || !String(row.kelas).trim()) errors.push('Kelas kosong');
+  else if (!validClasses.includes(String(row.kelas).trim())) errors.push(`Kelas "${row.kelas}" tidak ditemukan`);
+  return errors;
+}
+
+function showImportPreview(rows, fileName) {
+  importedRows = rows;
+  const map = getGradeKelasMap();
+  let okCount = 0, errCount = 0;
+  const tbody = [];
+
+  rows.forEach((row, idx) => {
+    const errors = validateImportRow(row, idx);
+    const isOk = errors.length === 0;
+    if (isOk) okCount++; else errCount++;
+
+    const targetAyat = row.target_hafalan_surat 
+      ? `${row.target_hafalan_ayat_dari||'-'} - ${row.target_hafalan_ayat_sampai||'-'}`
+      : '-';
+
+    tbody.push(`
+      <tr class="${isOk ? 'row-ok' : 'row-error'} border-b border-slate-100 hover:opacity-80 transition">
+        <td class="px-4 py-2.5 text-slate-400 font-mono">${idx+1}</td>
+        <td class="px-4 py-2.5"><span class="${isOk ? 'badge-ok' : 'badge-err'}">${isOk ? '✓ OK' : '✗ Error'}</span></td>
+        <td class="px-4 py-2.5 font-semibold">${escHtml(row.name||'-')}</td>
+        <td class="px-4 py-2.5">${escHtml(row.grade||'-')}</td>
+        <td class="px-4 py-2.5">${escHtml(row.kelas||'-')}</td>
+        <td class="px-4 py-2.5">${row.iqro_jilid||'-'}</td>
+        <td class="px-4 py-2.5">${row.iqro_halaman||'-'}</td>
+        <td class="px-4 py-2.5">${row.target_juz||'-'}</td>
+        <td class="px-4 py-2.5 max-w-[120px] truncate" title="${escHtml(row.target_hafalan_surat||'')}">${escHtml(row.target_hafalan_surat||'-')}</td>
+        <td class="px-4 py-2.5">${targetAyat}</td>
+        <td class="px-4 py-2.5 text-xs ${isOk ? 'text-emerald-600' : 'text-red-600'}">${isOk ? 'Siap diimpor' : errors.join('; ')}</td>
+      </tr>`);
+  });
+
+  document.getElementById('import-step-upload').classList.add('hidden');
+  const previewEl = document.getElementById('import-step-preview');
+  previewEl.classList.remove('hidden');
+  document.getElementById('import-preview-body').innerHTML = tbody.join('');
+  document.getElementById('import-preview-summary').textContent = 
+    `Total: ${rows.length} baris  |  ✓ Siap: ${okCount}  |  ✗ Error: ${errCount}`;
+
+  const btn = document.getElementById('import-submit-btn');
+  document.getElementById('import-submit-label').textContent = `Simpan ${okCount} Siswa ke Database`;
+  if (okCount > 0) { btn.classList.remove('hidden'); } else { btn.classList.add('hidden'); }
+  if(window.lucide) lucide.createIcons();
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function clearImportFile() {
+  importedRows = [];
+  const uploadEl = document.getElementById('import-step-upload');
+  const previewEl = document.getElementById('import-step-preview');
+  const statusEl = document.getElementById('import-file-status');
+  const fileInput = document.getElementById('import-file-input');
+  if (uploadEl) uploadEl.classList.remove('hidden');
+  if (previewEl) previewEl.classList.add('hidden');
+  if (statusEl) statusEl.classList.add('hidden');
+  if (fileInput) fileInput.value = '';
+  document.getElementById('import-submit-btn').classList.add('hidden');
+}
+
+async function doImportStudents() {
+  if (!importedRows.length) return;
+  const validRows = importedRows.filter((r, i) => validateImportRow(r, i).length === 0);
+  if (!validRows.length) { showToast('Tidak ada baris valid untuk diimpor', 'error'); return; }
+
+  // Tampilkan progress
+  const progressBar = document.getElementById('import-progress-bar');
+  const progressFill = document.getElementById('import-progress-fill');
+  const progressText = document.getElementById('import-progress-text');
+  const submitBtn = document.getElementById('import-submit-btn');
+  const footerBtns = document.getElementById('import-footer-btns');
+  
+  progressBar.classList.remove('hidden');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+  let success = 0, failed = 0;
+  for (let i = 0; i < validRows.length; i++) {
+    const row = validRows[i];
+    const pct = Math.round(((i+1) / validRows.length) * 100);
+    progressFill.style.width = pct + '%';
+    progressText.textContent = `${i+1} / ${validRows.length}`;
+    
+    const hafalanSurat = String(row.target_hafalan_surat || '').trim();
+    const targetJuz = parseInt(row.target_juz) || 0;
+
+    const payload = {
+      type: 'student',
+      name: String(row.name).trim(),
+      grade: String(row.grade).trim(),
+      kelas: String(row.kelas).trim(),
+      iqro_jilid: parseInt(row.iqro_jilid) || 1,
+      iqro_halaman: parseInt(row.iqro_halaman) || 1,
+      target_juz: hafalanSurat ? 0 : (targetJuz || 30),
+      target_hafalan_surat: hafalanSurat || '',
+      target_hafalan_ayat_dari: hafalanSurat ? (parseInt(row.target_hafalan_ayat_dari) || 1) : 0,
+      target_hafalan_ayat_sampai: hafalanSurat ? (parseInt(row.target_hafalan_ayat_sampai) || 1) : 0,
+      // padding kosong untuk field lain yang tidak relevan
+      email:'',password:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,
+      status:'',tanggal:'',student_id:'',report_type:'',subject:'',
+      nip:'',phone:'',address:'',specialization:'',
+      target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,
+      target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,
+      target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
+    };
+
+    const result = await window.dataSdk.create(payload, true); // skipFetch=true untuk performa
+    if (result.isOk) success++; else failed++;
+
+    // Beri jeda kecil agar Supabase tidak kewalahan
+    await new Promise(res => setTimeout(res, 50));
+  }
+
+  // Refresh data dari Supabase setelah semua selesai
+  await window.dataSdk.fetchAll();
+
+  progressFill.style.width = '100%';
+  progressText.textContent = `Selesai!`;
+  
+  showToast(`Import selesai: ${success} berhasil, ${failed} gagal`, failed > 0 ? 'warning' : 'success');
+
+  setTimeout(() => {
+    closeStudentModal();
+    renderPage();
+  }, 1500);
 }
 
 // ============ TEACHERS ============
@@ -1458,7 +1848,6 @@ async function saveReportIqro(){ const st=document.getElementById('ri-student').
 async function saveReportQuran(){ const st=document.getElementById('rq-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Quran disimpan'); document.getElementById('rq-student').value=''; document.getElementById('search-rq-student').value=''; }
 async function saveReportHafalan(){ const st=document.getElementById('rh-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Hafalan disimpan'); document.getElementById('rh-student').value=''; document.getElementById('search-rh-student').value=''; }
 
-// ============ TABEL REKAP & RESPONSIVE ============
 function setReportFilter(field, val) {
   if (field === 'type') reportFilterType = val;
   if (field === 'grade') { reportFilterGrade = val; reportFilterClass = ''; }
@@ -1484,6 +1873,36 @@ function renderReports(el) {
       if (reportFilterClass && s.kelas !== reportFilterClass) return false;
       return true;
     });
+  }
+
+  // Helper: hitung ketuntasan satu baris laporan
+  function getKetuntasanBadge(report, student) {
+    if (!student) return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">-</span>';
+    const grade = student.grade;
+
+    if (report.report_type === 'iqro' || report.report_type === 'quran') {
+      const tIqro = allData.find(x => x.type === 'setting' && x.subject === `iqro_target_${grade}`)?.data;
+      if (!tIqro) return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">Belum ada target</span>';
+      const targetScore = getBacaanScore('iqro', tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
+      const reportScore = getBacaanScore(report.report_type, report.iqro_jilid, report.iqro_halaman);
+      const tuntas = reportScore >= targetScore;
+      const targetLabel = `Target: Jilid ${tIqro.target_iqro_jilid} Hal ${tIqro.target_iqro_halaman}`;
+      return tuntas
+        ? `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">✓ Tuntas</span>`
+        : `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Belum Tuntas</span>`;
+
+    } else if (report.report_type === 'hafalan') {
+      const tHafalan = allData.find(x => x.type === 'setting' && x.subject === `hafalan_target_${grade}`)?.data;
+      if (!tHafalan) return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">Belum ada target</span>';
+      const targetScore = getHafalanScore(tHafalan.target_hafalan_juz, tHafalan.target_surat_awal, tHafalan.target_ayat_akhir);
+      const reportScore = getHafalanScore(report.juz, report.surat, report.ayat_sampai);
+      const tuntas = reportScore >= targetScore;
+      const targetLabel = `Target: ${tHafalan.target_surat_awal || 'Juz ' + tHafalan.target_hafalan_juz} s/d ayat ${tHafalan.target_ayat_akhir}`;
+      return tuntas
+        ? `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">✓ Tuntas</span>`
+        : `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Belum Tuntas</span>`;
+    }
+    return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">-</span>';
   }
 
   el.innerHTML = `
@@ -1518,25 +1937,41 @@ function renderReports(el) {
       </div>
     </div>
 
+    <!-- Legend ketuntasan -->
+    <div class="flex flex-wrap gap-3 mb-3 text-xs font-medium text-slate-500">
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-emerald-400"></span> Tuntas = Sudah mencapai/melewati target grade</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span> Belum Tuntas = Masih di bawah target grade</span>
+      <span class="flex items-center gap-1.5 text-slate-400 italic">* Arahkan kursor ke badge untuk melihat target</span>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto w-full">
-        <table class="w-full text-sm min-w-[600px]">
+        <table class="w-full text-sm min-w-[750px]">
           <thead class="bg-slate-50 border-b border-slate-100">
-            <tr><th class="text-left px-5 py-4 font-semibold text-slate-600">Tanggal</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Siswa</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Tipe</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Detail</th><th class="text-left px-5 py-4 font-semibold text-slate-600">Status</th></tr>
+            <tr>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Tanggal</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Siswa</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Tipe</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Detail</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Status</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Ketuntasan Target</th>
+            </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
             ${reports.length ? reports.sort((a,b)=>new Date(b.tanggal) - new Date(a.tanggal)).map(r => {
               const student = students.find(s=>s.__backendId===r.student_id);
               let detail = r.report_type==='iqro'? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` : `Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})`;
               const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
+              const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
                 <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>
                 <td class="px-5 py-3 font-semibold text-slate-800">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
                 <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
+                <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
-            }).join('') : '<tr><td colspan="5" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
+            }).join('') : '<tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
           </tbody>
         </table>
       </div>
