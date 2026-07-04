@@ -40,7 +40,7 @@ window.dataSdk = {
       payload = { name: data.name, grade: data.grade, kelas: data.kelas, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, target_juz: data.target_juz, target_hafalan_surat: data.target_hafalan_surat, target_hafalan_ayat_dari: data.target_hafalan_ayat_dari, target_hafalan_ayat_sampai: data.target_hafalan_ayat_sampai };
     } else if (data.type === 'report') {
       table = 'reports';
-      payload = { student_id: data.student_id, report_type: data.report_type, tanggal: data.tanggal, status: data.status, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, juz: data.juz, surat: data.surat, ayat_dari: data.ayat_dari, ayat_sampai: data.ayat_sampai };
+      payload = { student_id: data.student_id, report_type: data.report_type, tanggal: data.tanggal, status: data.status, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, juz: data.juz, surat: data.surat, ayat_dari: data.ayat_dari, ayat_sampai: data.ayat_sampai, catatan: data.catatan };
     } else if (data.type === 'teacher' || data.type === 'user') {
       table = 'users';
       payload = { name: data.name, email: data.email, password: data.password, role: data.role, nip: data.nip, phone: data.phone, specialization: data.specialization };

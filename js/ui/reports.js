@@ -19,6 +19,7 @@ function renderReportBacaan(el) {
           <div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Jilid</label><input id="ri-jilid" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Halaman</label><input id="ri-hal" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="ri-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="ri-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportIqro()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Iqro</button>
         </div>
       </div>
@@ -46,6 +47,7 @@ function renderReportBacaan(el) {
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
           </div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rq-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportQuran()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Qur'an</button>
         </div>
       </div>
@@ -81,6 +83,7 @@ function renderReportHafalan(el) {
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
         </div>
+        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rh-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Masukkan catatan perkembangan hafalan siswa..."></textarea></div>
         <button onclick="saveReportHafalan()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold shadow-md mt-2 transition">Simpan Laporan Hafalan</button>
       </div>
     </div>
@@ -93,9 +96,36 @@ function updateQuranAyatMax() { const j=parseInt(document.getElementById('rq-juz
 function updateSuratDropdownH() { const j=parseInt(document.getElementById('rh-juz').value); document.getElementById('rh-surat').innerHTML=getSuratByJuz(j).map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); updateAyatMaxH(); }
 function updateAyatMaxH() { const j=parseInt(document.getElementById('rh-juz').value), s=document.getElementById('rh-surat').value, mx=getAyatCount(j,s); const m1=document.getElementById('rh-ayat-sampai'); const m2=document.getElementById('rh-ayat-dari'); if(m1) m1.max=mx; if(m2) m2.max=mx; if(m1 && parseInt(m1.value) > mx) m1.value=mx; }
 
-async function saveReportIqro(){ const st=document.getElementById('ri-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'iqro',student_id:st,iqro_jilid:parseInt(document.getElementById('ri-jilid').value),iqro_halaman:parseInt(document.getElementById('ri-hal').value),status:document.getElementById('ri-status').value,tanggal:document.getElementById('ri-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,subject:'iqro',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Iqro disimpan'); document.getElementById('ri-student').value=''; document.getElementById('search-ri-student').value=''; }
-async function saveReportQuran(){ const st=document.getElementById('rq-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Quran disimpan'); document.getElementById('rq-student').value=''; document.getElementById('search-rq-student').value=''; }
-async function saveReportHafalan(){ const st=document.getElementById('rh-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Hafalan disimpan'); document.getElementById('rh-student').value=''; document.getElementById('search-rh-student').value=''; }
+async function saveReportIqro(){
+  const st=document.getElementById('ri-student').value;
+  if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
+  const catatan = document.getElementById('ri-catatan').value.trim();
+  await window.dataSdk.create({type:'report',report_type:'iqro',student_id:st,iqro_jilid:parseInt(document.getElementById('ri-jilid').value),iqro_halaman:parseInt(document.getElementById('ri-hal').value),status:document.getElementById('ri-status').value,tanggal:document.getElementById('ri-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,subject:'iqro',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  showToast('Laporan Iqro disimpan');
+  document.getElementById('ri-student').value='';
+  document.getElementById('search-ri-student').value='';
+  document.getElementById('ri-catatan').value='';
+}
+async function saveReportQuran(){
+  const st=document.getElementById('rq-student').value;
+  if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
+  const catatan = document.getElementById('rq-catatan').value.trim();
+  await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  showToast('Laporan Quran disimpan');
+  document.getElementById('rq-student').value='';
+  document.getElementById('search-rq-student').value='';
+  document.getElementById('rq-catatan').value='';
+}
+async function saveReportHafalan(){
+  const st=document.getElementById('rh-student').value;
+  if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
+  const catatan = document.getElementById('rh-catatan').value.trim();
+  await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  showToast('Laporan Hafalan disimpan');
+  document.getElementById('rh-student').value='';
+  document.getElementById('search-rh-student').value='';
+  document.getElementById('rh-catatan').value='';
+}
 
 let reportSearchQuery = "";
 
@@ -246,6 +276,7 @@ function renderReports(el) {
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Tipe</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Detail</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Status</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Catatan</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Ketuntasan Target</th>
             </tr>
           </thead>
@@ -261,10 +292,11 @@ function renderReports(el) {
                 <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
+                <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate" title="${r.catatan||'-'}">${r.catatan||'-'}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
             }).join('') : '<tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
-            <tr id="report-table-no-results" style="display: none;"><td colspan="6" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
+            <tr id="report-table-no-results" style="display: none;"><td colspan="7" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
           </tbody>
         </table>
       </div>
