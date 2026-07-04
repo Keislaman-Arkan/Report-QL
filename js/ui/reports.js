@@ -129,6 +129,16 @@ async function saveReportHafalan(){
 
 let reportSearchQuery = "";
 
+function toggleNoteExpansion(el) {
+  if (el.classList.contains('truncate')) {
+    el.classList.remove('truncate', 'max-w-[200px]');
+    el.classList.add('whitespace-normal', 'break-words');
+  } else {
+    el.classList.remove('whitespace-normal', 'break-words');
+    el.classList.add('truncate', 'max-w-[200px]');
+  }
+}
+
 function setReportFilter(field, val) {
   if (field === 'type') reportFilterType = val;
   if (field === 'grade') { reportFilterGrade = val; reportFilterClass = ''; }
@@ -311,7 +321,7 @@ function renderReports(el) {
                 <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
-                <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate" title="${r.catatan||'-'}">${r.catatan||'-'}</td>
+                <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate cursor-pointer hover:text-slate-900 transition-all duration-200" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas/menciutkan">${r.catatan||'-'}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
             }).join('') : '<tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
