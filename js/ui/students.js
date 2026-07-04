@@ -519,13 +519,19 @@ function autoFillReportForm(prefix, studentId) {
   else if (prefix === 'rh') reportType = 'hafalan';
 
   const stReports = reports.filter(r => r.student_id === studentId && r.report_type === reportType);
-  stReports.sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+  
+  // Sortir untuk memastikan data terakhir diinput (berdasarkan tanggal dan created_at descending)
+  stReports.sort((a, b) => {
+    const dateDiff = new Date(b.tanggal || 0) - new Date(a.tanggal || 0);
+    if (dateDiff !== 0) return dateDiff;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
   
   if (stReports.length > 0) {
     const latest = stReports[0];
     if (prefix === 'ri') {
       document.getElementById('ri-jilid').value = latest.iqro_jilid || 1;
-      document.getElementById('ri-hal').value = latest.iqro_halaman || 1;
+      document.getElementById('ri-hal').value = (latest.iqro_halaman || 0) + 1; // Tambah 1 halaman
     } else if (prefix === 'rq') {
       document.getElementById('rq-juz').value = latest.juz || 1;
       updateQuranSuratDropdown(); 
@@ -533,10 +539,14 @@ function autoFillReportForm(prefix, studentId) {
         const suratEl = document.getElementById('rq-surat');
         if (suratEl && latest.surat) suratEl.value = latest.surat;
         updateQuranAyatMax();
+        
+        const mx = getAyatCount(latest.juz || 1, latest.surat);
+        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+
         const dariEl = document.getElementById('rq-ayat-dari');
         const sampaiEl = document.getElementById('rq-ayat-sampai');
-        if (dariEl) dariEl.value = latest.ayat_sampai || 1; 
-        if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1; 
+        if (dariEl) dariEl.value = nextAyat; 
+        if (sampaiEl) sampaiEl.value = nextAyat; 
       }, 50);
     } else if (prefix === 'rh') {
       document.getElementById('rh-juz').value = latest.juz || 30;
@@ -545,10 +555,14 @@ function autoFillReportForm(prefix, studentId) {
         const suratEl = document.getElementById('rh-surat');
         if (suratEl && latest.surat) suratEl.value = latest.surat;
         updateAyatMaxH();
+        
+        const mx = getAyatCount(latest.juz || 30, latest.surat);
+        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+
         const dariEl = document.getElementById('rh-ayat-dari');
         const sampaiEl = document.getElementById('rh-ayat-sampai');
-        if (dariEl) dariEl.value = latest.ayat_sampai || 1;
-        if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+        if (dariEl) dariEl.value = nextAyat;
+        if (sampaiEl) sampaiEl.value = nextAyat;
       }, 50);
     }
   } else {
