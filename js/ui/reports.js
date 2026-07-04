@@ -194,6 +194,21 @@ function renderReports(el) {
     });
   }
 
+  // Hanya tampilkan laporan terbaru per siswa per kategori (bacaan & hafalan)
+  const latestReportsMap = {};
+  const sortedReportsForFiltering = [...reports].sort((a, b) => {
+    const dateA = new Date(a.tanggal || 0);
+    const dateB = new Date(b.tanggal || 0);
+    if (dateA - dateB !== 0) return dateA - dateB;
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
+  sortedReportsForFiltering.forEach(r => {
+    const category = (r.report_type === 'iqro' || r.report_type === 'quran') ? 'bacaan' : 'hafalan';
+    const key = `${r.student_id}_${category}`;
+    latestReportsMap[key] = r;
+  });
+  reports = Object.values(latestReportsMap);
+
   function getKetuntasanBadge(report, student) {
     if (!student) return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">-</span>';
     const grade = student.grade;
@@ -281,7 +296,11 @@ function renderReports(el) {
             </tr>
           </thead>
           <tbody id="report-table-body" class="divide-y divide-slate-50">
-            ${reports.length ? reports.sort((a,b)=>new Date(b.tanggal) - new Date(a.tanggal)).map(r => {
+            ${reports.length ? reports.sort((a,b)=>{
+              const dateDiff = new Date(b.tanggal || 0) - new Date(a.tanggal || 0);
+              if (dateDiff !== 0) return dateDiff;
+              return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            }).map(r => {
               const student = students.find(s=>s.__backendId===r.student_id);
               let detail = r.report_type==='iqro'? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` : `Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})`;
               const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
