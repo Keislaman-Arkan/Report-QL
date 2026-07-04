@@ -97,11 +97,42 @@ async function saveReportIqro(){ const st=document.getElementById('ri-student').
 async function saveReportQuran(){ const st=document.getElementById('rq-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Quran disimpan'); document.getElementById('rq-student').value=''; document.getElementById('search-rq-student').value=''; }
 async function saveReportHafalan(){ const st=document.getElementById('rh-student').value; if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;} await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0}); showToast('Laporan Hafalan disimpan'); document.getElementById('rh-student').value=''; document.getElementById('search-rh-student').value=''; }
 
+let reportSearchQuery = "";
+
 function setReportFilter(field, val) {
   if (field === 'type') reportFilterType = val;
   if (field === 'grade') { reportFilterGrade = val; reportFilterClass = ''; }
   if (field === 'kelas') reportFilterClass = val;
   renderPage();
+}
+
+function handleReportTableSearch(val) {
+  reportSearchQuery = val;
+  const query = val.toLowerCase().trim();
+  const rows = document.querySelectorAll("#report-table-body tr:not(#report-table-no-results)");
+  let hasVisibleRows = false;
+  
+  rows.forEach(row => {
+    const nameCell = row.querySelector(".report-student-name-cell");
+    if (nameCell) {
+      const name = nameCell.childNodes[0].textContent.toLowerCase();
+      if (name.includes(query)) {
+        row.style.display = "";
+        hasVisibleRows = true;
+      } else {
+        row.style.display = "none";
+      }
+    }
+  });
+
+  const noResultsRow = document.getElementById("report-table-no-results");
+  if (noResultsRow) {
+    if (!hasVisibleRows && rows.length > 0) {
+      noResultsRow.style.display = "";
+    } else {
+      noResultsRow.style.display = "none";
+    }
+  }
 }
 
 function renderReports(el) {
@@ -121,6 +152,15 @@ function renderReports(el) {
       if (reportFilterGrade && s.grade !== reportFilterGrade) return false;
       if (reportFilterClass && s.kelas !== reportFilterClass) return false;
       return true;
+    });
+  }
+
+  // Filter berdasarkan pencarian nama jika ada
+  if (reportSearchQuery) {
+    const q = reportSearchQuery.toLowerCase().trim();
+    reports = reports.filter(r => {
+      const s = students.find(x => x.__backendId === r.student_id);
+      return s && s.name.toLowerCase().includes(q);
     });
   }
 
@@ -159,7 +199,11 @@ function renderReports(el) {
     
     <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">
       <h3 class="text-sm font-semibold text-slate-600 mb-3">Filter Laporan</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+           <label class="block text-xs font-semibold text-slate-500 mb-1">Cari Nama Siswa</label>
+           <input type="text" id="search-report-student" placeholder="Ketik nama siswa..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition" oninput="handleReportTableSearch(this.value)" value="${reportSearchQuery}">
+        </div>
         <div>
            <label class="block text-xs font-semibold text-slate-500 mb-1">Kategori</label>
            <select onchange="setReportFilter('type', this.value)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
@@ -205,7 +249,7 @@ function renderReports(el) {
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Ketuntasan Target</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody id="report-table-body" class="divide-y divide-slate-50">
             ${reports.length ? reports.sort((a,b)=>new Date(b.tanggal) - new Date(a.tanggal)).map(r => {
               const student = students.find(s=>s.__backendId===r.student_id);
               let detail = r.report_type==='iqro'? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` : `Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})`;
@@ -213,16 +257,21 @@ function renderReports(el) {
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
                 <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>
-                <td class="px-5 py-3 font-semibold text-slate-800">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
+                <td class="px-5 py-3 font-semibold text-slate-800 report-student-name-cell">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
                 <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
             }).join('') : '<tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
+            <tr id="report-table-no-results" style="display: none;"><td colspan="6" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>`;
+  
+  if (reportSearchQuery) {
+    handleReportTableSearch(reportSearchQuery);
+  }
 }
