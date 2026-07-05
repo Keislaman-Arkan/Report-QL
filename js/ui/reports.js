@@ -321,9 +321,29 @@ function renderReports(el) {
 
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto">
-    <h2 class="text-2xl font-bold text-slate-800 mb-6">Rekap Histori Laporan</h2>
+    <!-- Printable Header (Only visible when printing) -->
+    <div class="print-header hidden mb-6">
+      <div class="text-center border-b-2 border-slate-800 pb-4">
+        <h1 class="text-2xl font-bold uppercase text-slate-800">Laporan Perkembangan Belajar Al-Qur'an</h1>
+        <p class="text-sm text-slate-500 mt-1">Sistem Informasi Qur'an Learning</p>
+        <div class="text-xs text-slate-600 mt-3 flex justify-center gap-6 flex-wrap font-medium">
+          <span>Kategori: <strong class="text-slate-800">${reportFilterType === 'bacaan' ? 'Bacaan' : reportFilterType === 'hafalan' ? 'Hafalan' : 'Semua Kategori'}</strong></span>
+          <span>Tingkat: <strong class="text-slate-800">${reportFilterGrade || 'Semua Tingkat'}</strong></span>
+          <span>Kelas: <strong class="text-slate-800">${reportFilterClass || 'Semua Kelas'}</strong></span>
+          <span>Tanggal Cetak: <strong class="text-slate-800">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Title & Print Button (Hidden when printing) -->
+    <div class="flex justify-between items-center mb-6 no-print">
+      <h2 class="text-2xl font-bold text-slate-800">Rekap Histori Laporan</h2>
+      <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center gap-2">
+        <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan
+      </button>
+    </div>
     
-    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">
+    <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 mb-6 no-print">
       <h3 class="text-sm font-semibold text-slate-600 mb-3">Filter Laporan</h3>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
@@ -356,7 +376,7 @@ function renderReports(el) {
     </div>
 
     <!-- Legend ketuntasan -->
-    <div class="flex flex-wrap gap-3 mb-3 text-xs font-medium text-slate-500">
+    <div class="flex flex-wrap gap-3 mb-3 text-xs font-medium text-slate-500 no-print">
       <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-emerald-400"></span> Tuntas = Sudah mencapai/melewati target grade</span>
       <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span> Belum Tuntas = Masih di bawah target grade</span>
       <span class="flex items-center gap-1.5 text-slate-400 italic">* Arahkan kursor ke badge untuk melihat target</span>
