@@ -245,7 +245,66 @@ function renderReports(el) {
         ? `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">✓ Tuntas</span>`
         : `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Belum Tuntas</span>`;
     }
+    }
     return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">-</span>';
+  }
+
+  function getPerkembangan(r, allReports) {
+    const isBacaan = r.report_type === 'iqro' || r.report_type === 'quran';
+    const myReports = allReports.filter(x => 
+      x.student_id === r.student_id && 
+      (isBacaan ? (x.report_type === 'iqro' || x.report_type === 'quran') : x.report_type === 'hafalan')
+    );
+    
+    if (myReports.length === 0) return '-';
+    
+    const sorted = [...myReports].sort((a,b) => {
+      const da = new Date(a.tanggal || 0);
+      const db = new Date(b.tanggal || 0);
+      if (da - db !== 0) return da - db;
+      return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+    });
+
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+
+    let totalAyat = 0;
+    let totalHal = 0;
+    sorted.forEach(cr => {
+      if (cr.report_type === 'iqro') {
+        totalHal += 1;
+      } else {
+        let d = parseInt(cr.ayat_dari)||0;
+        let s = parseInt(cr.ayat_sampai)||0;
+        if (s >= d) totalAyat += (s - d + 1);
+      }
+    });
+
+    let totalText = '';
+    if (isBacaan) {
+      if (totalHal > 0 && totalAyat > 0) totalText = `+${totalHal} Hal, +${totalAyat} Ayat`;
+      else if (totalHal > 0) totalText = `+${totalHal} Halaman`;
+      else if (totalAyat > 0) totalText = `+${totalAyat} Ayat`;
+    } else {
+      totalText = `+${totalAyat} Ayat`;
+    }
+    
+    if (myReports.length <= 1) {
+      return `<span class="text-[11px] text-slate-400 font-medium">${totalText} <br/>(Baru 1 laporan)</span>`;
+    }
+
+    let firstDetail = first.report_type==='iqro'? `Jilid ${first.iqro_jilid} Hal ${first.iqro_halaman}` : `${first.surat} ${first.ayat_dari}-${first.ayat_sampai}`;
+    let lastDetail = last.report_type==='iqro'? `Jilid ${last.iqro_jilid} Hal ${last.iqro_halaman}` : `${last.surat} ${last.ayat_dari}-${last.ayat_sampai}`;
+
+    return `
+      <div class="text-xs">
+        <div class="font-bold text-indigo-600 mb-0.5">${totalText}</div>
+        <div class="text-[10px] text-slate-500 leading-tight whitespace-nowrap">
+          Awal: ${firstDetail}<br>
+          Akhir: ${lastDetail}
+        </div>
+      </div>
+    `;
   }
 
   el.innerHTML = `
@@ -302,6 +361,7 @@ function renderReports(el) {
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Detail</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Status</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Catatan</th>
+              <th class="text-left px-5 py-4 font-semibold text-slate-600">Perkembangan</th>
               <th class="text-left px-5 py-4 font-semibold text-slate-600">Ketuntasan Target</th>
             </tr>
           </thead>
@@ -322,10 +382,11 @@ function renderReports(el) {
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
                 <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate cursor-pointer hover:text-slate-900 transition-all duration-200" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas/menciutkan">${r.catatan||'-'}</td>
+                <td class="px-5 py-3">${getPerkembangan(r, getReports())}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
-            }).join('') : '<tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
-            <tr id="report-table-no-results" style="display: none;"><td colspan="7" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
+            }).join('') : '<tr><td colspan="7" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
+            <tr id="report-table-no-results" style="display: none;"><td colspan="8" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
           </tbody>
         </table>
       </div>
