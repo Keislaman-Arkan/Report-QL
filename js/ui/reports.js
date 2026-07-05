@@ -245,7 +245,6 @@ function renderReports(el) {
         ? `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">✓ Tuntas</span>`
         : `<span title="${targetLabel}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Belum Tuntas</span>`;
     }
-    }
     return '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-400">-</span>';
   }
 
