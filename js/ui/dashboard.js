@@ -117,7 +117,7 @@ function renderDashboard(el) {
         const bHafalan = stMetrics.evaluatedHafalan - stMetrics.tuntasHafalan;
         
         return `
-        <div class="card-hover bg-white rounded-2xl p-5 shadow-sm border border-slate-100 cursor-pointer" onclick="navigate('students');filterByGrade('${gradeName}')">
+        <div class="card-hover bg-white rounded-2xl p-5 shadow-sm border border-slate-100 cursor-pointer" onclick="reportFilterGrade='${gradeName}';reportFilterClass='';navigate('reports')">
           <div class="flex justify-between items-center mb-5">
             <h4 class="font-bold text-slate-700 text-base">${gradeName}</h4>
             <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-semibold">${ks.length} Siswa</span>
@@ -161,7 +161,7 @@ function renderDashboard(el) {
 
           <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 text-xs text-slate-400">
             <i data-lucide="mouse-pointer-click" class="w-3.5 h-3.5"></i>
-            <span>Klik kartu untuk lihat daftar siswa</span>
+            <span>Klik kartu untuk lihat rekap laporan</span>
           </div>
         </div>`;
       }).join('')}
