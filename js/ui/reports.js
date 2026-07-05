@@ -269,10 +269,23 @@ function renderReports(el) {
 
     let totalAyat = 0;
     let totalHal = 0;
-    sorted.forEach(cr => {
-      if (cr.report_type === 'iqro') {
-        totalHal += 1;
+    
+    const sortedIqro = sorted.filter(cr => cr.report_type === 'iqro');
+    if (sortedIqro.length > 0) {
+      if (sortedIqro.length === 1) {
+        totalHal = 1; // Only 1 report, count as 1 page
       } else {
+        const firstIqro = sortedIqro[0];
+        const lastIqro = sortedIqro[sortedIqro.length - 1];
+        const firstIndex = (parseInt(firstIqro.iqro_jilid - 1) || 0) * 30 + (parseInt(firstIqro.iqro_halaman) || 1);
+        const lastIndex = (parseInt(lastIqro.iqro_jilid - 1) || 0) * 30 + (parseInt(lastIqro.iqro_halaman) || 1);
+        totalHal = lastIndex - firstIndex;
+        if (totalHal < 0) totalHal = 0;
+      }
+    }
+
+    sorted.forEach(cr => {
+      if (cr.report_type !== 'iqro') {
         let d = parseInt(cr.ayat_dari)||0;
         let s = parseInt(cr.ayat_sampai)||0;
         if (s >= d) totalAyat += (s - d + 1);
