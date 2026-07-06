@@ -1,18 +1,20 @@
 // ============ IMPORT SISWA CSV/EXCEL ============
 
 // Kolom template yang wajib ada
-const IMPORT_COLUMNS = ['name','grade','kelas','iqro_jilid','iqro_halaman','target_juz','target_hafalan_surat','target_hafalan_ayat_dari','target_hafalan_ayat_sampai'];
+const IMPORT_COLUMNS = ['name','grade','kelas','nis','password','iqro_jilid','iqro_halaman','target_juz','target_hafalan_surat','target_hafalan_ayat_dari','target_hafalan_ayat_sampai'];
 let importedRows = []; // Baris hasil parsing
 
 function downloadStudentTemplate() {
-  const header = 'name,grade,kelas,iqro_jilid,iqro_halaman,target_juz,target_hafalan_surat,target_hafalan_ayat_dari,target_hafalan_ayat_sampai';
-  const example1 = 'Ahmad Fauzi,Grade 1,1 A,1,10,30,,,'; 
-  const example2 = 'Siti Aisyah,Grade 2,2 A,2,45,,An-Nas,1,6';
+  const header = 'name,grade,kelas,nis,password,iqro_jilid,iqro_halaman,target_juz,target_hafalan_surat,target_hafalan_ayat_dari,target_hafalan_ayat_sampai';
+  const example1 = 'Ahmad Fauzi,Grade 1,1 A,120101,123456,1,10,30,,,'; 
+  const example2 = 'Siti Aisyah,Grade 2,2 A,120202,123456,2,45,,An-Nas,1,6';
   const notes = [
     '# PETUNJUK PENGISIAN:',
     '# - name        : Nama lengkap siswa (WAJIB)',
     '# - grade       : Tingkat kelas, contoh: Grade 1 / Grade 2 / ... / Grade 6 (WAJIB)',
     '# - kelas       : Nama kelas, harus sesuai dengan kelas yang ada di sistem (WAJIB)',
+    '# - nis         : Nomor Induk Siswa untuk login siswa (opsional)',
+    '# - password    : Kata sandi login siswa (opsional, default: 123456 jika kosong)',
     '# - iqro_jilid  : Angka 1-6 (target iqro jilid)',
     '# - iqro_halaman: Angka 1-120 (target halaman iqro)',
     '# - target_juz  : Angka 1-30, ISI HANYA JIKA target hafalan berdasarkan juz (kosongkan jika pakai surat)',
@@ -322,13 +324,15 @@ async function doImportStudents() {
       name: String(row.name).trim(),
       grade: String(row.grade).trim(),
       kelas: String(row.kelas).trim(),
+      nis: row.nis ? String(row.nis).trim() : '',
+      password: row.password ? String(row.password).trim() : '',
       iqro_jilid: parseInt(row.iqro_jilid) || 1,
       iqro_halaman: parseInt(row.iqro_halaman) || 1,
       target_juz: hafalanSurat ? 0 : (targetJuz || 30),
       target_hafalan_surat: hafalanSurat || '',
       target_hafalan_ayat_dari: hafalanSurat ? (parseInt(row.target_hafalan_ayat_dari) || 1) : 0,
       target_hafalan_ayat_sampai: hafalanSurat ? (parseInt(row.target_hafalan_ayat_sampai) || 1) : 0,
-      email:'',password:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,
+      email:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,
       status:'',tanggal:'',student_id:'',report_type:'',subject:'',
       nip:'',phone:'',address:'',specialization:'',
       target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,

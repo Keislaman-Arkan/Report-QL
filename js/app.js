@@ -1,9 +1,14 @@
 // ============ RENDER ENGINE ============
+let isStudentLoginMode = false;
+
 function render() {
   const app = document.getElementById('app');
   if (!currentUser) { 
     app.className = "h-full w-full overflow-auto";
     renderLogin(app); 
+  } else if (currentUser.role === 'student') {
+    app.className = "h-full w-full overflow-y-auto bg-slate-50";
+    renderStudentDashboard(app);
   } else { 
     app.className = "h-full w-full flex flex-col md:flex-row overflow-hidden bg-slate-50";
     renderMain(app); 
@@ -21,16 +26,29 @@ function renderLogin(app) {
         <p class="text-slate-500 mt-1">Sistem Manajemen Pembelajaran Al-Qur'an</p>
       </div>
       <div id="login-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 mb-1">Username / Email</label>
-          <input id="login-user" type="text" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan username">
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
-          <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan password">
-        </div>
-        <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition">Masuk</button>
-        <button onclick="loginAsVisitor()" class="w-full mt-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition">Masuk sebagai Pengunjung</button>
+        ${isStudentLoginMode ? `
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-1">NIS / Nama Siswa</label>
+            <input id="login-user" type="text" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan NIS atau Nama Anda">
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Kata Sandi</label>
+            <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Default: 123456">
+          </div>
+          <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition">Masuk sebagai Siswa</button>
+          <button onclick="isStudentLoginMode=false;render()" class="w-full mt-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition">Masuk sebagai Guru / Admin</button>
+        ` : `
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Username / Email</label>
+            <input id="login-user" type="text" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan username">
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan password">
+          </div>
+          <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition">Masuk</button>
+          <button onclick="isStudentLoginMode=true;render()" class="w-full mt-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition">Masuk sebagai Siswa</button>
+        `}
         <p id="login-error" class="text-red-500 text-sm mt-3 hidden"></p>
       </div>
     </div>
@@ -42,6 +60,22 @@ function handleLogin() {
   const pass = document.getElementById('login-pass').value;
   if (!user || !pass) { showLoginError('Harap isi semua field'); return; }
   
+  if (isStudentLoginMode) {
+    const students = getStudents();
+    const found = students.find(s => 
+      (s.nis === user || s.name.toLowerCase() === user.toLowerCase()) && 
+      (s.password === pass || (!s.password && (pass === '123456' || pass === s.nis)))
+    );
+    if (found) {
+      currentUser = { name: found.name, role: 'student', id: found.__backendId, kelas: found.kelas, grade: found.grade };
+      saveSession();
+      render();
+      return;
+    }
+    showLoginError('NIS / Nama atau password salah');
+    return;
+  }
+  
   const allAccounts = allData.filter(d => d.type === 'user' || d.type === 'teacher');
   const found = allAccounts.find(u => (u.name === user || u.email === user) && u.password === pass);
   
@@ -52,7 +86,7 @@ function handleLogin() {
 
 function loginAsVisitor() { currentUser = { name: 'Pengunjung', role: 'visitor', id: 'visitor' }; saveSession(); render(); }
 function showLoginError(msg) { const el = document.getElementById('login-error'); el.textContent = msg; el.classList.remove('hidden'); }
-function handleLogout() { clearSession(); currentPage = 'dashboard'; render(); }
+function handleLogout() { clearSession(); currentPage = 'dashboard'; isStudentLoginMode = false; render(); }
 
 // ============ MAIN LAYOUT & SIDEBAR ============
 function renderMain(app) {

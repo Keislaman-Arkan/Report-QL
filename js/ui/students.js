@@ -160,7 +160,14 @@ function showAddStudent() {
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Lengkap</label><input id="s-name" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Masukkan nama siswa"></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tingkat (Grade)</label><select id="s-grade" onchange="handleGradeChangeForm()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"><option value="">-- Pilih Tingkat --</option>${gradeList.map(g => `<option value="${g}">${g}</option>`).join('')}</select></div>
         </div>
-        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50"><option value="">Pilih Tingkat Terlebih Dahulu</option></select></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50"><option value="">Pilih Tingkat Terlebih Dahulu</option></select></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">NIS (Untuk Login)</label><input id="s-nis" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Contoh: 120401"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Kata Sandi Login Siswa</label>
+          <input id="s-password" type="password" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Password default: 123456">
+        </div>
         
         <div class="border-t border-slate-100 pt-4">
           <h4 class="text-sm font-bold text-emerald-700 mb-3 flex items-center gap-2"><i data-lucide="book" class="w-4 h-4"></i> Target Iqro'</h4>
@@ -314,12 +321,16 @@ async function saveStudent() {
     };
   }
   
+  const nis = document.getElementById('s-nis').value.trim();
+  const password = document.getElementById('s-password').value.trim();
+
   const r = await window.dataSdk.create({
     type: 'student', name, grade, kelas,
+    nis, password,
     iqro_jilid: parseInt(document.getElementById('s-jilid').value),
     iqro_halaman: parseInt(document.getElementById('s-hal').value),
     ...hafalanData,
-    email:'',password:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
+    email:'',role:'',juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
   });
   if (r.isOk) { showToast('Siswa berhasil ditambahkan'); closeStudentModal(); }
   else showToast('Gagal menyimpan','error');
@@ -346,7 +357,14 @@ function editStudent(id) {
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama</label><input id="s-name" value="${s.name}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tingkat (Grade)</label><select id="s-grade" onchange="handleGradeChangeForm()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"><option value="">Pilih Tingkat</option>${gradeList.map(g => `<option value="${g}" ${s.grade === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
         </div>
-        <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></select></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Kelas</label><select id="s-kelas" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></select></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">NIS (Untuk Login)</label><input id="s-nis" value="${s.nis || ''}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Contoh: 120401"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Kata Sandi Login Siswa</label>
+          <input id="s-password" type="password" value="${s.password || ''}" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Password default: 123456">
+        </div>
         
         <div class="border-t border-slate-100 pt-4">
           <h4 class="text-sm font-bold text-emerald-700 mb-3 flex items-center gap-2"><i data-lucide="book" class="w-4 h-4"></i> Target Iqro'</h4>
@@ -409,6 +427,8 @@ async function updateStudent(id) {
   s.name = document.getElementById('s-name').value.trim();
   s.grade = document.getElementById('s-grade').value;
   s.kelas = document.getElementById('s-kelas').value;
+  s.nis = document.getElementById('s-nis').value.trim();
+  s.password = document.getElementById('s-password').value.trim();
   s.iqro_jilid = parseInt(document.getElementById('s-jilid').value);
   s.iqro_halaman = parseInt(document.getElementById('s-hal').value);
   
