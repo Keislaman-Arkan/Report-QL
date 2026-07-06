@@ -273,9 +273,14 @@ function renderStudentDashboard(el) {
             <p class="text-xs text-emerald-200 font-medium">Rapor Perkembangan Mandiri</p>
           </div>
         </div>
-        <button onclick="handleLogout()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
-          <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="showChangePasswordModal()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+            <i data-lucide="key" class="w-3.5 h-3.5"></i> Ubah Sandi
+          </button>
+          <button onclick="handleLogout()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Keluar
+          </button>
+        </div>
       </div>
     </header>
 
@@ -393,5 +398,96 @@ function renderStudentDashboard(el) {
     </main>
   </div>`;
   if (window.lucide) lucide.createIcons();
+}
+
+function showChangePasswordModal() {
+  const modal = document.createElement('div');
+  modal.id = 'change-password-modal';
+  modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 fade-in space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+          <i data-lucide="key" class="w-5 h-5 text-emerald-600"></i> Ubah Kata Sandi Siswa
+        </h3>
+        <button onclick="document.getElementById('change-password-modal').remove()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Kata Sandi Lama</label>
+          <input id="pwd-old" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Masukkan sandi saat ini">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Kata Sandi Baru</label>
+          <input id="pwd-new" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Minimal 6 karakter">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Konfirmasi Kata Sandi Baru</label>
+          <input id="pwd-confirm" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Ulangi sandi baru">
+        </div>
+      </div>
+      
+      <p id="pwd-error" class="text-red-500 text-xs font-medium hidden"></p>
+      
+      <div class="flex gap-3 pt-2">
+        <button onclick="document.getElementById('change-password-modal').remove()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="saveStudentPassword()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md transition">Simpan Sandi</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons();
+}
+
+async function saveStudentPassword() {
+  const oldPwd = document.getElementById('pwd-old').value;
+  const newPwd = document.getElementById('pwd-new').value;
+  const confirmPwd = document.getElementById('pwd-confirm').value;
+  const errorEl = document.getElementById('pwd-error');
+  
+  errorEl.classList.add('hidden');
+  
+  if (!oldPwd || !newPwd || !confirmPwd) {
+    errorEl.textContent = 'Harap isi semua kolom';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  if (newPwd.length < 6) {
+    errorEl.textContent = 'Kata sandi baru minimal 6 karakter';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  if (newPwd !== confirmPwd) {
+    errorEl.textContent = 'Konfirmasi kata sandi baru tidak cocok';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  const student = getStudents().find(s => s.__backendId === currentUser.id);
+  if (!student) {
+    errorEl.textContent = 'Data siswa tidak ditemukan';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  const expectedOldPwd = student.password || student.nis || '123456';
+  if (oldPwd !== expectedOldPwd) {
+    errorEl.textContent = 'Kata sandi lama salah';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  student.password = newPwd;
+  const r = await window.dataSdk.update(student);
+  if (r.isOk) {
+    showToast('Kata sandi berhasil diubah!');
+    document.getElementById('change-password-modal').remove();
+  } else {
+    errorEl.textContent = 'Gagal menyimpan ke database Supabase';
+    errorEl.classList.remove('hidden');
+  }
 }
 
