@@ -33,7 +33,7 @@ function renderLogin(app) {
           </div>
           <div class="mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-1">Kata Sandi</label>
-            <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Default: 123456">
+            <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan Kata Sandi">
           </div>
           <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition">Masuk sebagai Siswa</button>
           <button onclick="isStudentLoginMode=false;render()" class="w-full mt-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition">Masuk sebagai Guru / Admin</button>
