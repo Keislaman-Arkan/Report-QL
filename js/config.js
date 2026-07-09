@@ -1,4 +1,9 @@
 
+const SUPABASE_URL = atob('aHR0cHM6Ly9wYWFleHBubWhubXFkcW56bnp6LnN1cGFiYXNlLmNv');
+const SUPABASE_ANON_KEY = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYSmhZbUZ6WlNJc0luSmxaaUk2SW5CaFlXVjVlSEJ1YldodWJYRmtjVzU2Ym5wNklpd2ljbTlzWlNJNkltRnViMjRpTENCcFlYUWlPakUzTnpnM016a3hOakFzSW1WNFlTSTZNakE1TkRNeE5URTJNSDkuWi1Ta04xUjlEa1BZU3p5UU1FdHNQZGhQVV9SeDFRSzYybFdhUE9NZ3dBWQ==');
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
 const quranData = {
   1: [{name:'Al-Fatihah',ayat:7},{name:'Al-Baqarah',ayat:286}], 2: [{name:'Al-Baqarah',ayat:286}], 3: [{name:'Ali Imran',ayat:200}],
   4: [{name:'An-Nisa',ayat:176}], 5: [{name:'An-Nisa',ayat:176},{name:'Al-Maidah',ayat:120}], 6: [{name:'Al-Maidah',ayat:120},{name:'Al-An\'am',ayat:165}],
