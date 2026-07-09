@@ -387,7 +387,7 @@ function renderStudentDashboard(el) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              ${reports.length ? reports.sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(r => {
+              ${progressReports.length ? [...progressReports].sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(b.created_at || 0)).map(r => {
                 const isIqro = r.report_type === 'iqro';
                 const typeLabel = isIqro ? '📖 Bacaan' : r.report_type === 'quran' ? '📖 Bacaan' : '📚 Hafalan';
                 const detail = isIqro ? `Jilid ${r.iqro_jilid} Halaman ${r.iqro_halaman}` : `${r.surat} Ayat ${r.ayat_dari}-${r.ayat_sampai}`;
@@ -587,4 +587,3 @@ async function saveStudentPromotion() {
     showToast('Gagal memperbarui kelas di database Supabase', 'error');
   }
 }
-
