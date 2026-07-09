@@ -222,21 +222,24 @@ function renderStudentDashboard(el) {
     currentHafalanText = `${latest.surat} Ayat ${latest.ayat_dari}-${latest.ayat_sampai}`;
   }
 
-  // Calculate accumulated progress (total read/memorized) - reset/filter on promotion
-  console.log('=== DEBUG NAIK KELAS ===');
-  console.log('class_updated_at dari DB:', student.class_updated_at);
-  console.log('Semua Laporan Siswa:', stReports);
+  // Helper: normalize any date value to YYYY-MM-DD string for comparison
+  function toDateStr(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    // Extract YYYY-MM-DD from any format (timestamp, date string, etc.)
+    const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : '';
+  }
 
-  const promoteDate = student.class_updated_at ? new Date(student.class_updated_at + 'T00:00:00') : null;
-  const progressReports = promoteDate 
+  // Calculate accumulated progress (total read/memorized) - reset/filter on promotion
+  const promoteDateStr = toDateStr(student.class_updated_at);
+  const progressReports = promoteDateStr
     ? stReports.filter(r => {
-        if (!r.tanggal) return false;
-        const rDate = new Date(r.tanggal + 'T00:00:00');
-        return rDate >= promoteDate;
+        const rDateStr = toDateStr(r.tanggal);
+        // Only include reports STRICTLY AFTER promotion date
+        return rDateStr > promoteDateStr;
       })
     : stReports;
-
-  console.log('Laporan Terfilter setelah Naik Kelas:', progressReports);
 
   let totalHal = 0;
   let totalAyatBacaan = 0;

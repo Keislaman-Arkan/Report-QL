@@ -250,10 +250,26 @@ function renderReports(el) {
 
   function getPerkembangan(r, allReports) {
     const isBacaan = r.report_type === 'iqro' || r.report_type === 'quran';
-    const myReports = allReports.filter(x => 
+    const student = students.find(s => s.__backendId === r.student_id);
+
+    // Helper: normalize any date value to YYYY-MM-DD string
+    function toDateStr(val) {
+      if (!val) return '';
+      const s = String(val).trim();
+      const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      return match ? match[1] : '';
+    }
+
+    let myReports = allReports.filter(x => 
       x.student_id === r.student_id && 
       (isBacaan ? (x.report_type === 'iqro' || x.report_type === 'quran') : x.report_type === 'hafalan')
     );
+
+    // Filter by class_updated_at if student has been promoted
+    const promoteDateStr = student ? toDateStr(student.class_updated_at) : '';
+    if (promoteDateStr) {
+      myReports = myReports.filter(x => toDateStr(x.tanggal) > promoteDateStr);
+    }
     
     if (myReports.length === 0) return '-';
     
