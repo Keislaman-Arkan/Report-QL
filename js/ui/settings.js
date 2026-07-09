@@ -12,6 +12,7 @@ function renderSettings(el) {
     <div class="flex overflow-x-auto gap-1 mb-6 border-b border-slate-200 hide-scroll">
       <button onclick="activeSettingsTab='kelas-names';renderPage()" class="shrink-0 px-5 py-3 text-sm font-semibold transition ${activeSettingsTab==='kelas-names'?'border-b-2 border-emerald-600 text-emerald-700':'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}">Manajemen Kelas</button>
       <button onclick="activeSettingsTab='targets';renderPage()" class="shrink-0 px-5 py-3 text-sm font-semibold transition ${activeSettingsTab==='targets'?'border-b-2 border-emerald-600 text-emerald-700':'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}">Target Kurikulum</button>
+      <button onclick="activeSettingsTab='features';renderPage()" class="shrink-0 px-5 py-3 text-sm font-semibold transition ${activeSettingsTab==='features'?'border-b-2 border-emerald-600 text-emerald-700':'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}">Fitur Aplikasi</button>
     </div>
     
     ${activeSettingsTab==='kelas-names' ? `
@@ -89,6 +90,23 @@ function renderSettings(el) {
           }).join('')}
         </div>
         <button onclick="saveSettingsHafalan()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Hafalan</button>
+      </div>
+    </div>
+    ` : activeSettingsTab==='features' ? `
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 max-w-2xl">
+      <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <i data-lucide="toggle-left" class="w-5 h-5 text-emerald-500"></i> Pengaturan Fitur Siswa
+      </h3>
+      
+      <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+        <div>
+          <h4 class="font-bold text-slate-800 text-sm">Aktifkan Naik Kelas Mandiri oleh Siswa</h4>
+          <p class="text-xs text-slate-500 mt-1 max-w-[280px] sm:max-w-md">Jika diaktifkan, siswa akan melihat tombol "Naik Kelas" di dashboard rapor mandiri mereka.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="allow-student-promote" class="sr-only peer" ${isStudentPromoteEnabled() ? 'checked' : ''} onchange="toggleStudentPromoteSetting(this.checked)">
+          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+        </label>
       </div>
     </div>
     ` : ''}
@@ -225,4 +243,20 @@ async function deleteKelasDynamic(gradeName, className) {
     showToast(`Kelas ${className} dihapus`);
     renderPage();
   }
+}
+
+async function toggleStudentPromoteSetting(checked) {
+  const existing = allData.find(x => x.type === 'setting' && x.subject === 'allow_student_promote');
+  if (existing) {
+    existing.data = { enabled: checked };
+    await window.dataSdk.update(existing);
+  } else {
+    await window.dataSdk.create({
+      type: 'setting',
+      subject: 'allow_student_promote',
+      data: { enabled: checked },
+      name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0
+    });
+  }
+  showToast(checked ? 'Fitur Naik Kelas diaktifkan' : 'Fitur Naik Kelas dinonaktifkan', 'success');
 }

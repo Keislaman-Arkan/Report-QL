@@ -222,12 +222,16 @@ function renderStudentDashboard(el) {
     currentHafalanText = `${latest.surat} Ayat ${latest.ayat_dari}-${latest.ayat_sampai}`;
   }
 
-  // Calculate accumulated progress (total read/memorized)
+  // Calculate accumulated progress (total read/memorized) - reset/filter on promotion
+  const progressReports = student.class_updated_at 
+    ? stReports.filter(r => r.tanggal >= student.class_updated_at)
+    : stReports;
+
   let totalHal = 0;
   let totalAyatBacaan = 0;
   let totalAyatHafalan = 0;
   
-  const sortedIqro = stReports.filter(cr => cr.report_type === 'iqro').sort((a,b) => new Date(a.tanggal || 0) - new Date(b.tanggal || 0) || new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  const sortedIqro = progressReports.filter(cr => cr.report_type === 'iqro').sort((a,b) => new Date(a.tanggal || 0) - new Date(b.tanggal || 0) || new Date(a.created_at || 0) - new Date(b.created_at || 0));
   if (sortedIqro.length > 0) {
     if (sortedIqro.length === 1) {
       totalHal = 1;
@@ -241,7 +245,7 @@ function renderStudentDashboard(el) {
     }
   }
   
-  stReports.forEach(cr => {
+  progressReports.forEach(cr => {
     if (cr.report_type === 'quran') {
       let d = parseInt(cr.ayat_dari)||0;
       let s = parseInt(cr.ayat_sampai)||0;
@@ -294,8 +298,13 @@ function renderStudentDashboard(el) {
           <h2 class="text-xl font-bold text-slate-800 mt-2">${student.name}</h2>
           <p class="text-xs text-slate-500 mt-1">NIS: <span class="font-semibold text-slate-700">${student.nis || '-'}</span></p>
         </div>
-        <div class="flex flex-col items-start sm:items-end text-left sm:text-right">
+        <div class="flex flex-col items-start sm:items-end text-left sm:text-right gap-2">
           <span class="bg-slate-100 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-slate-200">${student.grade} - Kelas ${student.kelas}</span>
+          ${isStudentPromoteEnabled() ? `
+            <button onclick="showPromoteClassModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Naik Kelas
+            </button>
+          ` : ''}
         </div>
       </div>
 
@@ -488,6 +497,94 @@ async function saveStudentPassword() {
   } else {
     errorEl.textContent = 'Gagal menyimpan ke database Supabase';
     errorEl.classList.remove('hidden');
+  }
+}
+
+function showPromoteClassModal() {
+  const modal = document.createElement('div');
+  modal.id = 'promote-class-modal';
+  modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4';
+  
+  const map = getGradeKelasMap();
+  const grades = Object.keys(map);
+  const student = getStudents().find(s => s.__backendId === currentUser.id);
+  
+  const currentGradeIdx = grades.indexOf(student.grade);
+  const nextGrade = currentGradeIdx !== -1 && currentGradeIdx + 1 < grades.length ? grades[currentGradeIdx + 1] : student.grade;
+  const initialClasses = map[nextGrade] || [];
+  
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 fade-in space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+          <i data-lucide="trending-up" class="w-5 h-5 text-amber-600"></i> Update Kelas / Naik Kelas
+        </h3>
+        <button onclick="document.getElementById('promote-class-modal').remove()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-855 leading-relaxed">
+        <strong>PENTING:</strong> Jika Anda menaikkan kelas, grafik perkembangan (halaman/ayat yang dibaca di kelas sebelumnya) akan di-reset dari 0 untuk melacak progres di kelas baru Anda. Namun, data pencapaian bacaan/hafalan terakhir Anda tidak akan hilang.
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Tingkat Baru (Grade)</label>
+          <select id="promote-grade" onchange="updatePromoteClassOptions()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            ${grades.map(g => `<option value="${g}" ${g === nextGrade ? 'selected' : ''}>${g}</option>`).join('')}
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Kelas Baru</label>
+          <select id="promote-kelas" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            ${initialClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 pt-2">
+        <button onclick="document.getElementById('promote-class-modal').remove()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold transition">Batal</button>
+        <button onclick="saveStudentPromotion()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md transition">Update Kelas</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons();
+}
+
+function updatePromoteClassOptions() {
+  const grade = document.getElementById('promote-grade').value;
+  const map = getGradeKelasMap();
+  const classes = map[grade] || [];
+  const classSelect = document.getElementById('promote-kelas');
+  classSelect.innerHTML = classes.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+async function saveStudentPromotion() {
+  const grade = document.getElementById('promote-grade').value;
+  const kelas = document.getElementById('promote-kelas').value;
+  if (!grade || !kelas) { showToast('Harap pilih Tingkat dan Kelas', 'error'); return; }
+  
+  const student = getStudents().find(s => s.__backendId === currentUser.id);
+  if (!student) { showToast('Data siswa tidak ditemukan', 'error'); return; }
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  student.grade = grade;
+  student.kelas = kelas;
+  student.class_updated_at = today;
+  
+  const r = await window.dataSdk.update(student);
+  if (r.isOk) {
+    currentUser.grade = grade;
+    currentUser.kelas = kelas;
+    saveSession();
+    
+    showToast('Selamat! Kelas Anda berhasil di-update.', 'success');
+    document.getElementById('promote-class-modal').remove();
+    render();
+  } else {
+    showToast('Gagal memperbarui kelas di database Supabase', 'error');
   }
 }
 

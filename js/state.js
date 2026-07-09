@@ -115,3 +115,8 @@ function showToast(msg, type='success') {
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 3000);
 }
+
+function isStudentPromoteEnabled() {
+  const s = allData.find(x => x.type === 'setting' && x.subject === 'allow_student_promote');
+  return s ? !!s.data?.enabled : false;
+}
