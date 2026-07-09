@@ -223,9 +223,20 @@ function renderStudentDashboard(el) {
   }
 
   // Calculate accumulated progress (total read/memorized) - reset/filter on promotion
-  const progressReports = student.class_updated_at 
-    ? stReports.filter(r => r.tanggal >= student.class_updated_at)
+  console.log('=== DEBUG NAIK KELAS ===');
+  console.log('class_updated_at dari DB:', student.class_updated_at);
+  console.log('Semua Laporan Siswa:', stReports);
+
+  const promoteDate = student.class_updated_at ? new Date(student.class_updated_at + 'T00:00:00') : null;
+  const progressReports = promoteDate 
+    ? stReports.filter(r => {
+        if (!r.tanggal) return false;
+        const rDate = new Date(r.tanggal + 'T00:00:00');
+        return rDate >= promoteDate;
+      })
     : stReports;
+
+  console.log('Laporan Terfilter setelah Naik Kelas:', progressReports);
 
   let totalHal = 0;
   let totalAyatBacaan = 0;
