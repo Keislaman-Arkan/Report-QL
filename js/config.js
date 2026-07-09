@@ -1,5 +1,3 @@
-const SUPABASE_URL = 'https://paaeqxpnmhnmqdqnznzz.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYWVxeHBubWhubXFkcW56bnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzkxNjAsImV4cCI6MjA5NDMxNTE2MH0.Z-SkN1R9DkPYSzyQMEtsPdhPU_Rx1QK62lWaPOMgwAY'; 
 
 const quranData = {
   1: [{name:'Al-Fatihah',ayat:7},{name:'Al-Baqarah',ayat:286}], 2: [{name:'Al-Baqarah',ayat:286}], 3: [{name:'Ali Imran',ayat:200}],

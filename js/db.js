@@ -1,4 +1,9 @@
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const dbUrl = window.SUPABASE_URL || localStorage.getItem('SUPABASE_URL') || '';
+const dbKey = window.SUPABASE_ANON_KEY || localStorage.getItem('SUPABASE_ANON_KEY') || '';
+let supabaseClient = null;
+if (dbUrl && dbKey && !dbUrl.includes('MASUKKAN_') && !dbKey.includes('MASUKKAN_')) {
+  supabaseClient = window.supabase.createClient(dbUrl, dbKey);
+}
 
 window.elementSdk = {
   init: function(config) { if (config && config.onConfigChange) config.onConfigChange(config.defaultConfig || {}); },
@@ -8,11 +13,14 @@ window.elementSdk = {
 window.dataSdk = {
   init: async function(handler) {
     window._dataHandler = handler;
-    await this.fetchAll();
+    if (supabaseClient) {
+      await this.fetchAll();
+    }
     return { isOk: true };
   },
   
   fetchAll: async function() {
+    if (!supabaseClient) return;
     try {
       const [usersRes, studentsRes, reportsRes, settingsRes] = await Promise.all([
         supabaseClient.from('users').select('*'),
@@ -34,6 +42,7 @@ window.dataSdk = {
   },
 
   create: async function(data, skipFetch = false) {
+    if (!supabaseClient) return { isOk: false };
     let table = '', payload = {};
     if (data.type === 'student') {
       table = 'students';
@@ -54,6 +63,7 @@ window.dataSdk = {
   },
 
   update: async function(data, skipFetch = false) {
+    if (!supabaseClient) return { isOk: false };
     let table = '', payload = {};
     if (data.type === 'student') {
       table = 'students';
@@ -71,6 +81,7 @@ window.dataSdk = {
   },
 
   delete: async function(data, skipFetch = false) {
+    if (!supabaseClient) return { isOk: false };
     let table = '';
     if (data.type === 'student') table = 'students';
     else if (data.type === 'report') table = 'reports';

@@ -185,7 +185,53 @@ function renderPage() {
 // ============ INIT ============
 async function initApp() {
   window.elementSdk.init({ defaultConfig, onConfigChange: async (cfg) => { document.body.style.fontFamily = `${cfg.font_family || defaultConfig.font_family}, sans-serif`; } });
+  
+  const url = window.SUPABASE_URL || localStorage.getItem('SUPABASE_URL');
+  const key = window.SUPABASE_ANON_KEY || localStorage.getItem('SUPABASE_ANON_KEY');
+  
+  if (!url || !key || url.includes('MASUKKAN_') || key.includes('MASUKKAN_')) {
+    renderConfigForm();
+    return;
+  }
+  
   await window.dataSdk.init({ onDataChanged(data) { allData = data; if (currentUser) renderPage(); if(window.lucide) lucide.createIcons(); } });
   loadSession(); render();
 }
 initApp();
+
+function renderConfigForm() {
+  const app = document.getElementById('app');
+  app.className = "h-full w-full flex items-center justify-center bg-slate-100 p-4";
+  app.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-md fade-in">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="database" class="w-6 h-6 text-amber-600"></i></div>
+        <h2 class="text-xl font-bold text-slate-800">Konfigurasi Database</h2>
+        <p class="text-sm text-slate-500 mt-1">Supabase belum dikonfigurasi. Masukkan detail koneksi database Anda.</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Supabase URL</label>
+          <input id="cfg-url" type="text" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="https://xxxx.supabase.co">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Supabase Anon Key</label>
+          <input id="cfg-key" type="password" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+        <button onclick="saveDbConfig()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition shadow-md">Simpan Konfigurasi</button>
+      </div>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+}
+
+function saveDbConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { showToast('Harap isi semua kolom', 'error'); return; }
+  
+  localStorage.setItem('SUPABASE_URL', url);
+  localStorage.setItem('SUPABASE_ANON_KEY', key);
+  showToast('Konfigurasi disimpan! Memuat ulang...', 'success');
+  setTimeout(() => window.location.reload(), 1000);
+}
