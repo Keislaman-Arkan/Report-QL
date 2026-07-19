@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Report Qur'an Learning</title>
+  
+  <!-- PWA Meta Tags untuk Tampilan Layaknya Aplikasi Asli (Native Feel) -->
+  <meta name="theme-color" content="#064e3b"> 
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Qur'an App">
+
+  <!-- Icon Browser & Apple Home Screen (PWA) -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <!-- SheetJS untuk parsing file Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <!-- SUPABASE SDK & INTEGRASI DATABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS Terpisah -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="h-full bg-slate-50">
+  <div id="app" class="h-full w-full flex flex-col md:flex-row overflow-hidden"></div>
+
+  <!-- JavaScript Terpisah -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/navigation.js"></script>
+  
+  <!-- UI Components -->
+  <script src="js/ui/dashboard.js"></script>
+  <script src="js/ui/students.js"></script>
+  <script src="js/ui/import-students.js"></script>
+  <script src="js/ui/teachers.js"></script>
+  <script src="js/ui/reports.js"></script>
+  <script src="js/ui/statistics.js"></script>
+  <script src="js/ui/settings.js"></script>
+  <script src="js/ui/users.js"></script>
+  
+  <!-- Entry Point Aplikasi -->
+  <script src="js/app.js"></script>
+</body>
+</html>
