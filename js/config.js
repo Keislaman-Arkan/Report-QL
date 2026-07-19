@@ -1,13 +1,9 @@
 
-// Fallback credentials (encoded to prevent automated GitHub secret scanning alerts)
-const DEFAULT_URL = atob('aHR0cHM6Ly9wYWFlcXhwbm1obm1xZHFuem56ei5zdXBhYmFzZS5jbw==');
-const DEFAULT_KEY = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW5CaFlXVnhlSEJ1YldodWJYRmtjVzU2Ym5wNklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpnM016a3hOakFzSW1WNGNDSTZNakE1TkRNeE5URTJNSDAuWi1Ta04xUjlEa1BZU3p5UU1FdHNQZGhQVV9SeDFRSzYybFdhUE9NZ3dBWQ==');
-
 const cleanUrl = (window.SUPABASE_URL && !window.SUPABASE_URL.includes('MASUKKAN_')) ? window.SUPABASE_URL : '';
 const cleanKey = (window.SUPABASE_ANON_KEY && !window.SUPABASE_ANON_KEY.includes('MASUKKAN_')) ? window.SUPABASE_ANON_KEY : '';
 
-window.SUPABASE_URL = cleanUrl || DEFAULT_URL;
-window.SUPABASE_ANON_KEY = cleanKey || DEFAULT_KEY;
+window.SUPABASE_URL = cleanUrl;
+window.SUPABASE_ANON_KEY = cleanKey;
 
 const quranData = {
   1: [{name:'Al-Fatihah',ayat:7},{name:'Al-Baqarah',ayat:286}], 2: [{name:'Al-Baqarah',ayat:286}], 3: [{name:'Ali Imran',ayat:200}],
