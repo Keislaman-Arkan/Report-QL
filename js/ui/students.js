@@ -525,7 +525,12 @@ function selectStudent(prefix, id, name, kelas) {
   hiddenInput.value = id;
   hiddenInput.dataset.name = displayText;
   
-  document.getElementById(`dropdown-${prefix}-student`).classList.add('hidden');
+  if (prefix === 'history') {
+    if (typeof selectHistoryStudent === 'function') {
+      selectHistoryStudent(id);
+    }
+    return;
+  }
 
   // TRIGGER AUTO-FILL
   autoFillReportForm(prefix, id);
@@ -629,7 +634,7 @@ function autoFillReportForm(prefix, studentId) {
 }
 
 document.addEventListener('mousedown', function(e) {
-  ['ri', 'rq', 'rh', 'edit'].forEach(prefix => {
+  ['ri', 'rq', 'rh', 'edit', 'history'].forEach(prefix => {
     const dropdown = document.getElementById(`dropdown-${prefix}-student`);
     const searchInput = document.getElementById(`search-${prefix}-student`);
     if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {

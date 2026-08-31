@@ -98,6 +98,7 @@ function renderMain(app) {
     { id: 'teachers', icon: 'user-check', label: 'Data Guru' },
     { id: 'report-bacaan', icon: 'book', label: 'Laporan Bacaan' },
     { id: 'report-hafalan', icon: 'bookmark', label: 'Laporan Hafalan' },
+    { id: 'report-history', icon: 'history', label: 'Riwayat Laporan' },
     { id: 'reports', icon: 'file-text', label: 'Rekap Laporan' },
     { id: 'statistics', icon: 'bar-chart-2', label: 'Statistik' },
   ];
@@ -172,6 +173,7 @@ function renderPage() {
     case 'teachers': renderTeachers(main); break;
     case 'report-bacaan': renderReportBacaan(main); break;
     case 'report-hafalan': renderReportHafalan(main); break;
+    case 'report-history': renderReportHistory(main); break;
     case 'reports': renderReports(main); break;
     case 'statistics': renderStatistics(main); break;
     case 'settings': renderSettings(main); break;
