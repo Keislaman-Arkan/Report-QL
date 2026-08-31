@@ -130,7 +130,7 @@ function renderReportHistory(el) {
           <div class="p-2 bg-emerald-100 rounded-xl text-emerald-700"><i data-lucide="history" class="w-6 h-6"></i></div>
           Riwayat Laporan Siswa
         </h2>
-        <p class="text-slate-500 text-sm mt-1">Lihat, edit, dan pantau perjalanan perkembangan belajar santri dari awal hingga sekarang</p>
+        <p class="text-slate-500 text-sm mt-1">Lihat, edit, dan pantau perjalanan perkembangan belajar siswa dari awal hingga sekarang</p>
       </div>
     </div>
 
@@ -156,7 +156,7 @@ function renderReportHistory(el) {
         <input type="hidden" id="history-student" value="${student ? student.__backendId : ''}" data-name="${student ? `${student.name} (${student.kelas || student.grade || '-'})` : ''}">
         <div id="dropdown-history-student" class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto hidden"></div>
       </div>
-      <p class="text-xs text-slate-400 mt-2">💡 Tips: Ketik beberapa huruf dari nama santri untuk memunculkan daftar pilihan.</p>
+      <p class="text-xs text-slate-400 mt-2">💡 Tips: Ketik beberapa huruf dari nama siswa untuk memunculkan daftar pilihan.</p>
     </div>
 
     ${summaryHtml}
@@ -268,9 +268,9 @@ function renderReportHistory(el) {
         <div class="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-5 text-emerald-600 shadow-inner">
           <i data-lucide="user-search" class="w-10 h-10"></i>
         </div>
-        <h3 class="text-xl font-bold text-slate-800 mb-2">Pilih Santri Terlebih Dahulu</h3>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Pilih Siswa Terlebih Dahulu</h3>
         <p class="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
-          Gunakan kolom pencarian di atas untuk memilih nama santri. Sistem akan menampilkan seluruh riwayat pembelajaran bacaan dan hafalan secara terstruktur dari laporan pertama kali hingga laporan terkini.
+          Gunakan kolom pencarian di atas untuk memilih nama siswa. Sistem akan menampilkan seluruh riwayat pembelajaran bacaan dan hafalan secara terstruktur dari laporan pertama kali hingga laporan terkini.
         </p>
       </div>
     `}
