@@ -147,11 +147,9 @@ function renderReportHistory(el) {
                  autocomplete="off" 
                  oninput="filterStudents('history', this.value)" 
                  onfocus="filterStudents('history', this.value)">
-          ${student ? `
-            <button onclick="clearHistoryStudentSelection()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          ` : ''}
+          <button type="button" id="clear-history-student-btn" onclick="clearStudentSearch('history')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 ${student ? '' : 'hidden'}" title="Hapus pilihan siswa">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
         </div>
         <input type="hidden" id="history-student" value="${student ? student.__backendId : ''}" data-name="${student ? `${student.name} (${student.kelas || student.grade || '-'})` : ''}">
         <div id="dropdown-history-student" class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto hidden"></div>
@@ -199,7 +197,7 @@ function renderReportHistory(el) {
                 <th class="text-left px-4 py-3.5 font-semibold text-slate-600">Detail Capaian</th>
                 <th class="text-left px-4 py-3.5 font-semibold text-slate-600 w-32">Status</th>
                 <th class="text-left px-4 py-3.5 font-semibold text-slate-600">Catatan Guru</th>
-                <th class="text-center px-4 py-3.5 font-semibold text-slate-600 w-28 no-print">Aksi</th>
+                <th class="text-center px-4 py-3.5 font-semibold text-slate-600 w-36 no-print">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -237,11 +235,13 @@ function renderReportHistory(el) {
                     <td class="px-4 py-3.5 text-slate-600 max-w-[240px] truncate cursor-pointer hover:text-slate-900 transition" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas catatan">${r.catatan || '<span class="text-slate-300 italic">-</span>'}</td>
                     <td class="px-4 py-3.5 whitespace-nowrap text-center no-print">
                       <div class="inline-flex items-center gap-1.5">
-                        <button onclick="editHistoryReport('${r.__backendId}')" class="p-1.5 bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700 rounded-lg transition" title="Edit Laporan Tanggal ${r.tanggal || ''}">
-                          <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <button onclick="editHistoryReport('${r.__backendId}')" class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs shadow-sm transition" title="Edit Laporan Tanggal ${r.tanggal || ''}">
+                          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                          <span>Edit</span>
                         </button>
-                        <button onclick="confirmDeleteHistoryReport('${r.__backendId}')" class="p-1.5 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg transition" title="Hapus Laporan">
-                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <button onclick="confirmDeleteHistoryReport('${r.__backendId}')" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs shadow-sm transition" title="Hapus Laporan">
+                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                          <span>Hapus</span>
                         </button>
                       </div>
                     </td>
