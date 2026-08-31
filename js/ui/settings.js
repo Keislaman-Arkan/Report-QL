@@ -134,7 +134,6 @@ function updateSettingAyatMax(idx) {
 
 async function saveSettingsIqro() {
   const grades = Object.keys(getGradeKelasMap());
-  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
   
   let operations = [];
   for (let i = 0; i < grades.length; i++) {
@@ -161,7 +160,6 @@ async function saveSettingsIqro() {
 
 async function saveSettingsHafalan() {
   const grades = Object.keys(getGradeKelasMap());
-  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
   
   let operations = [];
   for (let i = 0; i < grades.length; i++) {

@@ -69,7 +69,6 @@ async function saveUser() {
   const name = document.getElementById('u-name').value.trim();
   const pass = document.getElementById('u-pass').value;
   if (!name || !pass) { showToast('Nama dan Password wajib diisi','error'); return; }
-  if (allData.length >= 999) { showToast('Batas data tercapai','warning'); return; }
   const r = await window.dataSdk.create({
     type:'user',name,email:document.getElementById('u-email').value,password:pass,role:document.getElementById('u-role').value,
     kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0
@@ -152,7 +151,6 @@ async function saveGuruAccount() {
   const name = document.getElementById('ga-name').value.trim();
   const password = document.getElementById('ga-password').value;
   if (!name || !password) { showToast('Nama dan sandi wajib diisi', 'error'); return; }
-  if (allData.length >= 999) { showToast('Batas data tercapai', 'warning'); return; }
   
   const r = await window.dataSdk.create({
     type: 'teacher',
