@@ -480,8 +480,17 @@ function filterStudents(prefix, query) {
   const students = getStudents();
   const dropdown = document.getElementById(`dropdown-${prefix}-student`);
   const hiddenInput = document.getElementById(`${prefix}-student`);
+  const clearBtn = document.getElementById(`clear-${prefix}-student-btn`);
   
-  if (hiddenInput.dataset.name !== query) hiddenInput.value = ''; 
+  if (clearBtn) {
+    if (query && query.trim().length > 0) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
+
+  if (hiddenInput && hiddenInput.dataset.name !== query) hiddenInput.value = ''; 
 
   if (!query) {
     renderDropdown(prefix, students.slice(0, 15)); 
@@ -489,9 +498,33 @@ function filterStudents(prefix, query) {
     return;
   }
   
-  const filtered = students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()) || (s.nis && s.nis.toLowerCase().includes(query.toLowerCase())));
   renderDropdown(prefix, filtered.slice(0, 20)); 
   dropdown.classList.remove('hidden');
+}
+
+function clearStudentSearch(prefix) {
+  const searchInput = document.getElementById(`search-${prefix}-student`);
+  const hiddenInput = document.getElementById(`${prefix}-student`);
+  const clearBtn = document.getElementById(`clear-${prefix}-student-btn`);
+  const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+  
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.focus();
+  }
+  if (hiddenInput) {
+    hiddenInput.value = '';
+    hiddenInput.dataset.name = '';
+  }
+  if (clearBtn) clearBtn.classList.add('hidden');
+  if (dropdown) dropdown.classList.add('hidden');
+
+  if (prefix === 'history') {
+    if (typeof clearHistoryStudentSelection === 'function') {
+      clearHistoryStudentSelection();
+    }
+  }
 }
 
 function renderDropdown(prefix, list) {
@@ -519,12 +552,19 @@ function selectStudent(prefix, id, name, kelas) {
   
   const searchInput = document.getElementById(`search-${prefix}-student`);
   const hiddenInput = document.getElementById(`${prefix}-student`);
+  const clearBtn = document.getElementById(`clear-${prefix}-student-btn`);
   
   const displayText = `${name} (${kelas})`;
-  searchInput.value = displayText;
-  hiddenInput.value = id;
-  hiddenInput.dataset.name = displayText;
+  if (searchInput) searchInput.value = displayText;
+  if (hiddenInput) {
+    hiddenInput.value = id;
+    hiddenInput.dataset.name = displayText;
+  }
+  if (clearBtn) clearBtn.classList.remove('hidden');
   
+  const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+  if (dropdown) dropdown.classList.add('hidden');
+
   if (prefix === 'history') {
     if (typeof selectHistoryStudent === 'function') {
       selectHistoryStudent(id);

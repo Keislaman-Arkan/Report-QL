@@ -11,7 +11,10 @@ function renderReportBacaan(el) {
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
             <div class="relative w-full">
-              <input type="text" id="search-ri-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" autocomplete="off" oninput="filterStudents('ri', this.value)" onfocus="filterStudents('ri', this.value)">
+              <input type="text" id="search-ri-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full pl-4 pr-10 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" autocomplete="off" oninput="filterStudents('ri', this.value)" onfocus="filterStudents('ri', this.value)">
+              <button type="button" id="clear-ri-student-btn" onclick="clearStudentSearch('ri')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 hidden" title="Hapus pilihan siswa">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
               <input type="hidden" id="ri-student" value="">
               <div id="dropdown-ri-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
             </div>
@@ -30,7 +33,10 @@ function renderReportBacaan(el) {
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
             <div class="relative w-full">
-              <input type="text" id="search-rq-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" autocomplete="off" oninput="filterStudents('rq', this.value)" onfocus="filterStudents('rq', this.value)">
+              <input type="text" id="search-rq-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full pl-4 pr-10 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" autocomplete="off" oninput="filterStudents('rq', this.value)" onfocus="filterStudents('rq', this.value)">
+              <button type="button" id="clear-rq-student-btn" onclick="clearStudentSearch('rq')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 hidden" title="Hapus pilihan siswa">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
               <input type="hidden" id="rq-student" value="">
               <div id="dropdown-rq-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
             </div>
@@ -66,7 +72,10 @@ function renderReportHafalan(el) {
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">Siswa</label>
           <div class="relative w-full">
-            <input type="text" id="search-rh-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" autocomplete="off" oninput="filterStudents('rh', this.value)" onfocus="filterStudents('rh', this.value)">
+            <input type="text" id="search-rh-student" placeholder="Ketik nama siswa untuk mencari..." class="w-full pl-4 pr-10 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" autocomplete="off" oninput="filterStudents('rh', this.value)" onfocus="filterStudents('rh', this.value)">
+            <button type="button" id="clear-rh-student-btn" onclick="clearStudentSearch('rh')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 hidden" title="Hapus pilihan siswa">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
             <input type="hidden" id="rh-student" value="">
             <div id="dropdown-rh-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
           </div>
@@ -105,6 +114,8 @@ async function saveReportIqro(){
   document.getElementById('ri-student').value='';
   document.getElementById('search-ri-student').value='';
   document.getElementById('ri-catatan').value='';
+  const clearBtn = document.getElementById('clear-ri-student-btn');
+  if (clearBtn) clearBtn.classList.add('hidden');
 }
 async function saveReportQuran(){
   const st=document.getElementById('rq-student').value;
@@ -115,6 +126,8 @@ async function saveReportQuran(){
   document.getElementById('rq-student').value='';
   document.getElementById('search-rq-student').value='';
   document.getElementById('rq-catatan').value='';
+  const clearBtn = document.getElementById('clear-rq-student-btn');
+  if (clearBtn) clearBtn.classList.add('hidden');
 }
 async function saveReportHafalan(){
   const st=document.getElementById('rh-student').value;
@@ -125,6 +138,8 @@ async function saveReportHafalan(){
   document.getElementById('rh-student').value='';
   document.getElementById('search-rh-student').value='';
   document.getElementById('rh-catatan').value='';
+  const clearBtn = document.getElementById('clear-rh-student-btn');
+  if (clearBtn) clearBtn.classList.add('hidden');
 }
 
 let reportSearchQuery = "";
