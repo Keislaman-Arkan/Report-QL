@@ -185,64 +185,68 @@ async function openQuranViewer({ surah, fromAyah = 1, toAyah = 1, studentName = 
     document.body.appendChild(modalEl);
   }
 
-  modalEl.className = 'fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-200';
+  modalEl.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm transition-all duration-200 quran-modal-overlay';
+  modalEl.onclick = (e) => {
+    if (e.target === modalEl) closeQuranViewer();
+  };
+
   modalEl.innerHTML = `
-    <div class="bg-white w-full max-w-4xl h-[94vh] sm:h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 animate-in">
+    <div class="quran-modal-card bg-white w-full max-w-4xl h-full max-h-[88dvh] sm:max-h-[88vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 animate-in" onclick="event.stopPropagation()">
       <!-- Modal Header -->
-      <div class="px-5 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30">
+      <div class="px-4 sm:px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0 gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-base sm:text-lg border border-emerald-500/30 shrink-0">
             ${surahNo}
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 id="qv-surah-title" class="font-bold text-lg text-white">Memuat Surat...</h3>
-              <span id="qv-surah-arab" class="font-arabic text-emerald-400 text-xl font-normal"></span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 id="qv-surah-title" class="font-bold text-base sm:text-lg text-white truncate">Memuat Surat...</h3>
+              <span id="qv-surah-arab" class="font-arabic text-emerald-400 text-lg sm:text-xl font-normal hidden xs:inline"></span>
             </div>
-            <div id="qv-surah-subtitle" class="text-xs text-slate-400 flex items-center gap-2">
+            <div id="qv-surah-subtitle" class="text-[11px] sm:text-xs text-slate-400 flex items-center gap-2 truncate">
               <span>Mengambil data dari API Qur'an...</span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           ${studentName ? `
-            <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-full text-xs font-medium">
+            <div class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-full text-xs font-medium">
               <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span class="truncate max-w-[150px]">${studentName}</span>
+              <span class="truncate max-w-[130px]">${studentName}</span>
             </div>
           ` : ''}
-          <button onclick="closeQuranViewer()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition" title="Tutup (ESC)">
-            <i data-lucide="x" class="w-5 h-5"></i>
+          <button type="button" onclick="closeQuranViewer()" class="h-10 px-3 rounded-xl bg-slate-800 hover:bg-rose-600 active:bg-rose-700 text-slate-200 hover:text-white flex items-center gap-1.5 transition font-semibold text-xs border border-slate-700 hover:border-rose-500 shadow-sm" title="Tutup Mushaf (ESC)">
+            <i data-lucide="x" class="w-4 h-4"></i>
+            <span class="font-bold">Tutup</span>
           </button>
         </div>
       </div>
 
       <!-- Quick Toolbar Controls -->
-      <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="bg-slate-50 px-3 sm:px-5 py-2.5 sm:py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <!-- Target Ayah Badge -->
-          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 ${reportType === 'hafalan' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'} border rounded-lg text-xs font-bold shadow-sm">
+          <div class="inline-flex items-center gap-1 px-2.5 py-1.5 ${reportType === 'hafalan' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'} border rounded-lg text-xs font-bold shadow-sm">
             <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
-            <span>Target: Ayat ${fromAyah} - ${toAyah}</span>
+            <span>Ayat ${fromAyah} - ${toAyah}</span>
           </div>
 
           <!-- Filter Range Toggle -->
-          <button id="qv-filter-range-btn" onclick="toggleQuranRangeFilter()" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+          <button id="qv-filter-range-btn" onclick="toggleQuranRangeFilter()" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
             <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span id="qv-filter-range-label">Fokus Ayat Target</span>
+            <span id="qv-filter-range-label">Fokus Target</span>
           </button>
 
           <!-- Jump Ayah Dropdown -->
           <div class="flex items-center gap-1 text-xs text-slate-500">
-            <span class="hidden md:inline">Loncat:</span>
-            <select id="qv-jump-ayah" onchange="jumpToAyah(this.value)" class="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 outline-none">
-              <option value="">Pilih Ayat...</option>
+            <select id="qv-jump-ayah" onchange="jumpToAyah(this.value)" class="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 outline-none max-w-[120px]">
+              <option value="">Loncat Ayat...</option>
             </select>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2">
           <!-- Font Size Control -->
           <div class="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden text-xs">
             <button onclick="changeQuranFontSize(-1)" class="px-2 py-1 text-slate-600 hover:bg-slate-100 font-bold border-r border-slate-200" title="Kecilkan Font">A-</button>
@@ -250,19 +254,19 @@ async function openQuranViewer({ surah, fromAyah = 1, toAyah = 1, studentName = 
           </div>
 
           <!-- Toggle Latin -->
-          <button id="qv-toggle-latin-btn" onclick="toggleQuranOption('showLatin')" class="px-2.5 py-1 text-xs rounded-lg border ${QuranViewerState.showLatin ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition" title="Tampilkan/Sembunyikan Transliterasi Latin">
+          <button id="qv-toggle-latin-btn" onclick="toggleQuranOption('showLatin')" class="px-2 py-1 text-xs rounded-lg border ${QuranViewerState.showLatin ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition" title="Tampilkan/Sembunyikan Transliterasi Latin">
             Latin
           </button>
 
           <!-- Toggle Terjemahan -->
-          <button id="qv-toggle-trans-btn" onclick="toggleQuranOption('showTranslation')" class="px-2.5 py-1 text-xs rounded-lg border ${QuranViewerState.showTranslation ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition" title="Tampilkan/Sembunyikan Terjemahan Indonesia">
+          <button id="qv-toggle-trans-btn" onclick="toggleQuranOption('showTranslation')" class="px-2 py-1 text-xs rounded-lg border ${QuranViewerState.showTranslation ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition" title="Tampilkan/Sembunyikan Terjemahan Indonesia">
             Arti
           </button>
         </div>
       </div>
 
       <!-- Modal Body (Ayah List Container) -->
-      <div id="qv-content-body" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-100/50">
+      <div id="qv-content-body" class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 bg-slate-100/50">
         <div class="flex flex-col items-center justify-center h-64 text-slate-400 gap-3">
           <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
           <span class="text-sm font-medium">Sedang memuat ayat dari API Qur'an...</span>
@@ -270,17 +274,22 @@ async function openQuranViewer({ surah, fromAyah = 1, toAyah = 1, studentName = 
       </div>
 
       <!-- Modal Footer -->
-      <div class="px-5 py-3 bg-white border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 shrink-0">
+      <div class="px-3 sm:px-5 py-2.5 sm:py-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 shrink-0">
         <div class="flex items-center gap-2">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span>API Qur'an Kemenag RI & Audio Misyari Rasyid</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="navigateSurah(-1)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium flex items-center gap-1 transition">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i> Surat Sebelumnya
+          <button onclick="closeQuranViewer()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold flex items-center gap-1 transition text-xs border border-slate-200">
+            <i data-lucide="x" class="w-3.5 h-3.5 text-slate-500"></i> Tutup
           </button>
-          <button onclick="navigateSurah(1)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium flex items-center gap-1 transition">
-            Surat Berikutnya <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          <span class="hidden sm:inline-flex items-center gap-1.5 text-slate-400 text-[11px]">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            API Kemenag RI
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="navigateSurah(-1)" class="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium flex items-center gap-1 transition text-xs">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Surat</span> Sebelumnya
+          </button>
+          <button onclick="navigateSurah(1)" class="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium flex items-center gap-1 transition text-xs">
+            <span class="hidden sm:inline">Surat</span> Berikutnya <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>

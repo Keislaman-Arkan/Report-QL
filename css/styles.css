@@ -120,3 +120,19 @@ html, body { height: 100%; margin: 0; font-family: 'Plus Jakarta Sans', sans-ser
     transform: scale(1) translateY(0);
   }
 }
+
+/* iOS Safe Area & Modal Padding */
+.quran-modal-overlay {
+  padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 16px)) !important;
+  padding-bottom: max(1rem, calc(env(safe-area-inset-bottom, 0px) + 12px)) !important;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific viewport adjustment */
+  .quran-modal-card {
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem) !important;
+  }
+}
+
