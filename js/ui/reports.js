@@ -49,6 +49,9 @@ function renderReportBacaan(el) {
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Ayat</label><input id="rq-ayat-dari" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sampai</label><input id="rq-ayat-sampai" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
           </div>
+          <button type="button" onclick="openQuranViewerFromForm('rq')" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition shadow-sm">
+            <i data-lucide="book-open" class="w-4 h-4"></i> Lihat Teks Surat & Ayat (Mushaf)
+          </button>
           <div class="grid grid-cols-2 gap-4">
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
@@ -88,6 +91,9 @@ function renderReportHafalan(el) {
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Ayat</label><input id="rh-ayat-dari" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Sampai</label><input id="rh-ayat-sampai" type="number" min="1" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
         </div>
+        <button type="button" onclick="openQuranViewerFromForm('rh')" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition shadow-sm">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Lihat Teks Surat & Ayat (Mushaf)
+        </button>
         <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
@@ -97,7 +103,7 @@ function renderReportHafalan(el) {
       </div>
     </div>
   </div>`;
-  setTimeout(() => updateSuratDropdownH(), 100);
+  setTimeout(() => { updateSuratDropdownH(); if(window.lucide) lucide.createIcons(); }, 100);
 }
 
 function updateQuranSuratDropdown() { const j=parseInt(document.getElementById('rq-juz').value); document.getElementById('rq-surat').innerHTML=getSuratByJuz(j).map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); updateQuranAyatMax(); }
@@ -434,8 +440,10 @@ function renderReports(el) {
               if (dateDiff !== 0) return dateDiff;
               return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             }).map(r => {
-              const student = students.find(s=>s.__backendId===r.student_id);
-              let detail = r.report_type==='iqro'? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` : `Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})`;
+              const isQuranOrHafalan = r.report_type === 'quran' || r.report_type === 'hafalan';
+              let detail = r.report_type==='iqro'
+                ? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` 
+                : `<span class="inline-flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 hover:underline font-medium" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" title="Klik untuk membuka teks ayat"><i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400 hover:text-emerald-600"></i> Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})</span>`;
               const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
