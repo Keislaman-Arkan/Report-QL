@@ -66,7 +66,7 @@ function renderReportHistory(el) {
     summaryHtml = `
       <!-- Ringkasan Siswa Terpilih -->
       <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100 mb-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100 no-print">
           <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-md">
               ${student.name.charAt(0).toUpperCase()}
@@ -123,8 +123,26 @@ function renderReportHistory(el) {
 
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto" id="printable-history-area">
-    <!-- Header Halaman -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <!-- Printable Header (Only visible when printing) -->
+    <div class="print-header hidden mb-6">
+      <div class="text-center border-b-2 border-slate-800 pb-4">
+        <h1 class="text-2xl font-bold uppercase text-slate-800">Riwayat Laporan Siswa</h1>
+        <p class="text-sm text-slate-500 mt-1">Sistem Informasi Qur'an Learning</p>
+        ${student ? `
+        <div class="text-xs text-slate-600 mt-3 flex justify-center gap-6 flex-wrap font-medium">
+          <span>Nama Siswa: <strong class="text-slate-800">${student.name}</strong></span>
+          <span>NIS: <strong class="text-slate-800">${student.nis || '-'}</strong></span>
+          <span>Tingkat: <strong class="text-slate-800">${student.grade || '-'}</strong></span>
+          <span>Kelas: <strong class="text-slate-800">${student.kelas || '-'}</strong></span>
+          <span>Kategori: <strong class="text-slate-800">${historyFilterCategory === 'bacaan' ? 'Bacaan' : historyFilterCategory === 'hafalan' ? 'Hafalan' : 'Semua Laporan'}</strong></span>
+          <span>Tanggal Cetak: <strong class="text-slate-800">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Header Halaman (Screen only, hidden when printing) -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
       <div>
         <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2.5">
           <div class="p-2 bg-emerald-100 rounded-xl text-emerald-700"><i data-lucide="history" class="w-6 h-6"></i></div>
@@ -213,10 +231,10 @@ function renderReportHistory(el) {
                   detailText = `<span class="font-bold text-slate-800">Jilid ${r.iqro_jilid || 1}</span> <span class="text-slate-500 font-normal">Halaman ${r.iqro_halaman || 1}</span>`;
                 } else if (isQuran) {
                   typeBadge = `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-xs font-semibold">📖 Al-Qur'an</span>`;
-                  detailText = `<span class="cursor-pointer hover:text-blue-700 hover:underline inline-flex items-center gap-1" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: 'quran' })" title="Buka teks ayat"><span class="font-bold text-slate-800">Juz ${r.juz || 1}</span> - <span class="font-semibold text-slate-700">${r.surat || '-'}</span> <span class="text-slate-500 font-normal">(Ayat ${r.ayat_dari || 1}-${r.ayat_sampai || 1})</span> <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-500 ml-1"></i></span>`;
+                  detailText = `<span class="cursor-pointer hover:text-blue-700 hover:underline inline-flex items-center gap-1" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: 'quran' })" title="Buka teks ayat"><span class="font-bold text-slate-800">Juz ${r.juz || 1}</span> - <span class="font-semibold text-slate-700">${r.surat || '-'}</span> <span class="text-slate-500 font-normal">(Ayat ${r.ayat_dari || 1}-${r.ayat_sampai || 1})</span> <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-500 ml-1 no-print"></i></span>`;
                 } else {
                   typeBadge = `<span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-xs font-semibold">📚 Hafalan</span>`;
-                  detailText = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: 'hafalan' })" title="Buka teks ayat"><span class="font-bold text-slate-800">Juz ${r.juz || 30}</span> - <span class="font-semibold text-slate-700">${r.surat || '-'}</span> <span class="text-slate-500 font-normal">(Ayat ${r.ayat_dari || 1}-${r.ayat_sampai || 1})</span> <i data-lucide="book-open" class="w-3.5 h-3.5 text-purple-500 ml-1"></i></span>`;
+                  detailText = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: 'hafalan' })" title="Buka teks ayat"><span class="font-bold text-slate-800">Juz ${r.juz || 30}</span> - <span class="font-semibold text-slate-700">${r.surat || '-'}</span> <span class="text-slate-500 font-normal">(Ayat ${r.ayat_dari || 1}-${r.ayat_sampai || 1})</span> <i data-lucide="book-open" class="w-3.5 h-3.5 text-purple-500 ml-1 no-print"></i></span>`;
                 }
 
                 const statusColor = r.status === 'Lancar' 
