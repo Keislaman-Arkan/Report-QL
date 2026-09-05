@@ -440,10 +440,11 @@ function renderReports(el) {
               if (dateDiff !== 0) return dateDiff;
               return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             }).map(r => {
+              const student = students.find(s => s.__backendId === r.student_id);
               const isQuranOrHafalan = r.report_type === 'quran' || r.report_type === 'hafalan';
               let detail = r.report_type==='iqro'
                 ? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` 
-                : `<span class="inline-flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 hover:underline font-medium" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" title="Klik untuk membuka teks ayat"><i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400 hover:text-emerald-600"></i> Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})</span>`;
+                : `<span class="inline-flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 hover:underline font-medium" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" title="Klik untuk membuka teks ayat"><i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400 hover:text-emerald-600 no-print"></i> Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})</span>`;
               const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
@@ -456,7 +457,7 @@ function renderReports(el) {
                 <td class="px-5 py-3">${getPerkembangan(r, getReports())}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;
-            }).join('') : '<tr><td colspan="7" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
+            }).join('') : '<tr><td colspan="8" class="px-5 py-12 text-center text-slate-400">Belum ada laporan dicatat.</td></tr>'}
             <tr id="report-table-no-results" style="display: none;"><td colspan="8" class="px-5 py-12 text-center text-slate-400">Tidak ada nama siswa yang cocok.</td></tr>
           </tbody>
         </table>
