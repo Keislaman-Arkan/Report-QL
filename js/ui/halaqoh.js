@@ -255,7 +255,7 @@ function renderHalaqoh(el) {
       <!-- Tabel Siswa & Capaian Halaqoh -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto w-full">
-          <table class="w-full text-sm text-left min-w-[850px] border-collapse">
+          <table class="w-full text-sm text-left min-w-[1000px] border-collapse">
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
@@ -265,6 +265,7 @@ function renderHalaqoh(el) {
                 <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
                 <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
                 <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs no-print">Aksi Laporan</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -336,7 +337,7 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   if (filtered.length === 0) {
     return `
       <tr>
-        <td colspan="7" class="py-12 text-center text-slate-400">
+        <td colspan="8" class="py-12 text-center text-slate-400">
           <div class="flex flex-col items-center justify-center">
             <i data-lucide="user-x" class="w-8 h-8 text-slate-300 mb-2"></i>
             <p class="font-medium text-sm">Tidak ada siswa yang ditemukan</p>
@@ -394,6 +395,22 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
         </td>
         <td class="px-4 py-3.5 text-xs">
           ${ketuntasanHtml}
+        </td>
+        <td class="px-4 py-3.5 text-center whitespace-nowrap no-print">
+          <div class="inline-flex items-center gap-1.5">
+            <button onclick="showHalaqohBacaanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 border border-emerald-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Bacaan (${st.name})">
+              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+              <span>Bacaan</span>
+            </button>
+            <button onclick="showHalaqohHafalanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Hafalan (${st.name})">
+              <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+              <span>Hafalan</span>
+            </button>
+            <button onclick="showHalaqohHistoryModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-700 border border-sky-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Preview Riwayat Laporan (${st.name})">
+              <i data-lucide="history" class="w-3.5 h-3.5"></i>
+              <span>Riwayat</span>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -1060,4 +1077,707 @@ async function saveHalaqohStudents(halaqohId) {
 function closeHalaqohModal() {
   const container = document.getElementById('halaqoh-modal-container');
   if (container) container.innerHTML = '';
+}
+
+// ============ MODAL: INPUT LAPORAN BACAAN (HALAQOH) ============
+let currentHalaqohBacaanMode = 'iqro'; // 'iqro' | 'quran'
+
+function showHalaqohBacaanModal(studentId) {
+  const container = document.getElementById('halaqoh-modal-container');
+  if (!container) return;
+
+  const student = getStudents().find(s => s.__backendId === studentId);
+  if (!student) return;
+
+  const allReports = getReports();
+  const stReports = allReports.filter(r => r.student_id === studentId);
+  const bacaanReports = stReports
+    .filter(r => r.report_type === 'iqro' || r.report_type === 'quran')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const latestBacaan = bacaanReports[0];
+
+  // Tentukan mode awal (iqro / quran)
+  currentHalaqohBacaanMode = (latestBacaan && latestBacaan.report_type === 'quran') ? 'quran' : 'iqro';
+
+  // Nilai awal Iqro
+  let initIqroJilid = 1;
+  let initIqroHal = 1;
+  if (latestBacaan && latestBacaan.report_type === 'iqro') {
+    initIqroJilid = latestBacaan.iqro_jilid || 1;
+    initIqroHal = (latestBacaan.iqro_halaman || 0) + 1;
+  } else if (student.iqro_jilid) {
+    initIqroJilid = student.iqro_jilid || 1;
+    initIqroHal = student.iqro_halaman || 1;
+  }
+
+  // Nilai awal Al-Qur'an
+  let initQuranJuz = 1;
+  let initQuranSurat = 'Al-Fatihah';
+  let initQuranDari = 1;
+  let initQuranSampai = 1;
+
+  if (latestBacaan && latestBacaan.report_type === 'quran') {
+    initQuranJuz = latestBacaan.juz || 1;
+    initQuranSurat = latestBacaan.surat || 'Al-Fatihah';
+    const mx = getAyatCount(initQuranJuz, initQuranSurat);
+    const nextAyat = Math.min((latestBacaan.ayat_sampai || 0) + 1, mx || 1);
+    initQuranDari = nextAyat;
+    initQuranSampai = nextAyat;
+  } else {
+    const listSurat = getSuratByJuz(1);
+    if (listSurat && listSurat.length > 0) initQuranSurat = listSurat[0].name;
+  }
+
+  const safeStudentName = student.name.replace(/'/g, "\\'");
+
+  container.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl fade-in my-8">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">Input Laporan Bacaan</h3>
+            <p class="text-xs text-slate-500">${student.name} &bull; NIS: ${student.nis || '-'} &bull; ${student.kelas || student.grade || '-'}</p>
+          </div>
+        </div>
+        <button onclick="closeHalaqohModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Tab Switch Iqro / Al-Qur'an -->
+      <div class="flex bg-slate-100 p-1 rounded-2xl gap-1 mb-5">
+        <button type="button" id="hlq-bacaan-tab-iqro" onclick="switchHalaqohBacaanTab('iqro')" class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${currentHalaqohBacaanMode === 'iqro' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">
+          <i data-lucide="book" class="w-3.5 h-3.5"></i> Bacaan Iqro'
+        </button>
+        <button type="button" id="hlq-bacaan-tab-quran" onclick="switchHalaqohBacaanTab('quran')" class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${currentHalaqohBacaanMode === 'quran' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">
+          <i data-lucide="scroll" class="w-3.5 h-3.5"></i> Bacaan Al-Qur'an
+        </button>
+      </div>
+
+      <!-- Form Section: Iqro' -->
+      <div id="hlq-bacaan-iqro-section" class="space-y-4 ${currentHalaqohBacaanMode === 'iqro' ? '' : 'hidden'}">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Jilid Iqro'</label>
+            <input id="hlq-ri-jilid" type="number" min="1" max="6" value="${initIqroJilid}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Halaman</label>
+            <input id="hlq-ri-hal" type="number" min="1" value="${initIqroHal}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+            <input id="hlq-ri-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
+            <select id="hlq-ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+              <option value="Lancar">Lancar</option>
+              <option value="Tidak Lancar">Tidak Lancar</option>
+              <option value="Mengulang">Mengulang</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Guru (Opsional)</label>
+          <textarea id="hlq-ri-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none h-20" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea>
+        </div>
+      </div>
+
+      <!-- Form Section: Al-Qur'an -->
+      <div id="hlq-bacaan-quran-section" class="space-y-4 ${currentHalaqohBacaanMode === 'quran' ? '' : 'hidden'}">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Juz</label>
+            <select id="hlq-rq-juz" onchange="updateHalaqohQuranSuratDropdown()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+              ${Array.from({length:30}, (_,i) => `<option value="${i+1}" ${(i+1)===initQuranJuz ? 'selected' : ''}>Juz ${i+1}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Surat</label>
+            <select id="hlq-rq-surat" onchange="updateHalaqohQuranAyatMax()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Dari Ayat</label>
+            <input id="hlq-rq-ayat-dari" type="number" min="1" value="${initQuranDari}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sampai Ayat</label>
+            <input id="hlq-rq-ayat-sampai" type="number" min="1" value="${initQuranSampai}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <button type="button" onclick="openQuranViewerFromHalaqoh('rq', '${safeStudentName}')" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition shadow-sm">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Lihat Teks Surat & Ayat (Mushaf)
+        </button>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+            <input id="hlq-rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
+            <select id="hlq-rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="Lancar">Lancar</option>
+              <option value="Tidak Lancar">Tidak Lancar</option>
+              <option value="Mengulang">Mengulang</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Guru (Opsional)</label>
+          <textarea id="hlq-rq-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none h-20" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeHalaqohModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-2xl text-sm transition">
+          Batal
+        </button>
+        <button onclick="saveHalaqohBacaan('${student.__backendId}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-2xl text-sm shadow-md shadow-emerald-200 transition">
+          Simpan Laporan Bacaan
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+
+  updateHalaqohQuranSuratDropdown(initQuranSurat);
+  if (window.lucide) lucide.createIcons();
+}
+
+function switchHalaqohBacaanTab(mode) {
+  currentHalaqohBacaanMode = mode;
+  const iqroSec = document.getElementById('hlq-bacaan-iqro-section');
+  const quranSec = document.getElementById('hlq-bacaan-quran-section');
+  const tabIqro = document.getElementById('hlq-bacaan-tab-iqro');
+  const tabQuran = document.getElementById('hlq-bacaan-tab-quran');
+
+  if (mode === 'iqro') {
+    if (iqroSec) iqroSec.classList.remove('hidden');
+    if (quranSec) quranSec.classList.add('hidden');
+    if (tabIqro) {
+      tabIqro.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-emerald-700 shadow-sm';
+    }
+    if (tabQuran) {
+      tabQuran.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-800';
+    }
+  } else {
+    if (iqroSec) iqroSec.classList.add('hidden');
+    if (quranSec) quranSec.classList.remove('hidden');
+    if (tabIqro) {
+      tabIqro.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-800';
+    }
+    if (tabQuran) {
+      tabQuran.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-blue-700 shadow-sm';
+    }
+  }
+}
+
+function updateHalaqohQuranSuratDropdown(selectedSurat = null) {
+  const juzEl = document.getElementById('hlq-rq-juz');
+  const suratEl = document.getElementById('hlq-rq-surat');
+  if (!juzEl || !suratEl) return;
+  const juz = parseInt(juzEl.value) || 1;
+  const surats = getSuratByJuz(juz);
+  suratEl.innerHTML = surats.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  if (selectedSurat && surats.some(s => s.name === selectedSurat)) {
+    suratEl.value = selectedSurat;
+  }
+  updateHalaqohQuranAyatMax();
+}
+
+function updateHalaqohQuranAyatMax() {
+  const juzEl = document.getElementById('hlq-rq-juz');
+  const suratEl = document.getElementById('hlq-rq-surat');
+  const dariEl = document.getElementById('hlq-rq-ayat-dari');
+  const sampaiEl = document.getElementById('hlq-rq-ayat-sampai');
+  if (!juzEl || !suratEl) return;
+  const juz = parseInt(juzEl.value) || 1;
+  const surat = suratEl.value;
+  const mx = getAyatCount(juz, surat);
+  if (dariEl) dariEl.max = mx;
+  if (sampaiEl) sampaiEl.max = mx;
+}
+
+async function saveHalaqohBacaan(studentId) {
+  if (currentUser.role === 'visitor') {
+    showToast('Pengunjung tidak memiliki izin menyimpan laporan', 'warning');
+    return;
+  }
+
+  if (currentHalaqohBacaanMode === 'iqro') {
+    const jilid = parseInt(document.getElementById('hlq-ri-jilid').value) || 1;
+    const hal = parseInt(document.getElementById('hlq-ri-hal').value) || 1;
+    const tgl = document.getElementById('hlq-ri-date').value || today();
+    const status = document.getElementById('hlq-ri-status').value || 'Lancar';
+    const catatan = document.getElementById('hlq-ri-catatan').value.trim();
+
+    await window.dataSdk.create({
+      type: 'report',
+      report_type: 'iqro',
+      student_id: studentId,
+      iqro_jilid: jilid,
+      iqro_halaman: hal,
+      status: status,
+      tanggal: tgl,
+      catatan: catatan,
+      name: '', email: '', password: '', role: '', kelas: 0, target_juz: 0, juz: 0, surat: '', ayat_dari: 0, ayat_sampai: 0, subject: 'iqro', nip: '', phone: '', address: '', specialization: '', target_iqro_jilid: 0, target_iqro_halaman: 0, target_hafalan_juz: 0, target_surat_awal: '', target_surat_akhir: '', target_ayat_awal: 0, target_ayat_akhir: 0, standar_ketuntasan: 0, setting_kelas: 0
+    });
+  } else {
+    const juz = parseInt(document.getElementById('hlq-rq-juz').value) || 1;
+    const surat = document.getElementById('hlq-rq-surat').value;
+    const ayatDari = parseInt(document.getElementById('hlq-rq-ayat-dari').value) || 1;
+    const ayatSampai = parseInt(document.getElementById('hlq-rq-ayat-sampai').value) || 1;
+    const tgl = document.getElementById('hlq-rq-date').value || today();
+    const status = document.getElementById('hlq-rq-status').value || 'Lancar';
+    const catatan = document.getElementById('hlq-rq-catatan').value.trim();
+
+    await window.dataSdk.create({
+      type: 'report',
+      report_type: 'quran',
+      student_id: studentId,
+      juz: juz,
+      surat: surat,
+      ayat_dari: ayatDari,
+      ayat_sampai: ayatSampai,
+      status: status,
+      tanggal: tgl,
+      catatan: catatan,
+      name: '', email: '', password: '', role: '', kelas: 0, target_juz: 0, iqro_jilid: 0, iqro_halaman: 0, subject: '', nip: '', phone: '', address: '', specialization: '', target_iqro_jilid: 0, target_iqro_halaman: 0, target_hafalan_juz: 0, target_surat_awal: '', target_surat_akhir: '', target_ayat_awal: 0, target_ayat_akhir: 0, standar_ketuntasan: 0, setting_kelas: 0
+    });
+  }
+
+  showToast('Laporan bacaan berhasil disimpan', 'success');
+  closeHalaqohModal();
+  renderPage();
+}
+
+// ============ MODAL: INPUT LAPORAN HAFALAN (HALAQOH) ============
+function showHalaqohHafalanModal(studentId) {
+  const container = document.getElementById('halaqoh-modal-container');
+  if (!container) return;
+
+  const student = getStudents().find(s => s.__backendId === studentId);
+  if (!student) return;
+
+  const allReports = getReports();
+  const stReports = allReports.filter(r => r.student_id === studentId);
+  const hafalanReports = stReports
+    .filter(r => r.report_type === 'hafalan')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const latestHafalan = hafalanReports[0];
+
+  let initJuz = 30;
+  let initSurat = "An-Naba'";
+  let initDari = 1;
+  let initSampai = 1;
+
+  if (latestHafalan) {
+    initJuz = latestHafalan.juz || 30;
+    initSurat = latestHafalan.surat;
+    const mx = getAyatCount(initJuz, initSurat);
+    const nextAyat = Math.min((latestHafalan.ayat_sampai || 0) + 1, mx || 1);
+    initDari = nextAyat;
+    initSampai = nextAyat;
+  } else {
+    if (student.target_juz && !student.target_hafalan_surat) {
+      initJuz = student.target_juz;
+      const surats = getSuratByJuz(initJuz);
+      if (surats && surats.length > 0) initSurat = surats[0].name;
+    } else if (student.target_hafalan_surat) {
+      let foundJuz = 30;
+      for (let j = 1; j <= 30; j++) {
+        if (quranData[j] && quranData[j].find(x => x.name === student.target_hafalan_surat)) {
+          foundJuz = j;
+          break;
+        }
+      }
+      initJuz = foundJuz;
+      initSurat = student.target_hafalan_surat;
+      initDari = student.target_hafalan_ayat_dari || 1;
+      initSampai = student.target_hafalan_ayat_sampai || 1;
+    } else {
+      initJuz = 30;
+      const surats = getSuratByJuz(30);
+      if (surats && surats.length > 0) initSurat = surats[0].name;
+    }
+  }
+
+  const safeStudentName = student.name.replace(/'/g, "\\'");
+
+  container.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl fade-in my-8">
+      <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-sm">
+            <i data-lucide="bookmark" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">Input Laporan Hafalan</h3>
+            <p class="text-xs text-slate-500">${student.name} &bull; NIS: ${student.nis || '-'} &bull; ${student.kelas || student.grade || '-'}</p>
+          </div>
+        </div>
+        <button onclick="closeHalaqohModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Juz</label>
+            <select id="hlq-rh-juz" onchange="updateHalaqohSuratDropdownH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+              ${Array.from({length:30}, (_,i) => `<option value="${i+1}" ${(i+1)===initJuz ? 'selected' : ''}>Juz ${i+1}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Surat</label>
+            <select id="hlq-rh-surat" onchange="updateHalaqohAyatMaxH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Dari Ayat</label>
+            <input id="hlq-rh-ayat-dari" type="number" min="1" value="${initDari}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Sampai Ayat</label>
+            <input id="hlq-rh-ayat-sampai" type="number" min="1" value="${initSampai}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+          </div>
+        </div>
+
+        <button type="button" onclick="openQuranViewerFromHalaqoh('rh', '${safeStudentName}')" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition shadow-sm">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Lihat Teks Surat & Ayat (Mushaf)
+        </button>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+            <input id="hlq-rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
+            <select id="hlq-rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+              <option value="Lancar">Lancar</option>
+              <option value="Tidak Lancar">Tidak Lancar</option>
+              <option value="Mengulang">Mengulang</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Guru (Opsional)</label>
+          <textarea id="hlq-rh-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none h-20" placeholder="Masukkan catatan perkembangan hafalan siswa..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeHalaqohModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-2xl text-sm transition">
+          Batal
+        </button>
+        <button onclick="saveHalaqohHafalan('${student.__backendId}')" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-2xl text-sm shadow-md shadow-purple-200 transition">
+          Simpan Laporan Hafalan
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+
+  updateHalaqohSuratDropdownH(initSurat);
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateHalaqohSuratDropdownH(selectedSurat = null) {
+  const juzEl = document.getElementById('hlq-rh-juz');
+  const suratEl = document.getElementById('hlq-rh-surat');
+  if (!juzEl || !suratEl) return;
+  const juz = parseInt(juzEl.value) || 30;
+  const surats = getSuratByJuz(juz);
+  suratEl.innerHTML = surats.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  if (selectedSurat && surats.some(s => s.name === selectedSurat)) {
+    suratEl.value = selectedSurat;
+  }
+  updateHalaqohAyatMaxH();
+}
+
+function updateHalaqohAyatMaxH() {
+  const juzEl = document.getElementById('hlq-rh-juz');
+  const suratEl = document.getElementById('hlq-rh-surat');
+  const dariEl = document.getElementById('hlq-rh-ayat-dari');
+  const sampaiEl = document.getElementById('hlq-rh-ayat-sampai');
+  if (!juzEl || !suratEl) return;
+  const juz = parseInt(juzEl.value) || 30;
+  const surat = suratEl.value;
+  const mx = getAyatCount(juz, surat);
+  if (dariEl) dariEl.max = mx;
+  if (sampaiEl) sampaiEl.max = mx;
+}
+
+function openQuranViewerFromHalaqoh(prefix, studentName) {
+  const suratEl = document.getElementById(`hlq-${prefix}-surat`);
+  const dariEl = document.getElementById(`hlq-${prefix}-ayat-dari`);
+  const sampaiEl = document.getElementById(`hlq-${prefix}-ayat-sampai`);
+
+  const suratName = suratEl ? suratEl.value : 'Al-Fatihah';
+  const fromAyah = dariEl ? (parseInt(dariEl.value) || 1) : 1;
+  const toAyah = sampaiEl ? (parseInt(sampaiEl.value) || fromAyah) : fromAyah;
+
+  openQuranViewer({
+    surah: suratName,
+    fromAyah: Math.min(fromAyah, toAyah),
+    toAyah: Math.max(fromAyah, toAyah),
+    studentName: studentName,
+    reportType: prefix === 'rh' ? 'hafalan' : 'quran'
+  });
+}
+
+async function saveHalaqohHafalan(studentId) {
+  if (currentUser.role === 'visitor') {
+    showToast('Pengunjung tidak memiliki izin menyimpan laporan', 'warning');
+    return;
+  }
+
+  const juz = parseInt(document.getElementById('hlq-rh-juz').value) || 30;
+  const surat = document.getElementById('hlq-rh-surat').value;
+  const ayatDari = parseInt(document.getElementById('hlq-rh-ayat-dari').value) || 1;
+  const ayatSampai = parseInt(document.getElementById('hlq-rh-ayat-sampai').value) || 1;
+  const tgl = document.getElementById('hlq-rh-date').value || today();
+  const status = document.getElementById('hlq-rh-status').value || 'Lancar';
+  const catatan = document.getElementById('hlq-rh-catatan').value.trim();
+
+  await window.dataSdk.create({
+    type: 'report',
+    report_type: 'hafalan',
+    student_id: studentId,
+    juz: juz,
+    surat: surat,
+    ayat_dari: ayatDari,
+    ayat_sampai: ayatSampai,
+    status: status,
+    tanggal: tgl,
+    catatan: catatan,
+    name: '', email: '', password: '', role: '', kelas: 0, target_juz: 0, iqro_jilid: 0, iqro_halaman: 0, subject: '', nip: '', phone: '', address: '', specialization: '', target_iqro_jilid: 0, target_iqro_halaman: 0, target_hafalan_juz: 0, target_surat_awal: '', target_surat_akhir: '', target_ayat_awal: 0, target_ayat_akhir: 0, standar_ketuntasan: 0, setting_kelas: 0
+  });
+
+  showToast('Laporan hafalan berhasil disimpan', 'success');
+  closeHalaqohModal();
+  renderPage();
+}
+
+// ============ MODAL: PREVIEW RIWAYAT LAPORAN (HALAQOH) ============
+function showHalaqohHistoryModal(studentId, filterCategory = 'all') {
+  const container = document.getElementById('halaqoh-modal-container');
+  if (!container) return;
+
+  const student = getStudents().find(s => s.__backendId === studentId);
+  if (!student) return;
+
+  const allReports = getReports();
+  const studentReports = allReports.filter(r => r.student_id === studentId);
+
+  // Filter daftar setoran
+  const bacaanList = studentReports
+    .filter(r => r.report_type === 'iqro' || r.report_type === 'quran')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const hafalanList = studentReports
+    .filter(r => r.report_type === 'hafalan')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const latestBacaan = bacaanList[0];
+  const latestHafalan = hafalanList[0];
+
+  let filteredReports = [...studentReports];
+  if (filterCategory === 'bacaan') {
+    filteredReports = filteredReports.filter(r => r.report_type === 'iqro' || r.report_type === 'quran');
+  } else if (filterCategory === 'hafalan') {
+    filteredReports = filteredReports.filter(r => r.report_type === 'hafalan');
+  }
+
+  // Urutkan dari terbaru ke terlama
+  filteredReports.sort((a, b) => {
+    const dDiff = new Date(b.tanggal || 0) - new Date(a.tanggal || 0);
+    if (dDiff !== 0) return dDiff;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+
+  const bacaanPosText = latestBacaan 
+    ? (latestBacaan.report_type === 'iqro' ? `Iqro' Jld ${latestBacaan.iqro_jilid} Hal ${latestBacaan.iqro_halaman}` : `Juz ${latestBacaan.juz} ${latestBacaan.surat} (${latestBacaan.ayat_dari}-${latestBacaan.ayat_sampai})`)
+    : 'Belum ada setoran';
+
+  const hafalanPosText = latestHafalan
+    ? `Juz ${latestHafalan.juz} ${latestHafalan.surat} (${latestHafalan.ayat_dari}-${latestHafalan.ayat_sampai})`
+    : 'Belum ada setoran';
+
+  const safeStudentName = student.name.replace(/'/g, "\\'");
+
+  container.innerHTML = `
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] shadow-2xl flex flex-col fade-in overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-lg shadow-sm">
+            ${student.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-lg text-slate-800">${student.name}</h3>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                NIS: ${student.nis || '-'}
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Kelas: <strong class="text-slate-700">${student.kelas || '-'}</strong> &bull; Tingkat: <strong class="text-slate-700">${student.grade || '-'}</strong> &bull; Preview Riwayat Setoran
+            </p>
+          </div>
+        </div>
+        <button onclick="closeHalaqohModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Ringkasan Singkat -->
+      <div class="p-4 bg-slate-50/80 border-b border-slate-200 shrink-0">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="bg-white p-3 rounded-xl border border-slate-200/70 shadow-sm">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Bacaan Terakhir</span>
+            <div class="font-bold text-xs text-slate-800 truncate" title="${bacaanPosText}">${bacaanPosText}</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200/70 shadow-sm">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Hafalan Terakhir</span>
+            <div class="font-bold text-xs text-slate-800 truncate" title="${hafalanPosText}">${hafalanPosText}</div>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200/70 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Setoran</span>
+              <span class="text-xs text-slate-500 font-medium">${bacaanList.length} bacaan &bull; ${hafalanList.length} hafalan</span>
+            </div>
+            <span class="text-lg font-black text-emerald-600">${studentReports.length}</span>
+          </div>
+        </div>
+
+        <!-- Filter Tab Preview -->
+        <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-slate-200/60 flex-wrap">
+          <div class="flex items-center gap-1.5 bg-slate-200/60 p-1 rounded-xl">
+            <button onclick="showHalaqohHistoryModal('${studentId}', 'all')" class="px-3 py-1 rounded-lg text-xs font-bold transition ${filterCategory === 'all' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">
+              Semua (${studentReports.length})
+            </button>
+            <button onclick="showHalaqohHistoryModal('${studentId}', 'bacaan')" class="px-3 py-1 rounded-lg text-xs font-bold transition ${filterCategory === 'bacaan' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">
+              📖 Bacaan (${bacaanList.length})
+            </button>
+            <button onclick="showHalaqohHistoryModal('${studentId}', 'hafalan')" class="px-3 py-1 rounded-lg text-xs font-bold transition ${filterCategory === 'hafalan' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">
+              📚 Hafalan (${hafalanList.length})
+            </button>
+          </div>
+          <span class="text-xs text-slate-400 italic">Menampilkan ${filteredReports.length} catatan</span>
+        </div>
+      </div>
+
+      <!-- Tabel Daftar Riwayat (Preview Read-only) -->
+      <div class="flex-1 overflow-y-auto p-4">
+        ${filteredReports.length === 0 ? `
+          <div class="text-center py-12 text-slate-400">
+            <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-sm font-semibold">Belum ada riwayat setoran</p>
+            <p class="text-xs text-slate-400 mt-1">Siswa ini belum memiliki data laporan pada kategori yang dipilih.</p>
+          </div>
+        ` : `
+          <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                <tr>
+                  <th class="px-3 py-2.5 text-center w-10">No</th>
+                  <th class="px-3 py-2.5 w-24">Tanggal</th>
+                  <th class="px-3 py-2.5 w-24">Tipe</th>
+                  <th class="px-3 py-2.5">Capaian / Ayat</th>
+                  <th class="px-3 py-2.5 w-24 text-center">Status</th>
+                  <th class="px-3 py-2.5">Catatan Guru</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${filteredReports.map((r, idx) => {
+                  const isIqro = r.report_type === 'iqro';
+                  const isQuran = r.report_type === 'quran';
+
+                  let badge = '';
+                  let detail = '';
+                  if (isIqro) {
+                    badge = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold">Iqro'</span>`;
+                    detail = `<span class="font-bold text-slate-800">Jld ${r.iqro_jilid || 1}</span> Hal ${r.iqro_halaman || 1}`;
+                  } else if (isQuran) {
+                    badge = `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-semibold">Al-Qur'an</span>`;
+                    detail = `<span class="cursor-pointer hover:text-blue-700 hover:underline inline-flex items-center gap-1 font-medium text-slate-800" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${safeStudentName}', reportType: 'quran' })" title="Buka teks ayat">Juz ${r.juz || 1} &bull; ${r.surat} (${r.ayat_dari}-${r.ayat_sampai}) <i data-lucide="book-open" class="w-3 h-3 text-blue-500"></i></span>`;
+                  } else {
+                    badge = `<span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-[11px] font-semibold">Hafalan</span>`;
+                    detail = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1 font-medium text-slate-800" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${safeStudentName}', reportType: 'hafalan' })" title="Buka teks ayat">Juz ${r.juz || 30} &bull; ${r.surat} (${r.ayat_dari}-${r.ayat_sampai}) <i data-lucide="book-open" class="w-3 h-3 text-purple-500"></i></span>`;
+                  }
+
+                  const statusColor = r.status === 'Lancar' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                    : (r.status === 'Mengulang' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200');
+
+                  return `
+                    <tr class="hover:bg-slate-50 transition">
+                      <td class="px-3 py-2.5 text-center text-slate-400 font-semibold">${idx + 1}</td>
+                      <td class="px-3 py-2.5 text-slate-600 font-medium">${r.tanggal || '-'}</td>
+                      <td class="px-3 py-2.5">${badge}</td>
+                      <td class="px-3 py-2.5">${detail}</td>
+                      <td class="px-3 py-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor}">${r.status || 'Lancar'}</span></td>
+                      <td class="px-3 py-2.5 text-slate-600 max-w-[180px] truncate" title="${r.catatan || ''}">${r.catatan || '<span class="text-slate-300 italic">-</span>'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+
+      <!-- Modal Footer (Hanya Preview & Tombol ke Halaman Riwayat Lengkap) -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div class="text-xs text-slate-500 flex items-center gap-1.5">
+          <i data-lucide="info" class="w-4 h-4 text-slate-400 shrink-0"></i>
+          <span>Mode preview. Untuk edit data, hapus setoran, atau cetak riwayat lengkap, buka halaman riwayat.</span>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button onclick="closeHalaqohModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition flex-1 sm:flex-none">
+            Tutup
+          </button>
+          <button onclick="goToFullHistoryPage('${student.__backendId}')" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-200 transition flex items-center justify-center gap-1.5 flex-1 sm:flex-none">
+            <span>Buka Halaman Riwayat Lengkap</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function goToFullHistoryPage(studentId) {
+  selectedHistoryStudentId = studentId;
+  closeHalaqohModal();
+  navigate('report-history');
 }
