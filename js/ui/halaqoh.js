@@ -372,7 +372,7 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
               <tr>
                 <th class="px-2.5 py-3 text-center font-bold text-slate-600 text-xs w-10">No</th>
                 <th class="px-3 py-3 text-left font-bold text-slate-600 text-xs">Nama Siswa</th>
-                <th class="px-3 py-3 text-center font-bold text-slate-600 text-xs no-print">Laporan</th>
+                <th class="px-3 py-3 text-center font-bold text-slate-600 text-xs w-28 no-print">Laporan</th>
               </tr>
             ` : `
               <tr>
@@ -446,7 +446,7 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   filtered.sort((a, b) => a.name.localeCompare(b.name));
 
   return filtered.map((st, idx) => {
-    // Mode Perkecil Tabel (Khusus Mobile / Input Cepat: No, Nama, Laporan Horizontal)
+    // Mode Perkecil Tabel (Khusus Mobile / Input Cepat: No, Nama, Laporan Vertikal)
     if (isHalaqohCompactTable) {
       return `
         <tr class="hover:bg-slate-50/70 transition">
@@ -461,18 +461,18 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
               <span>NIS: ${st.nis || '-'}</span>
             </div>
           </td>
-          <td class="px-2.5 py-3 text-center whitespace-nowrap no-print">
-            <div class="flex flex-row items-center justify-center gap-1.5 flex-nowrap">
-              <button onclick="showHalaqohBacaanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 border border-emerald-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Bacaan (${st.name})">
-                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+          <td class="px-2.5 py-2.5 text-center whitespace-nowrap no-print">
+            <div class="flex flex-col items-stretch gap-1 w-full max-w-[95px] mx-auto">
+              <button onclick="showHalaqohBacaanModal('${st.__backendId}')" class="w-full inline-flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 border border-emerald-200/80 font-bold px-2 py-1.5 rounded-lg text-[11px] transition shadow-xs" title="Input Laporan Bacaan (${st.name})">
+                <i data-lucide="book-open" class="w-3 h-3"></i>
                 <span>Bacaan</span>
               </button>
-              <button onclick="showHalaqohHafalanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Hafalan (${st.name})">
-                <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+              <button onclick="showHalaqohHafalanModal('${st.__backendId}')" class="w-full inline-flex items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200/80 font-bold px-2 py-1.5 rounded-lg text-[11px] transition shadow-xs" title="Input Laporan Hafalan (${st.name})">
+                <i data-lucide="bookmark" class="w-3 h-3"></i>
                 <span>Hafalan</span>
               </button>
-              <button onclick="showHalaqohHistoryModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-700 border border-sky-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Preview Riwayat Laporan (${st.name})">
-                <i data-lucide="history" class="w-3.5 h-3.5"></i>
+              <button onclick="showHalaqohHistoryModal('${st.__backendId}')" class="w-full inline-flex items-center justify-center gap-1 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-700 border border-sky-200/80 font-bold px-2 py-1.5 rounded-lg text-[11px] transition shadow-xs" title="Preview Riwayat Laporan (${st.name})">
+                <i data-lucide="history" class="w-3 h-3"></i>
                 <span>Riwayat</span>
               </button>
             </div>
