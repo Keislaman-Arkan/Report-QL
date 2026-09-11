@@ -259,12 +259,12 @@ function renderHalaqoh(el) {
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
-                <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Nama Siswa</th>
-                <th class="px-4 py-3.5 font-bold text-slate-600 text-xs">Kelas Asal</th>
-                <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
-                <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
-                <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
-                <th class="px-4 py-3.5 font-bold text-slate-600 text-xs">Ketuntasan</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Nama Siswa</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Kelas Asal</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
