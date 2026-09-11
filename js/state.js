@@ -151,13 +151,33 @@ async function saveHalaqohList(list) {
 function getAllTeacherProfiles() {
   const list = [];
   const seen = new Set();
-  allData.filter(d => d.type === 'teacher' || (d.type === 'user' && d.role === 'guru')).forEach(t => {
-    const key = t.__backendId || t.name;
-    if (!seen.has(key)) {
+  
+  // Ambil semua akun guru, teacher, dan admin dari database
+  const eligible = allData.filter(d => 
+    d.type === 'teacher' || 
+    (d.type === 'user' && (d.role === 'guru' || d.role === 'admin'))
+  );
+
+  eligible.forEach(t => {
+    const key = (t.__backendId || t.name || '').toLowerCase();
+    if (key && !seen.has(key)) {
       seen.add(key);
       list.push(t);
     }
   });
+
+  // Pastikan akun default Admin / Administrator Utama selalu tersedia jika belum ada di database
+  const hasAdmin = list.some(u => (u.name || '').toLowerCase() === 'admin' || (u.role === 'admin'));
+  if (!hasAdmin) {
+    list.unshift({
+      __backendId: 'admin_default',
+      name: 'Admin',
+      role: 'admin',
+      nip: '-',
+      specialization: 'Administrator & Pengajar Al-Qur\'an'
+    });
+  }
+
   return list;
 }
 
