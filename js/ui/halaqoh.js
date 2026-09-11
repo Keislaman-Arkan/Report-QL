@@ -22,7 +22,8 @@ function renderHalaqoh(el) {
   // Filter halaqoh guru vs semua
   const mineList = halaqohList.filter(h => 
     h.teacher_id === currentUser.id || 
-    (h.teacher_name && currentUser.name && h.teacher_name.toLowerCase() === currentUser.name.toLowerCase())
+    (h.teacher_name && currentUser.name && h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (currentUser.role === 'admin' && h.teacher_name && (h.teacher_name.toLowerCase() === 'admin' || h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()))
   );
 
   let myHalaqohList = isAdmin ? halaqohList : (halaqohViewScope === 'mine' && mineList.length > 0 ? mineList : halaqohList);
@@ -609,13 +610,14 @@ function showHalaqohFormModal(editId) {
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Guru Pengampu <span class="text-red-500">*</span></label>
             <select id="form-hlq-teacher" onchange="checkSelectedTeacherQuota(this.value, '${editId || ''}')" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-              <option value="">-- Pilih Guru --</option>
+              <option value="">-- Pilih Guru / Pengampu --</option>
               ${allTeachers.map(t => {
                 const count = getTeacherHalaqohCount(t.__backendId || t.name, editId);
                 const isSelected = editData && (editData.teacher_id === t.__backendId || editData.teacher_name === t.name);
+                const roleTag = (t.role === 'admin' || t.name === 'Admin') ? ' [Admin]' : '';
                 return `
                   <option value="${t.__backendId || t.name}" data-name="${t.name}" data-count="${count}" ${isSelected ? 'selected' : ''}>
-                    ${t.name} (${count}/3 Halaqoh)
+                    ${t.name}${roleTag} (${count}/3 Halaqoh)
                   </option>
                 `;
               }).join('')}
