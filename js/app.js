@@ -96,6 +96,7 @@ function renderMain(app) {
     { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard' },
     { id: 'students', icon: 'users', label: 'Data Siswa' },
     { id: 'teachers', icon: 'user-check', label: 'Data Guru' },
+    { id: 'halaqoh', icon: 'layers', label: 'Halaqoh' },
     { id: 'report-bacaan', icon: 'book', label: 'Laporan Bacaan' },
     { id: 'report-hafalan', icon: 'bookmark', label: 'Laporan Hafalan' },
     { id: 'report-history', icon: 'history', label: 'Riwayat Laporan' },
@@ -171,6 +172,7 @@ function renderPage() {
     case 'dashboard': renderDashboard(main); break;
     case 'students': renderStudents(main); break;
     case 'teachers': renderTeachers(main); break;
+    case 'halaqoh': renderHalaqoh(main); break;
     case 'report-bacaan': renderReportBacaan(main); break;
     case 'report-hafalan': renderReportHafalan(main); break;
     case 'report-history': renderReportHistory(main); break;

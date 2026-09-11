@@ -82,6 +82,13 @@ html, body { height: 100%; margin: 0; font-family: 'Plus Jakarta Sans', sans-ser
   .print-header {
     display: block !important;
   }
+  .print-signature {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+  #halaqoh-modal-container {
+    display: none !important;
+  }
   /* Ensure tables look nice on paper/PDF */
   table {
     width: 100% !important;

@@ -120,3 +120,52 @@ function isStudentPromoteEnabled() {
   const s = allData.find(x => x.type === 'setting' && x.subject === 'allow_student_promote');
   return s ? !!s.data?.enabled : false;
 }
+
+// --- Halaqoh Helpers ---
+function getHalaqohList() {
+  const setting = allData.find(x => x.type === 'setting' && x.subject === 'halaqoh_list');
+  if (!setting || !setting.data) return [];
+  try {
+    const parsed = typeof setting.data === 'string' ? JSON.parse(setting.data) : setting.data;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function saveHalaqohList(list) {
+  let setting = allData.find(x => x.type === 'setting' && x.subject === 'halaqoh_list');
+  if (setting) {
+    setting.data = list;
+    return await window.dataSdk.update(setting);
+  } else {
+    return await window.dataSdk.create({
+      type: 'setting',
+      subject: 'halaqoh_list',
+      data: list,
+      name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0
+    });
+  }
+}
+
+function getAllTeacherProfiles() {
+  const list = [];
+  const seen = new Set();
+  allData.filter(d => d.type === 'teacher' || (d.type === 'user' && d.role === 'guru')).forEach(t => {
+    const key = t.__backendId || t.name;
+    if (!seen.has(key)) {
+      seen.add(key);
+      list.push(t);
+    }
+  });
+  return list;
+}
+
+function getTeacherHalaqohCount(teacherId, excludeHalaqohId = null) {
+  if (!teacherId) return 0;
+  const list = getHalaqohList();
+  return list.filter(h => {
+    if (excludeHalaqohId && h.id === excludeHalaqohId) return false;
+    return h.teacher_id === teacherId || (h.teacher_name && h.teacher_name.toLowerCase() === teacherId.toLowerCase());
+  }).length;
+}
