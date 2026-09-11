@@ -14,10 +14,106 @@ let tempSelectedStudentIds = new Set();
 let pendingDeleteHalaqohId = null;
 
 // ============ RENDER HALAQOH MAIN ============
-function renderHalaqoh(el) {
+function renderHalaqoh(el, options = {}) {
+  const existingView = document.getElementById('halaqoh-main-view');
+  if (existingView && el.contains(existingView)) {
+    renderHalaqohContent(options);
+    return;
+  }
+
+  const isAdmin = currentUser.role === 'admin';
+
+  el.innerHTML = `
+  <div id="halaqoh-main-view" class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Layar (No-print) -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-2xl shadow-sm">
+            <i data-lucide="layers" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Halaqoh Al-Qur'an</h2>
+            <p class="text-sm text-slate-500">Kelompok pembinaan Al-Qur'an &amp; monitoring capaian siswa</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
+        <div id="halaqoh-print-btn-slot"></div>
+        ${isAdmin ? `
+          <button onclick="showCreateHalaqohModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 flex-1 md:flex-none">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Halaqoh Baru
+          </button>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Pilihan Tab / Daftar Halaqoh -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 no-print">
+      <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-100 flex-wrap">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bookmark" class="w-4 h-4 text-emerald-600"></i>
+          <span class="text-sm font-bold text-slate-700">Daftar Halaqoh</span>
+          <span id="halaqoh-count-badge" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
+            0 Kelompok
+          </span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          ${isAdmin ? `
+            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
+              <button onclick="setHalaqohAdminScope('all')" id="btn-scope-all" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='all' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
+                Semua Halaqoh
+              </button>
+              <button onclick="setHalaqohAdminScope('mine')" id="btn-scope-mine" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='mine' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
+                Halaqoh Saya
+              </button>
+            </div>
+            <span class="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg font-medium">
+              Admin: <strong>${currentUser.name}</strong>
+            </span>
+          ` : `
+            <span class="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
+              Guru Pengampu: <strong>${currentUser.name}</strong>
+            </span>
+          `}
+        </div>
+      </div>
+
+      <div id="halaqoh-tabs-container"></div>
+    </div>
+
+    <!-- Konten Halaqoh Aktif (Transisi Mulus Tanpa Layar Putih) -->
+    <div id="halaqoh-active-container" class="space-y-6"></div>
+
+    <!-- Modal Container -->
+    <div id="halaqoh-modal-container"></div>
+  </div>
+  `;
+
+  renderHalaqohContent({ animateSwitch: false });
+}
+
+function setHalaqohAdminScope(scope) {
+  halaqohAdminViewScope = scope;
+  selectedHalaqohId = null;
+  const main = document.getElementById('main-content');
+  if (main) renderHalaqoh(main, { animateSwitch: true });
+}
+
+function renderHalaqohContent(options = {}) {
+  const container = document.getElementById('halaqoh-active-container');
+  const tabsContainer = document.getElementById('halaqoh-tabs-container');
+  const badgeEl = document.getElementById('halaqoh-count-badge');
+  const printSlot = document.getElementById('halaqoh-print-btn-slot');
+
+  if (!container || !tabsContainer) {
+    const main = document.getElementById('main-content');
+    if (main) renderHalaqoh(main, options);
+    return;
+  }
+
   const isAdmin = currentUser.role === 'admin';
   const halaqohList = getHalaqohList();
-  const allTeachers = getAllTeacherProfiles();
 
   // Filter halaqoh guru/admin sendiri
   const mineList = halaqohList.filter(h => 
@@ -26,8 +122,6 @@ function renderHalaqoh(el) {
     (currentUser.role === 'admin' && h.teacher_name && (h.teacher_name.toLowerCase() === 'admin' || h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()))
   );
 
-  // Guru HANYA melihat halaqoh binaannya sendiri (mineList).
-  // Admin dapat memilih antara Semua Halaqoh ('all') atau Halaqoh Saya ('mine').
   let myHalaqohList = isAdmin 
     ? (halaqohAdminViewScope === 'mine' ? mineList : halaqohList)
     : mineList;
@@ -56,245 +150,85 @@ function renderHalaqoh(el) {
   });
   const tuntasPct = halaqohStudents.length > 0 ? Math.round((tuntasCount / halaqohStudents.length) * 100) : 0;
 
-  el.innerHTML = `
-  <div class="fade-in max-w-7xl mx-auto space-y-6">
-    <!-- Header Layar (No-print) -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
-      <div>
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-2xl shadow-sm">
-            <i data-lucide="layers" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-slate-800">Halaqoh Al-Qur'an</h2>
-            <p class="text-sm text-slate-500">Kelompok pembinaan Al-Qur'an &amp; monitoring capaian siswa</p>
-          </div>
+  // Update Badge Jumlah Halaqoh
+  if (badgeEl) {
+    badgeEl.textContent = `${myHalaqohList.length} Kelompok`;
+  }
+
+  // Update Tombol Cetak di Header
+  if (printSlot) {
+    printSlot.innerHTML = activeHalaqoh ? `
+      <button onclick="printHalaqohReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 flex-1 md:flex-none">
+        <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan Halaqoh
+      </button>
+    ` : '';
+  }
+
+  // Update Tombol Tab Halaqoh
+  tabsContainer.innerHTML = renderHalaqohTabButtons(myHalaqohList, isAdmin);
+
+  // Update Isi Konten Aktif
+  container.innerHTML = renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasPct, isAdmin);
+
+  // Animasi Halus & Nyaman (hanya saat perpindahan halaqoh atau filter periode)
+  if (options.animateSwitch) {
+    container.classList.remove('halaqoh-transition-active');
+    void container.offsetWidth; // force reflow untuk memulai animasi smooth
+    container.classList.add('halaqoh-transition-active');
+  } else {
+    container.classList.remove('halaqoh-transition-active');
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
+  if (myHalaqohList.length === 0) {
+    return `
+      <div class="text-center py-10 text-slate-400">
+        <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="folder-search" class="w-6 h-6"></i>
         </div>
+        <p class="text-sm font-semibold text-slate-700">
+          ${!isAdmin 
+            ? 'Anda belum memiliki kelompok halaqoh yang dibina' 
+            : (halaqohAdminViewScope === 'mine' ? 'Anda belum memiliki kelompok halaqoh yang dibina atas nama Anda' : 'Belum ada data halaqoh')}
+        </p>
+        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+          ${!isAdmin 
+            ? 'Silakan hubungi Administrator untuk mendaftarkan Anda sebagai guru pengampu halaqoh.' 
+            : (halaqohAdminViewScope === 'mine' ? 'Klik tombol <strong>Semua Halaqoh</strong> di atas untuk melihat seluruh kelompok, atau buat halaqoh baru.' : 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.')}
+        </p>
       </div>
-      <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
-        ${activeHalaqoh ? `
-          <button onclick="printHalaqohReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 flex-1 md:flex-none">
-            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan Halaqoh
-          </button>
-        ` : ''}
-        ${isAdmin ? `
-          <button onclick="showCreateHalaqohModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 flex-1 md:flex-none">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Halaqoh Baru
-          </button>
-        ` : ''}
-      </div>
-    </div>
+    `;
+  }
 
-    <!-- Pilihan Tab / Daftar Halaqoh -->
-    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 no-print">
-      <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-100 flex-wrap">
-        <div class="flex items-center gap-2">
-          <i data-lucide="bookmark" class="w-4 h-4 text-emerald-600"></i>
-          <span class="text-sm font-bold text-slate-700">Daftar Halaqoh</span>
-          <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
-            ${myHalaqohList.length} Kelompok
-          </span>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          ${isAdmin ? `
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
-              <button onclick="halaqohAdminViewScope='all';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='all' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
-                Semua Halaqoh (${halaqohList.length})
-              </button>
-              <button onclick="halaqohAdminViewScope='mine';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='mine' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
-                Halaqoh Saya (${mineList.length})
-              </button>
+  return `
+    <div class="flex gap-2 overflow-x-auto pb-1 hide-scroll">
+      ${myHalaqohList.map(h => {
+        const isSelected = h.id === selectedHalaqohId;
+        const studentCount = (h.student_ids || []).length;
+        return `
+          <button onclick="selectHalaqoh('${h.id}')" class="halaqoh-tab-btn shrink-0 text-left px-4 py-3 rounded-xl border flex items-center gap-3 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'}">
+              ${(h.name || 'H').charAt(0).toUpperCase()}
             </div>
-            <span class="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg font-medium">
-              Admin: <strong>${currentUser.name}</strong>
-            </span>
-          ` : `
-            <span class="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
-              Guru Pengampu: <strong>${currentUser.name}</strong>
-            </span>
-          `}
-        </div>
-      </div>
-
-      ${myHalaqohList.length === 0 ? `
-        <div class="text-center py-10 text-slate-400">
-          <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="folder-search" class="w-6 h-6"></i>
-          </div>
-          <p class="text-sm font-semibold text-slate-700">
-            ${!isAdmin 
-              ? 'Anda belum memiliki kelompok halaqoh yang dibina' 
-              : (halaqohAdminViewScope === 'mine' ? 'Anda belum memiliki kelompok halaqoh yang dibina atas nama Anda' : 'Belum ada data halaqoh')}
-          </p>
-          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-            ${!isAdmin 
-              ? 'Silakan hubungi Administrator untuk mendaftarkan Anda sebagai guru pengampu halaqoh.' 
-              : (halaqohAdminViewScope === 'mine' ? 'Klik tombol <strong>Semua Halaqoh</strong> di atas untuk melihat seluruh kelompok, atau buat halaqoh baru.' : 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.')}
-          </p>
-        </div>
-      ` : `
-        <div class="flex gap-2 overflow-x-auto pb-1 hide-scroll">
-          ${myHalaqohList.map(h => {
-            const isSelected = h.id === selectedHalaqohId;
-            const studentCount = (h.student_ids || []).length;
-            return `
-              <button onclick="selectHalaqoh('${h.id}')" class="shrink-0 text-left px-4 py-3 rounded-xl border transition flex items-center gap-3 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'}">
-                  ${(h.name || 'H').charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div class="font-bold text-sm leading-tight truncate max-w-[180px]">${h.name}</div>
-                  <div class="text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-500'} mt-0.5">
-                    ${h.teacher_name || 'Guru'} &bull; ${studentCount} Siswa
-                  </div>
-                </div>
-              </button>
-            `;
-          }).join('')}
-        </div>
-      `}
-    </div>
-
-    <!-- Konten Halaqoh Aktif -->
-    ${activeHalaqoh ? `
-      <!-- Kartu Ringkasan Informasi Halaqoh -->
-      <div class="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden no-print">
-        <div class="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-          <div>
-            <div class="flex items-center gap-2 flex-wrap mb-1">
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/20">
-                ${activeHalaqoh.grade || 'Lintas Tingkat'}
-              </span>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-200">
-                Kelas Campuran
-              </span>
-            </div>
-            <h3 class="text-2xl md:text-3xl font-black tracking-tight">${activeHalaqoh.name}</h3>
-            <p class="text-emerald-100 text-sm mt-1 flex items-center gap-2">
-              <i data-lucide="user-check" class="w-4 h-4 text-emerald-300"></i>
-              Guru Pengampu: <strong class="text-white">${activeHalaqoh.teacher_name || '-'}</strong>
-            </p>
-            ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${activeHalaqoh.notes}</p>` : ''}
-          </div>
-
-          <div class="flex items-center gap-4 flex-wrap w-full md:w-auto">
-            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
-              <div class="text-2xl font-black">${halaqohStudents.length}</div>
-              <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Total Siswa</div>
-            </div>
-            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
-              <div class="text-2xl font-black text-amber-300">${tuntasPct}%</div>
-              <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Ketuntasan</div>
-            </div>
-            ${isAdmin ? `
-              <div class="flex items-center gap-2">
-                <button onclick="showManageHalaqohStudents('${activeHalaqoh.id}')" class="bg-white text-emerald-800 hover:bg-emerald-50 px-4 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-1.5" title="Masukkan / kurangi murid">
-                  <i data-lucide="user-plus" class="w-4 h-4 text-emerald-600"></i> Kelola Siswa
-                </button>
-                <button onclick="showEditHalaqohModal('${activeHalaqoh.id}')" class="p-3 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition" title="Edit Halaqoh">
-                  <i data-lucide="edit-3" class="w-4 h-4"></i>
-                </button>
-                <button onclick="confirmDeleteHalaqoh('${activeHalaqoh.id}')" class="p-3 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl transition" title="Hapus Halaqoh">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
+            <div>
+              <div class="font-bold text-sm leading-tight truncate max-w-[180px]">${h.name}</div>
+              <div class="text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-500'} mt-0.5">
+                ${h.teacher_name || 'Guru'} &bull; ${studentCount} Siswa
               </div>
-            ` : ''}
-          </div>
-        </div>
-      </div>
-
-      <!-- Filter & Pencarian Siswa Halaqoh (No-print) -->
-      <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-100 no-print">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <!-- Filter Periode Laporan -->
-          <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Periode:</span>
-            <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
-              <button onclick="setHalaqohPeriod('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='all' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Semua</button>
-              <button onclick="setHalaqohPeriod('today')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='today' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Harian</button>
-              <button onclick="setHalaqohPeriod('week')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='week' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Pekanan</button>
-              <button onclick="setHalaqohPeriod('month')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='month' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Bulanan</button>
             </div>
-            ${halaqohPeriodFilter === 'today' ? `
-              <input type="date" value="${halaqohDateInput}" onchange="setHalaqohDate(this.value)" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
-            ` : ''}
-          </div>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
 
-          <!-- Pencarian Siswa -->
-          <div class="w-full md:w-72">
-            <div class="relative">
-              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-              <input type="text" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
-              ${halaqohSearchQuery ? `
-                <button onclick="handleHalaqohSearch(''); renderPage()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                </button>
-              ` : ''}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- KOP CETAK LAPORAN (Hanya Tampil Saat Print) -->
-      <div class="print-header hidden mb-6">
-        <div class="text-center border-b-2 border-slate-800 pb-4">
-          <div class="flex justify-center items-center gap-2 mb-1">
-            <h1 class="text-2xl font-black uppercase text-slate-900 tracking-wide">Laporan Halaqoh Al-Qur'an</h1>
-          </div>
-          <p class="text-sm font-semibold text-slate-600">Sistem Manajemen Pembelajaran &amp; Tahsin/Tahfidz Al-Qur'an</p>
-          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 font-medium">
-            <div>Nama Halaqoh: <strong class="text-slate-900">${activeHalaqoh.name}</strong></div>
-            <div>Guru Pengampu: <strong class="text-slate-900">${activeHalaqoh.teacher_name || '-'}</strong></div>
-            <div>Periode Laporan: <strong class="text-slate-900">${getHalaqohPeriodLabel(halaqohPeriodFilter, halaqohDateInput)}</strong></div>
-            <div>Tanggal Cetak: <strong class="text-slate-900">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabel Siswa & Capaian Halaqoh -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto w-full">
-          <table class="w-full text-sm text-left min-w-[1000px] border-collapse">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
-                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Nama Siswa</th>
-                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Kelas Asal</th>
-                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
-                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
-                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
-                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
-                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs no-print">Aksi Laporan</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              ${renderHalaqohStudentRows(halaqohStudents, halaqohReports)}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Bagian Tanda Tangan Resmi (Hanya Tampil Saat Print) -->
-      <div class="print-signature hidden mt-12 pt-4">
-        <div class="flex justify-between items-start text-xs font-semibold text-slate-800 px-8">
-          <div class="text-center w-56">
-            <p>Mengetahui,</p>
-            <p class="font-bold mt-0.5">Koordinator Al-Qur'an</p>
-            <div class="h-20"></div>
-            <p class="border-b border-slate-800 pb-1 font-bold">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">NIP / ID: ...................................</p>
-          </div>
-          <div class="text-center w-56">
-            <p>${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            <p class="font-bold mt-0.5">Guru Pengampu Halaqoh</p>
-            <div class="h-20"></div>
-            <p class="border-b border-slate-800 pb-1 font-bold">${activeHalaqoh.teacher_name || 'Guru Halaqoh'}</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">Pengampu Halaqoh</p>
-          </div>
-        </div>
-      </div>
-    ` : `
+function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasPct, isAdmin) {
+  if (!activeHalaqoh) {
+    return `
       <div class="bg-white rounded-3xl p-10 md:p-14 text-center shadow-sm border border-slate-100 no-print">
         <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
           <i data-lucide="layers" class="w-8 h-8"></i>
@@ -312,14 +246,148 @@ function renderHalaqoh(el) {
               : 'Silakan klik salah satu kelompok halaqoh pada daftar di atas untuk melihat detail siswa, capaian bacaan/hafalan, dan mencetak laporan.')}
         </p>
       </div>
-    `}
+    `;
+  }
 
-    <!-- Modal Container -->
-    <div id="halaqoh-modal-container"></div>
-  </div>
+  return `
+    <!-- Kartu Ringkasan Informasi Halaqoh -->
+    <div class="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden no-print">
+      <div class="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/20">
+              ${activeHalaqoh.grade || 'Lintas Tingkat'}
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-200">
+              Kelas Campuran
+            </span>
+          </div>
+          <h3 class="text-2xl md:text-3xl font-black tracking-tight">${activeHalaqoh.name}</h3>
+          <p class="text-emerald-100 text-sm mt-1 flex items-center gap-2">
+            <i data-lucide="user-check" class="w-4 h-4 text-emerald-300"></i>
+            Guru Pengampu: <strong class="text-white">${activeHalaqoh.teacher_name || '-'}</strong>
+          </p>
+          ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${activeHalaqoh.notes}</p>` : ''}
+        </div>
+
+        <div class="flex items-center gap-4 flex-wrap w-full md:w-auto">
+          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
+            <div class="text-2xl font-black">${halaqohStudents.length}</div>
+            <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Total Siswa</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
+            <div class="text-2xl font-black text-amber-300">${tuntasPct}%</div>
+            <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Ketuntasan</div>
+          </div>
+          ${isAdmin ? `
+            <div class="flex items-center gap-2">
+              <button onclick="showManageHalaqohStudents('${activeHalaqoh.id}')" class="bg-white text-emerald-800 hover:bg-emerald-50 px-4 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-1.5" title="Masukkan / kurangi murid">
+                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-600"></i> Kelola Siswa
+              </button>
+              <button onclick="showEditHalaqohModal('${activeHalaqoh.id}')" class="p-3 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition" title="Edit Halaqoh">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+              <button onclick="confirmDeleteHalaqoh('${activeHalaqoh.id}')" class="p-3 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl transition" title="Hapus Halaqoh">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Pencarian Siswa Halaqoh (No-print) -->
+    <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-100 no-print">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <!-- Filter Periode Laporan -->
+        <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Periode:</span>
+          <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
+            <button onclick="setHalaqohPeriod('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='all' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Semua</button>
+            <button onclick="setHalaqohPeriod('today')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='today' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Harian</button>
+            <button onclick="setHalaqohPeriod('week')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='week' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Pekanan</button>
+            <button onclick="setHalaqohPeriod('month')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${halaqohPeriodFilter==='month' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}">Bulanan</button>
+          </div>
+          ${halaqohPeriodFilter === 'today' ? `
+            <input type="date" value="${halaqohDateInput}" onchange="setHalaqohDate(this.value)" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+          ` : ''}
+        </div>
+
+        <!-- Pencarian Siswa -->
+        <div class="w-full md:w-72">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
+            ${halaqohSearchQuery ? `
+              <button onclick="handleHalaqohSearch('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KOP CETAK LAPORAN (Hanya Tampil Saat Print) -->
+    <div class="print-header hidden mb-6">
+      <div class="text-center border-b-2 border-slate-800 pb-4">
+        <div class="flex justify-center items-center gap-2 mb-1">
+          <h1 class="text-2xl font-black uppercase text-slate-900 tracking-wide">Laporan Halaqoh Al-Qur'an</h1>
+        </div>
+        <p class="text-sm font-semibold text-slate-600">Sistem Manajemen Pembelajaran &amp; Tahsin/Tahfidz Al-Qur'an</p>
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 font-medium">
+          <div>Nama Halaqoh: <strong class="text-slate-900">${activeHalaqoh.name}</strong></div>
+          <div>Guru Pengampu: <strong class="text-slate-900">${activeHalaqoh.teacher_name || '-'}</strong></div>
+          <div>Periode Laporan: <strong class="text-slate-900">${getHalaqohPeriodLabel(halaqohPeriodFilter, halaqohDateInput)}</strong></div>
+          <div>Tanggal Cetak: <strong class="text-slate-900">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabel Siswa & Capaian Halaqoh -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="overflow-x-auto w-full">
+        <table class="w-full text-sm text-left min-w-[1000px] border-collapse">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
+              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Nama Siswa</th>
+              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Kelas Asal</th>
+              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
+              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
+              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
+              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
+              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs no-print">Aksi Laporan</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${renderHalaqohStudentRows(halaqohStudents, halaqohReports)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bagian Tanda Tangan Resmi (Hanya Tampil Saat Print) -->
+    <div class="print-signature hidden mt-12 pt-4">
+      <div class="flex justify-between items-start text-xs font-semibold text-slate-800 px-8">
+        <div class="text-center w-56">
+          <p>Mengetahui,</p>
+          <p class="font-bold mt-0.5">Koordinator Al-Qur'an</p>
+          <div class="h-20"></div>
+          <p class="border-b border-slate-800 pb-1 font-bold">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">NIP / ID: ...................................</p>
+        </div>
+        <div class="text-center w-56">
+          <p>${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <p class="font-bold mt-0.5">Guru Pengampu Halaqoh</p>
+          <div class="h-20"></div>
+          <p class="border-b border-slate-800 pb-1 font-bold">${activeHalaqoh.teacher_name || 'Guru Halaqoh'}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">Pengampu Halaqoh</p>
+        </div>
+      </div>
+    </div>
   `;
-
-  if (window.lucide) lucide.createIcons();
 }
 
 // ============ STUDENT ROWS GENERATION ============
@@ -579,24 +647,24 @@ function getHalaqohPeriodShortLabel(period) {
 
 // ============ ACTIONS & STATE SETTERS ============
 function selectHalaqoh(id) {
+  if (selectedHalaqohId === id) return;
   selectedHalaqohId = id;
-  renderPage();
+  renderHalaqohContent({ animateSwitch: true });
 }
 
 function setHalaqohPeriod(p) {
   halaqohPeriodFilter = p;
-  renderPage();
+  renderHalaqohContent({ animateSwitch: true });
 }
 
 function setHalaqohDate(d) {
   halaqohDateInput = d;
-  renderPage();
+  renderHalaqohContent({ animateSwitch: false });
 }
 
 function handleHalaqohSearch(q) {
   halaqohSearchQuery = q;
-  const main = document.getElementById('main-content');
-  if (main) renderHalaqoh(main);
+  renderHalaqohContent({ animateSwitch: false });
 }
 
 function printHalaqohReport() {
@@ -770,7 +838,7 @@ async function saveHalaqohForm(editId) {
   if (res && res.isOk !== false) {
     showToast(editId ? 'Halaqoh berhasil diperbarui' : 'Halaqoh baru berhasil dibuat', 'success');
     closeHalaqohModal();
-    renderPage();
+    renderHalaqohContent({ animateSwitch: true });
   } else {
     showToast('Gagal menyimpan halaqoh', 'error');
   }
@@ -815,7 +883,7 @@ async function doDeleteHalaqoh() {
     showToast('Halaqoh berhasil dihapus', 'success');
     selectedHalaqohId = halaqohList.length > 0 ? halaqohList[0].id : null;
     closeHalaqohModal();
-    renderPage();
+    renderHalaqohContent({ animateSwitch: true });
   } else {
     showToast('Gagal menghapus halaqoh', 'error');
   }
@@ -1068,7 +1136,7 @@ async function saveHalaqohStudents(halaqohId) {
   if (res && res.isOk !== false) {
     showToast(`Berhasil memperbarui ${halaqoh.student_ids.length} siswa di ${halaqoh.name}`, 'success');
     closeHalaqohModal();
-    renderPage();
+    renderHalaqohContent({ animateSwitch: false });
   } else {
     showToast('Gagal menyimpan daftar siswa halaqoh', 'error');
   }
@@ -1366,7 +1434,7 @@ async function saveHalaqohBacaan(studentId) {
 
   showToast('Laporan bacaan berhasil disimpan', 'success');
   closeHalaqohModal();
-  renderPage();
+  renderHalaqohContent({ animateSwitch: false });
 }
 
 // ============ MODAL: INPUT LAPORAN HAFALAN (HALAQOH) ============
@@ -1581,7 +1649,7 @@ async function saveHalaqohHafalan(studentId) {
 
   showToast('Laporan hafalan berhasil disimpan', 'success');
   closeHalaqohModal();
-  renderPage();
+  renderHalaqohContent({ animateSwitch: false });
 }
 
 // ============ MODAL: PREVIEW RIWAYAT LAPORAN (HALAQOH) ============

@@ -156,7 +156,7 @@ function renderMain(app) {
   renderPage();
 }
 
-function renderPage() {
+function renderPage(options = {}) {
   const main = document.getElementById('main-content');
   if (!main) return;
   
@@ -165,14 +165,16 @@ function renderPage() {
     currentPage = 'dashboard'; 
   }
 
-  window.scrollTo(0,0);
+  if (!options.keepScroll) {
+    window.scrollTo(0,0);
+  }
   updateSidebarActiveState();
 
   switch(currentPage) {
     case 'dashboard': renderDashboard(main); break;
     case 'students': renderStudents(main); break;
     case 'teachers': renderTeachers(main); break;
-    case 'halaqoh': renderHalaqoh(main); break;
+    case 'halaqoh': renderHalaqoh(main, options); break;
     case 'report-bacaan': renderReportBacaan(main); break;
     case 'report-hafalan': renderReportHafalan(main); break;
     case 'report-history': renderReportHistory(main); break;
@@ -198,7 +200,19 @@ async function initApp() {
     return;
   }
   
-  await window.dataSdk.init({ onDataChanged(data) { allData = data; if (currentUser) renderPage(); if(window.lucide) lucide.createIcons(); } });
+  await window.dataSdk.init({ 
+    onDataChanged(data) { 
+      allData = data; 
+      if (currentUser) {
+        if (currentPage === 'halaqoh' && typeof renderHalaqohContent === 'function' && document.getElementById('halaqoh-active-container')) {
+          renderHalaqohContent({ animateSwitch: false });
+        } else {
+          renderPage({ keepScroll: true });
+        }
+      } 
+      if(window.lucide) lucide.createIcons(); 
+    } 
+  });
   loadSession(); render();
 }
 initApp();
