@@ -5,6 +5,7 @@ let halaqohPeriodFilter = 'all'; // 'all' | 'today' | 'week' | 'month'
 let halaqohDateInput = today();
 let halaqohSearchQuery = '';
 let halaqohAdminViewScope = 'all'; // 'all' | 'mine' untuk admin
+let isHalaqohCompactTable = localStorage.getItem('ikasi_hlq_compact') === 'true';
 
 // State untuk Modal Kelola Siswa
 let halaqohStudentGradeFilter = '';
@@ -12,6 +13,14 @@ let halaqohStudentClassFilter = '';
 let halaqohStudentSearchFilter = '';
 let tempSelectedStudentIds = new Set();
 let pendingDeleteHalaqohId = null;
+
+function toggleHalaqohCompactTable() {
+  isHalaqohCompactTable = !isHalaqohCompactTable;
+  try {
+    localStorage.setItem('ikasi_hlq_compact', isHalaqohCompactTable);
+  } catch (e) {}
+  renderHalaqohContent({ animateSwitch: false });
+}
 
 // ============ RENDER HALAQOH MAIN ============
 function renderHalaqoh(el, options = {}) {
@@ -314,16 +323,25 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
           ` : ''}
         </div>
 
-        <!-- Pencarian Siswa -->
-        <div class="w-full md:w-72">
-          <div class="relative">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="text" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
-            ${halaqohSearchQuery ? `
-              <button onclick="handleHalaqohSearch('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            ` : ''}
+        <!-- Tombol Perkecil Tabel & Pencarian Siswa -->
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <!-- Tombol Toggle Perkecil Tabel -->
+          <button type="button" onclick="toggleHalaqohCompactTable()" class="shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${isHalaqohCompactTable ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'}" title="${isHalaqohCompactTable ? 'Tampilkan seluruh kolom tabel' : 'Kecilkan tabel: hanya tampilkan No, Nama, dan Laporan (khusus HP/Mobile)'}">
+            <i data-lucide="${isHalaqohCompactTable ? 'maximize-2' : 'minimize-2'}" class="w-3.5 h-3.5"></i>
+            <span>${isHalaqohCompactTable ? 'Tabel Lengkap' : 'Perkecil Tabel'}</span>
+          </button>
+
+          <!-- Pencarian Siswa -->
+          <div class="flex-1 md:w-72">
+            <div class="relative">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input type="text" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
+              ${halaqohSearchQuery ? `
+                <button onclick="handleHalaqohSearch('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -348,18 +366,26 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
     <!-- Tabel Siswa & Capaian Halaqoh -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto w-full">
-        <table class="w-full text-sm text-left min-w-[1000px] border-collapse">
+        <table class="w-full text-sm text-left ${isHalaqohCompactTable ? 'min-w-0' : 'min-w-[1000px]'} border-collapse">
           <thead class="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
-              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Nama Siswa</th>
-              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Kelas Asal</th>
-              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
-              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
-              <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
-              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
-              <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs no-print">Aksi Laporan</th>
-            </tr>
+            ${isHalaqohCompactTable ? `
+              <tr>
+                <th class="px-2.5 py-3 text-center font-bold text-slate-600 text-xs w-10">No</th>
+                <th class="px-3 py-3 text-left font-bold text-slate-600 text-xs">Nama Siswa</th>
+                <th class="px-3 py-3 text-center font-bold text-slate-600 text-xs no-print">Laporan</th>
+              </tr>
+            ` : `
+              <tr>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs w-12">No</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Nama Siswa</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Kelas Asal</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
+                <th class="px-5 py-3.5 text-center font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
+                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs no-print">Aksi Laporan</th>
+              </tr>
+            `}
           </thead>
           <tbody class="divide-y divide-slate-100">
             ${renderHalaqohStudentRows(halaqohStudents, halaqohReports)}
@@ -405,7 +431,7 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   if (filtered.length === 0) {
     return `
       <tr>
-        <td colspan="8" class="py-12 text-center text-slate-400">
+        <td colspan="${isHalaqohCompactTable ? 3 : 8}" class="py-12 text-center text-slate-400">
           <div class="flex flex-col items-center justify-center">
             <i data-lucide="user-x" class="w-8 h-8 text-slate-300 mb-2"></i>
             <p class="font-medium text-sm">Tidak ada siswa yang ditemukan</p>
@@ -420,6 +446,41 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   filtered.sort((a, b) => a.name.localeCompare(b.name));
 
   return filtered.map((st, idx) => {
+    // Mode Perkecil Tabel (Khusus Mobile / Input Cepat: No, Nama, Laporan Horizontal)
+    if (isHalaqohCompactTable) {
+      return `
+        <tr class="hover:bg-slate-50/70 transition">
+          <td class="px-2.5 py-3 text-center text-xs font-semibold text-slate-400 w-10">${idx + 1}</td>
+          <td class="px-3 py-3 font-bold text-slate-800">
+            <div class="flex items-center gap-1.5">
+              <span>${st.name}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-normal flex items-center gap-1.5 mt-0.5">
+              <span class="font-medium text-slate-600">${st.kelas || st.grade || '-'}</span>
+              <span>&bull;</span>
+              <span>NIS: ${st.nis || '-'}</span>
+            </div>
+          </td>
+          <td class="px-2.5 py-3 text-center whitespace-nowrap no-print">
+            <div class="flex flex-row items-center justify-center gap-1.5 flex-nowrap">
+              <button onclick="showHalaqohBacaanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-700 border border-emerald-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Bacaan (${st.name})">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>Bacaan</span>
+              </button>
+              <button onclick="showHalaqohHafalanModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Input Laporan Hafalan (${st.name})">
+                <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+                <span>Hafalan</span>
+              </button>
+              <button onclick="showHalaqohHistoryModal('${st.__backendId}')" class="inline-flex items-center gap-1 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-700 border border-sky-200/80 font-bold px-2.5 py-1.5 rounded-xl text-xs transition shadow-sm" title="Preview Riwayat Laporan (${st.name})">
+                <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                <span>Riwayat</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     const metrics = computeStudentHalaqohProgress(st, reportsList, halaqohPeriodFilter, halaqohDateInput);
     
     // Ketuntasan (2 hasil: Bacaan dan Hafalan tanpa background & ikon)
@@ -668,7 +729,18 @@ function handleHalaqohSearch(q) {
 }
 
 function printHalaqohReport() {
+  const wasCompact = isHalaqohCompactTable;
+  if (wasCompact) {
+    isHalaqohCompactTable = false;
+    renderHalaqohContent({ animateSwitch: false });
+  }
   window.print();
+  if (wasCompact) {
+    setTimeout(() => {
+      isHalaqohCompactTable = true;
+      renderHalaqohContent({ animateSwitch: false });
+    }, 500);
+  }
 }
 
 // ============ MODALS: CREATE & EDIT HALAQOH ============
