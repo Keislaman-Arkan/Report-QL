@@ -821,21 +821,7 @@ function renderManageHalaqohStudentsModal(halaqoh) {
   const gradeList = Object.keys(gradeMap);
   const classList = halaqohStudentGradeFilter ? (gradeMap[halaqohStudentGradeFilter] || []) : getAllClassesFlat();
 
-  // Filter siswa untuk modal pemilihan
-  let candidateStudents = allStudents.filter(s => {
-    if (halaqohStudentGradeFilter && s.grade !== halaqohStudentGradeFilter) return false;
-    if (halaqohStudentClassFilter && s.kelas !== halaqohStudentClassFilter) return false;
-    if (halaqohStudentSearchFilter) {
-      const q = halaqohStudentSearchFilter.toLowerCase().trim();
-      const matchName = s.name.toLowerCase().includes(q);
-      const matchNis = s.nis && s.nis.toLowerCase().includes(q);
-      const matchKelas = s.kelas && s.kelas.toLowerCase().includes(q);
-      if (!matchName && !matchNis && !matchKelas) return false;
-    }
-    return true;
-  });
-
-  candidateStudents.sort((a, b) => a.name.localeCompare(b.name));
+  const candidateStudents = getFilteredHalaqohCandidates();
 
   container.innerHTML = `
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -861,21 +847,21 @@ function renderManageHalaqohStudentsModal(halaqoh) {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tingkat</label>
-            <select onchange="updateHalaqohStudentFilter('grade', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+            <select id="candidate-grade-select" onchange="updateHalaqohStudentFilter('grade', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               <option value="">Semua Tingkat</option>
               ${gradeList.map(g => `<option value="${g}" ${halaqohStudentGradeFilter===g?'selected':''}>${g}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kelas Asal</label>
-            <select onchange="updateHalaqohStudentFilter('kelas', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+            <select id="candidate-class-select" onchange="updateHalaqohStudentFilter('kelas', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               <option value="">Semua Kelas</option>
               ${classList.map(c => `<option value="${c}" ${halaqohStudentClassFilter===c?'selected':''}>${c}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cari Nama</label>
-            <input type="text" placeholder="Ketik nama siswa..." value="${halaqohStudentSearchFilter}" oninput="updateHalaqohStudentFilter('search', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
+            <input id="candidate-search-input" type="text" placeholder="Ketik nama siswa..." value="${halaqohStudentSearchFilter}" oninput="updateHalaqohStudentFilter('search', this.value, '${halaqoh.id}')" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
           </div>
         </div>
 
@@ -885,14 +871,14 @@ function renderManageHalaqohStudentsModal(halaqoh) {
               <span id="selected-student-count">${tempSelectedStudentIds.size}</span> Siswa Terpilih
             </span>
             <span class="text-slate-400">&bull;</span>
-            <span class="text-slate-500">${candidateStudents.length} siswa ditampilkan</span>
+            <span id="candidate-student-count" class="text-slate-500">${candidateStudents.length} siswa ditampilkan</span>
           </div>
           <div class="flex gap-2">
-            <button onclick="toggleSelectAllCandidates(true, '${halaqoh.id}')" class="text-emerald-700 hover:text-emerald-800 font-bold hover:underline">
+            <button type="button" onclick="toggleSelectAllCandidates(true)" class="text-emerald-700 hover:text-emerald-800 font-bold hover:underline">
               Pilih Semua
             </button>
             <span class="text-slate-300">|</span>
-            <button onclick="toggleSelectAllCandidates(false, '${halaqoh.id}')" class="text-slate-500 hover:text-slate-700 font-medium hover:underline">
+            <button type="button" onclick="toggleSelectAllCandidates(false)" class="text-slate-500 hover:text-slate-700 font-medium hover:underline">
               Batal Semua
             </button>
           </div>
@@ -900,33 +886,8 @@ function renderManageHalaqohStudentsModal(halaqoh) {
       </div>
 
       <!-- Daftar Siswa dengan Checkbox -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-2">
-        ${candidateStudents.length === 0 ? `
-          <div class="text-center py-10 text-slate-400">
-            <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-            <p class="text-sm">Tidak ada siswa yang sesuai filter</p>
-          </div>
-        ` : candidateStudents.map(st => {
-          const isChecked = tempSelectedStudentIds.has(st.__backendId);
-          return `
-            <label class="flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer ${isChecked ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'}">
-              <div class="flex items-center gap-3">
-                <input type="checkbox" onchange="toggleStudentInHalaqoh('${st.__backendId}')" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
-                <div>
-                  <div class="font-bold text-sm">${st.name}</div>
-                  <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                    <span>NIS: ${st.nis || '-'}</span>
-                    <span>&bull;</span>
-                    <span class="font-medium text-slate-600">${st.kelas || '-'}</span>
-                  </div>
-                </div>
-              </div>
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-lg ${isChecked ? 'bg-emerald-200/60 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
-                ${st.grade || '-'}
-              </span>
-            </label>
-          `;
-        }).join('')}
+      <div id="halaqoh-candidates-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+        ${renderCandidateStudentItems(candidateStudents)}
       </div>
 
       <!-- Modal Footer -->
@@ -945,50 +906,127 @@ function renderManageHalaqohStudentsModal(halaqoh) {
   if (window.lucide) lucide.createIcons();
 }
 
-function updateHalaqohStudentFilter(type, val, halaqohId) {
-  if (type === 'grade') {
-    halaqohStudentGradeFilter = val;
-    halaqohStudentClassFilter = '';
-  } else if (type === 'kelas') {
-    halaqohStudentClassFilter = val;
-  } else if (type === 'search') {
-    halaqohStudentSearchFilter = val;
-  }
-  const halaqohList = getHalaqohList();
-  const halaqoh = halaqohList.find(h => h.id === halaqohId);
-  if (halaqoh) renderManageHalaqohStudentsModal(halaqoh);
-}
-
-function toggleStudentInHalaqoh(studentId) {
-  if (tempSelectedStudentIds.has(studentId)) {
-    tempSelectedStudentIds.delete(studentId);
-  } else {
-    tempSelectedStudentIds.add(studentId);
-  }
-  const countEl = document.getElementById('selected-student-count');
-  if (countEl) countEl.textContent = tempSelectedStudentIds.size;
-}
-
-function toggleSelectAllCandidates(selectAll, halaqohId) {
+function getFilteredHalaqohCandidates() {
   const allStudents = getStudents();
   let candidateStudents = allStudents.filter(s => {
     if (halaqohStudentGradeFilter && s.grade !== halaqohStudentGradeFilter) return false;
     if (halaqohStudentClassFilter && s.kelas !== halaqohStudentClassFilter) return false;
     if (halaqohStudentSearchFilter) {
       const q = halaqohStudentSearchFilter.toLowerCase().trim();
-      if (!s.name.toLowerCase().includes(q) && !(s.nis && s.nis.toLowerCase().includes(q))) return false;
+      const matchName = s.name.toLowerCase().includes(q);
+      const matchNis = s.nis && s.nis.toLowerCase().includes(q);
+      const matchKelas = s.kelas && s.kelas.toLowerCase().includes(q);
+      if (!matchName && !matchNis && !matchKelas) return false;
     }
     return true;
   });
 
+  candidateStudents.sort((a, b) => a.name.localeCompare(b.name));
+  return candidateStudents;
+}
+
+function renderCandidateStudentItems(candidateStudents) {
+  if (candidateStudents.length === 0) {
+    return `
+      <div class="text-center py-10 text-slate-400">
+        <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+        <p class="text-sm">Tidak ada siswa yang sesuai filter</p>
+      </div>
+    `;
+  }
+
+  return candidateStudents.map(st => {
+    const isChecked = tempSelectedStudentIds.has(st.__backendId);
+    return `
+      <label id="cand-item-${st.__backendId}" class="flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer ${isChecked ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'}">
+        <div class="flex items-center gap-3">
+          <input type="checkbox" onchange="toggleStudentInHalaqoh('${st.__backendId}')" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+          <div>
+            <div class="font-bold text-sm">${st.name}</div>
+            <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+              <span>NIS: ${st.nis || '-'}</span>
+              <span>&bull;</span>
+              <span class="font-medium text-slate-600">${st.kelas || '-'}</span>
+            </div>
+          </div>
+        </div>
+        <span class="grade-badge text-xs font-semibold px-2.5 py-1 rounded-lg ${isChecked ? 'bg-emerald-200/60 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
+          ${st.grade || '-'}
+        </span>
+      </label>
+    `;
+  }).join('');
+}
+
+function refreshHalaqohCandidatesList() {
+  const listEl = document.getElementById('halaqoh-candidates-list');
+  const countEl = document.getElementById('candidate-student-count');
+  if (!listEl) return;
+
+  const candidateStudents = getFilteredHalaqohCandidates();
+  listEl.innerHTML = renderCandidateStudentItems(candidateStudents);
+  if (countEl) countEl.textContent = `${candidateStudents.length} siswa ditampilkan`;
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateHalaqohStudentFilter(type, val, halaqohId) {
+  if (type === 'search') {
+    halaqohStudentSearchFilter = val;
+    refreshHalaqohCandidatesList();
+    return;
+  }
+  
+  if (type === 'grade') {
+    halaqohStudentGradeFilter = val;
+    halaqohStudentClassFilter = '';
+    const gradeMap = getGradeKelasMap();
+    const classList = halaqohStudentGradeFilter ? (gradeMap[halaqohStudentGradeFilter] || []) : getAllClassesFlat();
+    const classSelect = document.getElementById('candidate-class-select');
+    if (classSelect) {
+      classSelect.innerHTML = `<option value="">Semua Kelas</option>` + classList.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    refreshHalaqohCandidatesList();
+    return;
+  }
+  
+  if (type === 'kelas') {
+    halaqohStudentClassFilter = val;
+    refreshHalaqohCandidatesList();
+    return;
+  }
+}
+
+function toggleStudentInHalaqoh(studentId) {
+  const labelEl = document.getElementById(`cand-item-${studentId}`);
+  if (tempSelectedStudentIds.has(studentId)) {
+    tempSelectedStudentIds.delete(studentId);
+    if (labelEl) {
+      labelEl.className = "flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer bg-white border-slate-200 hover:bg-slate-50 text-slate-700";
+      const badge = labelEl.querySelector('.grade-badge');
+      if (badge) badge.className = "grade-badge text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500";
+    }
+  } else {
+    tempSelectedStudentIds.add(studentId);
+    if (labelEl) {
+      labelEl.className = "flex items-center justify-between p-3 rounded-2xl border transition cursor-pointer bg-emerald-50/70 border-emerald-300 text-emerald-950";
+      const badge = labelEl.querySelector('.grade-badge');
+      if (badge) badge.className = "grade-badge text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-200/60 text-emerald-800";
+    }
+  }
+  const countEl = document.getElementById('selected-student-count');
+  if (countEl) countEl.textContent = tempSelectedStudentIds.size;
+}
+
+function toggleSelectAllCandidates(selectAll) {
+  const candidateStudents = getFilteredHalaqohCandidates();
   candidateStudents.forEach(s => {
     if (selectAll) tempSelectedStudentIds.add(s.__backendId);
     else tempSelectedStudentIds.delete(s.__backendId);
   });
 
-  const halaqohList = getHalaqohList();
-  const halaqoh = halaqohList.find(h => h.id === halaqohId);
-  if (halaqoh) renderManageHalaqohStudentsModal(halaqoh);
+  const countEl = document.getElementById('selected-student-count');
+  if (countEl) countEl.textContent = tempSelectedStudentIds.size;
+  refreshHalaqohCandidatesList();
 }
 
 async function saveHalaqohStudents(halaqohId) {
