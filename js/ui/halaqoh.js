@@ -374,8 +374,8 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
           </div>
           <span class="text-[11px] text-slate-400 font-normal">NIS: ${st.nis || '-'}</span>
         </td>
-        <td class="px-4 py-3.5 text-xs text-slate-600">
-          <span class="px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-slate-700 border border-slate-200">${st.kelas || '-'}</span>
+        <td class="px-4 py-3.5 text-xs">
+          <div class="font-semibold text-slate-800 leading-snug">${st.kelas || '-'}</div>
           <div class="text-[10px] text-slate-400 mt-0.5">${st.grade || ''}</div>
         </td>
         <td class="px-5 py-3.5 text-xs">
