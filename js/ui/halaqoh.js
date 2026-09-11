@@ -26,16 +26,17 @@ function renderHalaqoh(el) {
     (currentUser.role === 'admin' && h.teacher_name && (h.teacher_name.toLowerCase() === 'admin' || h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()))
   );
 
-  let myHalaqohList = isAdmin ? halaqohList : (halaqohViewScope === 'mine' && mineList.length > 0 ? mineList : halaqohList);
+  // Jika guru memilih 'mine', HANYA tampilkan mineList (meskipun kosong)
+  let myHalaqohList = isAdmin ? halaqohList : (halaqohViewScope === 'mine' ? mineList : halaqohList);
 
-  // Auto-select halaqoh jika belum dipilih
+  // Auto-select halaqoh jika belum dipilih atau jika halaqoh sebelumnya tidak ada di daftar saat ini
   if (!selectedHalaqohId && myHalaqohList.length > 0) {
     selectedHalaqohId = myHalaqohList[0].id;
-  } else if (selectedHalaqohId && !halaqohList.some(h => h.id === selectedHalaqohId)) {
+  } else if (selectedHalaqohId && !myHalaqohList.some(h => h.id === selectedHalaqohId)) {
     selectedHalaqohId = myHalaqohList.length > 0 ? myHalaqohList[0].id : null;
   }
 
-  const activeHalaqoh = halaqohList.find(h => h.id === selectedHalaqohId);
+  const activeHalaqoh = myHalaqohList.find(h => h.id === selectedHalaqohId);
 
   // Ambil siswa dalam halaqoh yang aktif
   const allStudents = getStudents();
@@ -113,10 +114,18 @@ function renderHalaqoh(el) {
       </div>
 
       ${myHalaqohList.length === 0 ? `
-        <div class="text-center py-8 text-slate-400">
-          <i data-lucide="folder-search" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
-          <p class="text-sm font-medium">Belum ada halaqoh yang terdaftar.</p>
-          ${isAdmin ? `<p class="text-xs text-slate-500 mt-1">Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.</p>` : `<p class="text-xs text-slate-500 mt-1">Hubungi Administrator untuk mendaftarkan halaqoh Anda.</p>`}
+        <div class="text-center py-10 text-slate-400">
+          <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="folder-search" class="w-6 h-6"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-700">
+            ${!isAdmin && halaqohViewScope === 'mine' ? 'Anda belum memiliki kelompok halaqoh yang dibina' : 'Belum ada data halaqoh'}
+          </p>
+          <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+            ${!isAdmin && halaqohViewScope === 'mine' 
+              ? 'Silakan hubungi Administrator untuk mendaftarkan nama Anda sebagai pengampu halaqoh, atau klik pilihan <strong>Semua Halaqoh</strong> di atas.' 
+              : (isAdmin ? 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.' : 'Hubungi Administrator untuk mendaftarkan halaqoh.')}
+          </p>
         </div>
       ` : `
         <div class="flex gap-2 overflow-x-auto pb-1 hide-scroll">
@@ -279,7 +288,21 @@ function renderHalaqoh(el) {
           </div>
         </div>
       </div>
-    ` : ''}
+    ` : `
+      <div class="bg-white rounded-3xl p-10 md:p-14 text-center shadow-sm border border-slate-100 no-print">
+        <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <i data-lucide="layers" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-700 mb-1">
+          ${!isAdmin && halaqohViewScope === 'mine' ? 'Tidak Ada Halaqoh Saya' : 'Pilih Salah Satu Halaqoh'}
+        </h3>
+        <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+          ${!isAdmin && halaqohViewScope === 'mine'
+            ? 'Nama Anda saat ini belum tercatat sebagai guru pengampu di kelompok halaqoh mana pun. Untuk melihat daftar kelompok lainnya, silakan klik pilihan <strong>Semua Halaqoh</strong> di atas.'
+            : 'Silakan klik salah satu kelompok halaqoh pada daftar di atas untuk melihat detail siswa, capaian bacaan/hafalan, dan mencetak laporan.'}
+        </p>
+      </div>
+    `}
 
     <!-- Modal Container -->
     <div id="halaqoh-modal-container"></div>
