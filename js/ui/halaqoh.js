@@ -264,7 +264,7 @@ function renderHalaqoh(el) {
                 <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Bacaan Terakhir</th>
                 <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Hafalan Terakhir</th>
                 <th class="px-5 py-3.5 font-bold text-slate-600 text-xs">Perkembangan (${getHalaqohPeriodShortLabel(halaqohPeriodFilter)})</th>
-                <th class="px-4 py-3.5 text-center font-bold text-slate-600 text-xs">Ketuntasan</th>
+                <th class="px-4 py-3.5 font-bold text-slate-600 text-xs">Ketuntasan</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -353,17 +353,19 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   return filtered.map((st, idx) => {
     const metrics = computeStudentHalaqohProgress(st, reportsList, halaqohPeriodFilter, halaqohDateInput);
     
-    // Ketuntasan Badge
-    let ketuntasanHtml = '';
-    if (metrics.bacaanTuntas && metrics.hafalanTuntas) {
-      ketuntasanHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">✓ Tuntas</span>`;
-    } else if (metrics.bacaanTuntas) {
-      ketuntasanHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">✓ Tuntas Bacaan</span>`;
-    } else if (metrics.hafalanTuntas) {
-      ketuntasanHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">✓ Tuntas Hafalan</span>`;
-    } else {
-      ketuntasanHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">⏳ Belum Tuntas</span>`;
-    }
+    // Ketuntasan (2 hasil: Bacaan dan Hafalan tanpa background & ikon)
+    const bacaanStatusText = metrics.bacaanTuntas ? 'Tuntas Bacaan' : 'Belum Tuntas Bacaan';
+    const hafalanStatusText = metrics.hafalanTuntas ? 'Tuntas Hafalan' : 'Belum Tuntas Hafalan';
+
+    const bacaanColorClass = metrics.bacaanTuntas ? 'font-bold text-emerald-700' : 'font-medium text-slate-500';
+    const hafalanColorClass = metrics.hafalanTuntas ? 'font-bold text-emerald-700' : 'font-medium text-slate-500';
+
+    const ketuntasanHtml = `
+      <div class="space-y-1 leading-snug">
+        <div class="${bacaanColorClass}">${bacaanStatusText}</div>
+        <div class="${hafalanColorClass}">${hafalanStatusText}</div>
+      </div>
+    `;
 
     return `
       <tr class="hover:bg-slate-50/70 transition">
@@ -390,7 +392,7 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
           <div class="font-bold text-indigo-600">${metrics.perkembanganSummary}</div>
           <div class="text-[10px] text-slate-500 mt-0.5">${metrics.perkembanganDetail}</div>
         </td>
-        <td class="px-4 py-3.5 text-center text-xs">
+        <td class="px-4 py-3.5 text-xs">
           ${ketuntasanHtml}
         </td>
       </tr>
