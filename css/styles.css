@@ -98,6 +98,10 @@ html, body { height: 100%; margin: 0; font-family: 'Plus Jakarta Sans', sans-ser
     border: 1px solid #e2e8f0 !important;
     color: #0f172a !important;
   }
+  th {
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
