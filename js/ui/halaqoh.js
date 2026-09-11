@@ -4,7 +4,7 @@ let selectedHalaqohId = null;
 let halaqohPeriodFilter = 'all'; // 'all' | 'today' | 'week' | 'month'
 let halaqohDateInput = today();
 let halaqohSearchQuery = '';
-let halaqohViewScope = 'mine'; // 'mine' | 'all'
+let halaqohAdminViewScope = 'all'; // 'all' | 'mine' untuk admin
 
 // State untuk Modal Kelola Siswa
 let halaqohStudentGradeFilter = '';
@@ -19,15 +19,18 @@ function renderHalaqoh(el) {
   const halaqohList = getHalaqohList();
   const allTeachers = getAllTeacherProfiles();
 
-  // Filter halaqoh guru vs semua
+  // Filter halaqoh guru/admin sendiri
   const mineList = halaqohList.filter(h => 
     h.teacher_id === currentUser.id || 
     (h.teacher_name && currentUser.name && h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()) ||
     (currentUser.role === 'admin' && h.teacher_name && (h.teacher_name.toLowerCase() === 'admin' || h.teacher_name.toLowerCase() === currentUser.name.toLowerCase()))
   );
 
-  // Jika guru memilih 'mine', HANYA tampilkan mineList (meskipun kosong)
-  let myHalaqohList = isAdmin ? halaqohList : (halaqohViewScope === 'mine' ? mineList : halaqohList);
+  // Guru HANYA melihat halaqoh binaannya sendiri (mineList).
+  // Admin dapat memilih antara Semua Halaqoh ('all') atau Halaqoh Saya ('mine').
+  let myHalaqohList = isAdmin 
+    ? (halaqohAdminViewScope === 'mine' ? mineList : halaqohList)
+    : mineList;
 
   // Auto-select halaqoh jika belum dipilih atau jika halaqoh sebelumnya tidak ada di daftar saat ini
   if (!selectedHalaqohId && myHalaqohList.length > 0) {
@@ -93,21 +96,21 @@ function renderHalaqoh(el) {
           </span>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          ${!isAdmin ? `
+          ${isAdmin ? `
             <div class="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
-              <button onclick="halaqohViewScope='mine';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohViewScope==='mine' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
-                Halaqoh Saya (${mineList.length})
-              </button>
-              <button onclick="halaqohViewScope='all';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohViewScope==='all' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
+              <button onclick="halaqohAdminViewScope='all';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='all' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
                 Semua Halaqoh (${halaqohList.length})
               </button>
+              <button onclick="halaqohAdminViewScope='mine';renderPage()" class="px-3 py-1 rounded-lg transition ${halaqohAdminViewScope==='mine' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}">
+                Halaqoh Saya (${mineList.length})
+              </button>
             </div>
-            <span class="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
-              Guru: <strong>${currentUser.name}</strong>
+            <span class="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg font-medium">
+              Admin: <strong>${currentUser.name}</strong>
             </span>
           ` : `
-            <span class="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg font-medium">
-              Mode Administrator (Akses Penuh Kelola Siswa)
+            <span class="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
+              Guru Pengampu: <strong>${currentUser.name}</strong>
             </span>
           `}
         </div>
@@ -119,12 +122,14 @@ function renderHalaqoh(el) {
             <i data-lucide="folder-search" class="w-6 h-6"></i>
           </div>
           <p class="text-sm font-semibold text-slate-700">
-            ${!isAdmin && halaqohViewScope === 'mine' ? 'Anda belum memiliki kelompok halaqoh yang dibina' : 'Belum ada data halaqoh'}
+            ${!isAdmin 
+              ? 'Anda belum memiliki kelompok halaqoh yang dibina' 
+              : (halaqohAdminViewScope === 'mine' ? 'Anda belum memiliki kelompok halaqoh yang dibina atas nama Anda' : 'Belum ada data halaqoh')}
           </p>
           <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-            ${!isAdmin && halaqohViewScope === 'mine' 
-              ? 'Silakan hubungi Administrator untuk mendaftarkan nama Anda sebagai pengampu halaqoh, atau klik pilihan <strong>Semua Halaqoh</strong> di atas.' 
-              : (isAdmin ? 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.' : 'Hubungi Administrator untuk mendaftarkan halaqoh.')}
+            ${!isAdmin 
+              ? 'Silakan hubungi Administrator untuk mendaftarkan Anda sebagai guru pengampu halaqoh.' 
+              : (halaqohAdminViewScope === 'mine' ? 'Klik tombol <strong>Semua Halaqoh</strong> di atas untuk melihat seluruh kelompok, atau buat halaqoh baru.' : 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.')}
           </p>
         </div>
       ` : `
@@ -294,12 +299,16 @@ function renderHalaqoh(el) {
           <i data-lucide="layers" class="w-8 h-8"></i>
         </div>
         <h3 class="text-lg font-bold text-slate-700 mb-1">
-          ${!isAdmin && halaqohViewScope === 'mine' ? 'Tidak Ada Halaqoh Saya' : 'Pilih Salah Satu Halaqoh'}
+          ${!isAdmin 
+            ? 'Belum Ada Halaqoh' 
+            : (halaqohAdminViewScope === 'mine' ? 'Tidak Ada Halaqoh Saya' : 'Pilih Salah Satu Halaqoh')}
         </h3>
         <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-          ${!isAdmin && halaqohViewScope === 'mine'
-            ? 'Nama Anda saat ini belum tercatat sebagai guru pengampu di kelompok halaqoh mana pun. Untuk melihat daftar kelompok lainnya, silakan klik pilihan <strong>Semua Halaqoh</strong> di atas.'
-            : 'Silakan klik salah satu kelompok halaqoh pada daftar di atas untuk melihat detail siswa, capaian bacaan/hafalan, dan mencetak laporan.'}
+          ${!isAdmin 
+            ? 'Nama Anda saat ini belum tercatat sebagai guru pengampu di kelompok halaqoh mana pun. Silakan hubungi admin untuk mendaftarkan nama Anda sebagai pengampu.' 
+            : (halaqohAdminViewScope === 'mine' 
+              ? 'Anda saat ini belum mengampu kelompok halaqoh secara langsung. Klik tombol "Semua Halaqoh" di atas untuk melihat seluruh kelompok.' 
+              : 'Silakan klik salah satu kelompok halaqoh pada daftar di atas untuk melihat detail siswa, capaian bacaan/hafalan, dan mencetak laporan.')}
         </p>
       </div>
     `}
