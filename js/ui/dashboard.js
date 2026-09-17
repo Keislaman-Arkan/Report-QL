@@ -403,33 +403,101 @@ function renderStudentDashboard(el) {
             </div>
           </div>
 
-          <!-- Quick Jump to Quran Memorizer -->
+          <!-- Quick button to open Quran popup directly -->
           <div class="pt-4 mt-4 border-t border-slate-100">
-            <button type="button" onclick="scrollToStudentQuranWidget()" class="w-full bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs">
-              <i data-lucide="headphones" class="w-4 h-4 text-purple-600"></i>
-              <span>Muroja'ah Hafalan Ini (${latestHafalanSurat}) 🎧</span>
+            <button type="button" onclick="openQuranViewer({ surah: '${latestHafalanSurat.replace(/'/g, "\\'")}', fromAyah: ${latestHafalanFrom}, toAyah: ${latestHafalanTo}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: 'hafalan' })" class="w-full bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs">
+              <i data-lucide="book-open" class="w-4 h-4 text-purple-600"></i>
+              <span>Buka Al-Qur'an Hafalan Terakhir (${latestHafalanSurat}) 🎧</span>
             </button>
           </div>
         </div>
 
       </div>
 
-      <!-- Al-Qur'an & Hafalan Mandiri Card (Muroja'ah Audio & Latin) -->
-      <section id="student-quran-section" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300">
-        <div id="student-quran-widget-container">
-          <div class="p-8 text-center text-slate-400">
-            <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p class="text-xs font-medium">Menyiapkan fitur Al-Qur'an & Hafalan...</p>
+      <!-- Al-Qur'an & Hafalan Mandiri Card (Pop Up Mushaf & Audio) -->
+      <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-purple-950 rounded-2xl p-6 shadow-md text-white border border-slate-700/80">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+          <div class="flex items-start sm:items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-2xl border border-purple-500/30 shrink-0 shadow-inner">
+              <i data-lucide="book-open" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-bold text-base sm:text-lg text-white">Al-Qur'an & Hafalan Mandiri</h3>
+                <span class="px-2.5 py-0.5 bg-purple-500/30 text-purple-300 border border-purple-400/30 rounded-full text-[11px] font-bold">
+                  Mushaf, Audio & Latin
+                </span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1">
+                Buka teks Al-Qur'an dengan lantunan audio murottal per ayat dan transliterasi latin untuk mempermudah hafalan.
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick direct button for latest hafalan -->
+          <button type="button" onclick="openQuranViewer({ surah: '${latestHafalanSurat.replace(/'/g, "\\'")}', fromAyah: ${latestHafalanFrom}, toAyah: ${latestHafalanTo}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: 'hafalan' })" class="shrink-0 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm border border-purple-400/30">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            <span>Langsung Buka Hafalan (${latestHafalanSurat})</span>
+          </button>
+        </div>
+
+        <!-- Form Pemilihan Surat & Ayat -->
+        <div class="pt-5 grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
+          <!-- Dropdown 114 Surat -->
+          <div class="sm:col-span-6 lg:col-span-5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+              Pilih Surat Al-Qur'an:
+            </label>
+            <select id="sq-dash-surat" onchange="updateStudentDashAyatMax()" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-600 hover:border-slate-500 text-white rounded-xl text-xs sm:text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-500 transition">
+              ${quranSurahList.map(s => {
+                const isSelected = normalizeSurahName(s.name) === normalizeSurahName(latestHafalanSurat) || s.no === getSurahNumberByName(latestHafalanSurat);
+                return `<option value="${s.name}" ${isSelected ? 'selected' : ''}>${s.no}. ${s.name} (${s.nameArab}) — ${s.ayat} Ayat</option>`;
+              }).join('')}
+            </select>
+          </div>
+
+          <!-- Input Rentang Ayat -->
+          <div class="sm:col-span-6 lg:col-span-4">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+              Rentang Ayat:
+            </label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 flex items-center bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-xs">
+                <span class="text-slate-400 text-xs mr-1.5">Dari:</span>
+                <input id="sq-dash-dari" type="number" min="1" value="${latestHafalanFrom}" class="w-full bg-transparent text-white font-bold outline-none text-xs sm:text-sm">
+              </div>
+              <span class="text-slate-400 font-bold">-</span>
+              <div class="flex-1 flex items-center bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-xs">
+                <span class="text-slate-400 text-xs mr-1.5">S/d:</span>
+                <input id="sq-dash-sampai" type="number" min="1" value="${latestHafalanTo}" class="w-full bg-transparent text-white font-bold outline-none text-xs sm:text-sm">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tombol Buka Pop-up -->
+          <div class="sm:col-span-12 lg:col-span-3">
+            <button type="button" onclick="openStudentQuranFromDashboard('${student.name.replace(/'/g, "\\'")}')" class="w-full py-2.5 sm:py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-md border border-emerald-500/40">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+              <span>Buka Teks & Audio</span>
+            </button>
           </div>
         </div>
-      </section>
+
+        <div class="mt-3.5 pt-3 border-t border-slate-700/50 flex items-center justify-between text-[11px] text-slate-400">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-purple-400"></i>
+            Teks Al-Qur'an resmi Kemenag RI dilengkapi audio murottal & transliterasi latin per ayat.
+          </span>
+          <span class="hidden sm:inline text-purple-300 font-semibold">Tersedia 114 Surat Lengkap</span>
+        </div>
+      </div>
 
       <!-- Riwayat Laporan & Catatan Guru -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-slate-600"></i> Riwayat Belajar & Catatan Guru</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Klik pada nama surat untuk langsung mendengarkan dan menghafal di fitur Al-Qur'an</p>
+            <p class="text-xs text-slate-500 mt-0.5">Klik pada nama surat untuk langsung membuka mushaf Al-Qur'an dan mendengarkan audio</p>
           </div>
         </div>
         
@@ -455,7 +523,7 @@ function renderStudentDashboard(el) {
                 const detailContent = isIqro 
                   ? `Jilid ${r.iqro_jilid} Halaman ${r.iqro_halaman}`
                   : `
-                    <button type="button" onclick="selectStudentQuranSurah('${safeSurat}', ${fromAy}, ${toAy})" class="text-left font-semibold ${isHafalan ? 'text-purple-700 hover:text-purple-900' : 'text-blue-700 hover:text-blue-900'} hover:underline inline-flex items-center gap-1.5 transition" title="Buka dan dengarkan di Al-Qur'an">
+                    <button type="button" onclick="openQuranViewer({ surah: '${safeSurat}', fromAyah: ${fromAy}, toAyah: ${toAy}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" class="text-left font-semibold ${isHafalan ? 'text-purple-700 hover:text-purple-900' : 'text-blue-700 hover:text-blue-900'} hover:underline inline-flex items-center gap-1.5 transition" title="Buka dan dengarkan di Al-Qur'an">
                       <i data-lucide="book-open" class="w-3.5 h-3.5 ${isHafalan ? 'text-purple-500' : 'text-blue-500'}"></i>
                       <span>${r.surat} Ayat ${r.ayat_dari}-${r.ayat_sampai}</span>
                     </button>
@@ -478,36 +546,45 @@ function renderStudentDashboard(el) {
   </div>`;
 
   if (window.lucide) lucide.createIcons();
+}
 
-  // Initialize the Student Quran Widget with the student's latest memorized surah
-  if (window.initStudentQuranWidget) {
-    initStudentQuranWidget({
-      surah: latestHafalanSurat,
-      fromAyah: latestHafalanFrom,
-      toAyah: latestHafalanTo,
-      studentName: student.name
-    });
+function updateStudentDashAyatMax() {
+  const suratEl = document.getElementById('sq-dash-surat');
+  if (!suratEl) return;
+  const meta = getSurahMeta(suratEl.value);
+  const maxAyat = meta ? meta.ayat : 40;
+  const dariEl = document.getElementById('sq-dash-dari');
+  const sampaiEl = document.getElementById('sq-dash-sampai');
+  if (dariEl) {
+    dariEl.max = maxAyat;
+    if (parseInt(dariEl.value) > maxAyat) dariEl.value = 1;
+  }
+  if (sampaiEl) {
+    sampaiEl.max = maxAyat;
+    sampaiEl.value = maxAyat;
   }
 }
 
-function scrollToStudentQuranWidget() {
-  const el = document.getElementById('student-quran-section');
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    el.classList.add('ring-2', 'ring-purple-400');
-    setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400'), 1600);
-  }
+function openStudentQuranFromDashboard(studentName) {
+  const suratEl = document.getElementById('sq-dash-surat');
+  const dariEl = document.getElementById('sq-dash-dari');
+  const sampaiEl = document.getElementById('sq-dash-sampai');
+
+  const surahName = suratEl ? suratEl.value : 'An-Naba';
+  const fromAyah = dariEl ? (parseInt(dariEl.value) || 1) : 1;
+  const toAyah = sampaiEl ? (parseInt(sampaiEl.value) || fromAyah) : fromAyah;
+
+  openQuranViewer({
+    surah: surahName,
+    fromAyah: Math.min(fromAyah, toAyah),
+    toAyah: Math.max(fromAyah, toAyah),
+    studentName: studentName || '',
+    reportType: 'hafalan'
+  });
 }
 
-function selectStudentQuranSurah(surah, fromAyah, toAyah) {
-  if (window.setStudentQuranSurahAndRange) {
-    window.setStudentQuranSurahAndRange(surah, fromAyah, toAyah);
-    scrollToStudentQuranWidget();
-  }
-}
-
-window.scrollToStudentQuranWidget = scrollToStudentQuranWidget;
-window.selectStudentQuranSurah = selectStudentQuranSurah;
+window.updateStudentDashAyatMax = updateStudentDashAyatMax;
+window.openStudentQuranFromDashboard = openStudentQuranFromDashboard;
 
 function showChangePasswordModal() {
   const modal = document.createElement('div');
