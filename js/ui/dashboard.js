@@ -415,28 +415,28 @@ function renderStudentDashboard(el) {
       </div>
 
       <!-- Al-Qur'an & Hafalan Mandiri Card (Pop Up Mushaf & Audio) -->
-      <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-purple-950 rounded-2xl p-6 shadow-md text-white border border-slate-700/80">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div class="flex items-start sm:items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-2xl border border-purple-500/30 shrink-0 shadow-inner">
-              <i data-lucide="book-open" class="w-6 h-6"></i>
+            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl shrink-0">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
             </div>
             <div>
               <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="font-bold text-base sm:text-lg text-white">Al-Qur'an & Hafalan Mandiri</h3>
-                <span class="px-2.5 py-0.5 bg-purple-500/30 text-purple-300 border border-purple-400/30 rounded-full text-[11px] font-bold">
+                <h3 class="font-bold text-base sm:text-lg text-slate-800">Al-Qur'an & Hafalan Mandiri</h3>
+                <span class="px-2.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-[11px] font-bold">
                   Mushaf, Audio & Latin
                 </span>
               </div>
-              <p class="text-xs text-slate-300 mt-1">
+              <p class="text-xs text-slate-500 mt-0.5">
                 Buka teks Al-Qur'an dengan lantunan audio murottal per ayat dan transliterasi latin untuk mempermudah hafalan.
               </p>
             </div>
           </div>
 
           <!-- Quick direct button for latest hafalan -->
-          <button type="button" onclick="openQuranViewer({ surah: '${latestHafalanSurat.replace(/'/g, "\\'")}', fromAyah: ${latestHafalanFrom}, toAyah: ${latestHafalanTo}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: 'hafalan' })" class="shrink-0 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm border border-purple-400/30">
-            <i data-lucide="zap" class="w-4 h-4"></i>
+          <button type="button" onclick="openQuranViewer({ surah: '${latestHafalanSurat.replace(/'/g, "\\'")}', fromAyah: ${latestHafalanFrom}, toAyah: ${latestHafalanTo}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: 'hafalan' })" class="shrink-0 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-purple-200 shadow-xs">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-600"></i>
             <span>Langsung Buka Hafalan (${latestHafalanSurat})</span>
           </button>
         </div>
@@ -445,10 +445,10 @@ function renderStudentDashboard(el) {
         <div class="pt-5 grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
           <!-- Dropdown 114 Surat -->
           <div class="sm:col-span-6 lg:col-span-5">
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
               Pilih Surat Al-Qur'an:
             </label>
-            <select id="sq-dash-surat" onchange="updateStudentDashAyatMax()" class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-600 hover:border-slate-500 text-white rounded-xl text-xs sm:text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-500 transition">
+            <select id="sq-dash-surat" onchange="updateStudentDashAyatMax()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 rounded-xl text-xs sm:text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-500 transition">
               ${quranSurahList.map(s => {
                 const isSelected = normalizeSurahName(s.name) === normalizeSurahName(latestHafalanSurat) || s.no === getSurahNumberByName(latestHafalanSurat);
                 return `<option value="${s.name}" ${isSelected ? 'selected' : ''}>${s.no}. ${s.name} (${s.nameArab}) — ${s.ayat} Ayat</option>`;
@@ -458,37 +458,37 @@ function renderStudentDashboard(el) {
 
           <!-- Input Rentang Ayat -->
           <div class="sm:col-span-6 lg:col-span-4">
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">
               Rentang Ayat:
             </label>
             <div class="flex items-center gap-2">
-              <div class="flex-1 flex items-center bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-xs">
+              <div class="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-purple-500">
                 <span class="text-slate-400 text-xs mr-1.5">Dari:</span>
-                <input id="sq-dash-dari" type="number" min="1" value="${latestHafalanFrom}" class="w-full bg-transparent text-white font-bold outline-none text-xs sm:text-sm">
+                <input id="sq-dash-dari" type="number" min="1" value="${latestHafalanFrom}" class="w-full bg-transparent text-slate-800 font-bold outline-none text-xs sm:text-sm">
               </div>
               <span class="text-slate-400 font-bold">-</span>
-              <div class="flex-1 flex items-center bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-xs">
+              <div class="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-purple-500">
                 <span class="text-slate-400 text-xs mr-1.5">S/d:</span>
-                <input id="sq-dash-sampai" type="number" min="1" value="${latestHafalanTo}" class="w-full bg-transparent text-white font-bold outline-none text-xs sm:text-sm">
+                <input id="sq-dash-sampai" type="number" min="1" value="${latestHafalanTo}" class="w-full bg-transparent text-slate-800 font-bold outline-none text-xs sm:text-sm">
               </div>
             </div>
           </div>
 
           <!-- Tombol Buka Pop-up -->
           <div class="sm:col-span-12 lg:col-span-3">
-            <button type="button" onclick="openStudentQuranFromDashboard('${student.name.replace(/'/g, "\\'")}')" class="w-full py-2.5 sm:py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-md border border-emerald-500/40">
+            <button type="button" onclick="openStudentQuranFromDashboard('${student.name.replace(/'/g, "\\'")}')" class="w-full py-2.5 sm:py-2.5 px-4 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm">
               <i data-lucide="book-open" class="w-4 h-4"></i>
               <span>Buka Teks & Audio</span>
             </button>
           </div>
         </div>
 
-        <div class="mt-3.5 pt-3 border-t border-slate-700/50 flex items-center justify-between text-[11px] text-slate-400">
+        <div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
           <span class="flex items-center gap-1.5">
-            <i data-lucide="info" class="w-3.5 h-3.5 text-purple-400"></i>
+            <i data-lucide="info" class="w-3.5 h-3.5 text-purple-500"></i>
             Teks Al-Qur'an resmi Kemenag RI dilengkapi audio murottal & transliterasi latin per ayat.
           </span>
-          <span class="hidden sm:inline text-purple-300 font-semibold">Tersedia 114 Surat Lengkap</span>
+          <span class="hidden sm:inline text-purple-600 font-semibold">Tersedia 114 Surat Lengkap</span>
         </div>
       </div>
 
