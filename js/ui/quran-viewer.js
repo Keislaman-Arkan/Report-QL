@@ -653,3 +653,734 @@ function copyAyahText(ayahNo) {
     showToast(`Ayat ${ayahNo} disalin!`, 'success');
   }
 }
+
+// ============ STUDENT DASHBOARD QUR'AN WIDGET (HAFALAN & MUROJA'AH) ============
+
+const StudentQuranState = {
+  currentSurahNo: 78,
+  defaultSurahNo: 78,
+  fromAyah: 1,
+  toAyah: 40,
+  lastHafalanSurahName: '',
+  lastHafalanFrom: 1,
+  lastHafalanTo: 1,
+  studentName: '',
+  showLatin: true,
+  showTranslation: true,
+  filterOnlyTargetRange: false,
+  fontSizeLevel: 2,
+  currentAudio: null,
+  currentPlayingAyah: null,
+  isAutoPlaying: false
+};
+
+/**
+ * Initialize Student Quran Widget in Student Dashboard
+ */
+async function initStudentQuranWidget({ surah = 'An-Naba', fromAyah = 1, toAyah = 1, studentName = '' }) {
+  const surahNo = getSurahNumberByName(surah);
+  const meta = getSurahMeta(surahNo);
+
+  StudentQuranState.currentSurahNo = surahNo;
+  StudentQuranState.defaultSurahNo = surahNo;
+  StudentQuranState.lastHafalanSurahName = meta ? meta.name : surah;
+  StudentQuranState.fromAyah = Math.max(1, parseInt(fromAyah) || 1);
+  StudentQuranState.toAyah = Math.max(StudentQuranState.fromAyah, parseInt(toAyah) || (meta ? meta.ayat : 10));
+  StudentQuranState.lastHafalanFrom = StudentQuranState.fromAyah;
+  StudentQuranState.lastHafalanTo = StudentQuranState.toAyah;
+  StudentQuranState.studentName = studentName;
+  StudentQuranState.filterOnlyTargetRange = false;
+  
+  stopStudentAudio();
+
+  const container = document.getElementById('student-quran-widget-container');
+  if (!container) return;
+
+  renderStudentQuranShell(container);
+  await loadAndRenderStudentSurah(surahNo);
+}
+
+/**
+ * Render Shell (Header, Controls, Toolbar, and Content Placeholder)
+ */
+function renderStudentQuranShell(container) {
+  const { currentSurahNo, defaultSurahNo, fromAyah, toAyah, lastHafalanSurahName, lastHafalanFrom, lastHafalanTo, showLatin, showTranslation, filterOnlyTargetRange } = StudentQuranState;
+  const isDifferentFromHafalan = currentSurahNo !== defaultSurahNo || fromAyah !== lastHafalanFrom || toAyah !== lastHafalanTo;
+
+  // Generate Options for 114 Surahs
+  const surahOptions = quranSurahList.map(s => {
+    const isSelected = s.no === currentSurahNo;
+    return `<option value="${s.no}" ${isSelected ? 'selected' : ''}>${s.no}. ${s.name} (${s.nameArab}) — ${s.ayat} Ayat</option>`;
+  }).join('');
+
+  container.innerHTML = `
+    <!-- Top Header -->
+    <div class="px-5 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700">
+      <div class="flex items-start sm:items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl border border-emerald-500/30 shrink-0 shadow-inner">
+          <i data-lucide="book-open" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="font-bold text-base sm:text-lg text-white">Al-Qur'an & Hafalan Mandiri</h3>
+            <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[11px] font-semibold">
+              Muroja'ah Audio & Latin
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-0.5">
+            Dengarkan pelafalan murottal per ayat dan baca transliterasi latin untuk mempermudah hafalan Anda.
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons Top -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" onclick="openStudentFullscreenQuran()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm" title="Buka Tampilan Layar Penuh">
+          <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          <span>Layar Penuh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Hafalan Info Banner -->
+    <div class="px-5 py-2.5 bg-purple-50/80 border-b border-purple-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-2 text-purple-900">
+        <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+        <span class="font-semibold text-purple-800">Target Hafalan Terakhir:</span>
+        <span class="bg-purple-100/80 text-purple-800 font-bold px-2 py-0.5 rounded-md border border-purple-200">
+          QS. ${lastHafalanSuratName} (Ayat ${lastHafalanFrom} - ${lastHafalanTo})
+        </span>
+      </div>
+
+      <div id="sq-reset-hafalan-container">
+        ${isDifferentFromHafalan ? `
+          <button type="button" onclick="resetToLastHafalanSurah()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-purple-100 text-purple-700 font-bold rounded-lg border border-purple-300 shadow-xs transition text-xs">
+            <i data-lucide="rotate-ccw" class="w-3 h-3 text-purple-600"></i>
+            Kembali ke Hafalan Terakhir
+          </button>
+        ` : `
+          <span class="text-purple-600/80 italic text-[11px] hidden sm:inline">Surat saat ini sesuai hafalan Anda</span>
+        `}
+      </div>
+    </div>
+
+    <!-- Toolbar Controls -->
+    <div class="bg-slate-50 p-4 border-b border-slate-200 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+        <!-- Surah Selector -->
+        <div class="sm:col-span-6 lg:col-span-5">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Pilih Surat Al-Qur'an (1-114):</label>
+          <div class="relative">
+            <select id="sq-surah-select" onchange="handleStudentSurahChange(this.value)" class="w-full pl-3 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs transition">
+              ${surahOptions}
+            </select>
+          </div>
+        </div>
+
+        <!-- Ayat Range -->
+        <div class="sm:col-span-6 lg:col-span-4">
+          <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1">Rentang Ayat Target:</label>
+          <div class="flex items-center gap-2">
+            <div class="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-xs focus-within:ring-2 focus-within:ring-emerald-500">
+              <span class="text-xs text-slate-400 font-medium mr-1.5">Dari:</span>
+              <input type="number" id="sq-from-ayah" value="${fromAyah}" min="1" class="w-full text-xs font-bold text-slate-800 outline-none" onchange="handleStudentAyahRangeChange()">
+            </div>
+            <span class="text-slate-400 font-bold text-xs">-</span>
+            <div class="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 shadow-xs focus-within:ring-2 focus-within:ring-emerald-500">
+              <span class="text-xs text-slate-400 font-medium mr-1.5">S/d:</span>
+              <input type="number" id="sq-to-ayah" value="${toAyah}" min="1" class="w-full text-xs font-bold text-slate-800 outline-none" onchange="handleStudentAyahRangeChange()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Muroja'ah Playlist Auto-Play Button -->
+        <div class="sm:col-span-12 lg:col-span-3 flex items-end">
+          <button id="sq-autoplay-btn" type="button" onclick="toggleStudentAutoPlay()" class="w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-sm" title="Putar audio ayat target berurutan secara otomatis">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span id="sq-autoplay-label">Putar Muroja'ah (Auto)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Secondary Toggles Bar -->
+      <div class="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Filter Target Range Toggle -->
+          <button id="sq-filter-range-btn" type="button" onclick="toggleStudentRangeFilter()" class="px-2.5 py-1.5 ${filterOnlyTargetRange ? 'bg-purple-600 text-white border-purple-600' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'} border rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs">
+            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+            <span id="sq-filter-range-label">${filterOnlyTargetRange ? 'Lihat Semua Ayat' : 'Fokus Ayat Target'}</span>
+          </button>
+
+          <!-- Toggle Latin -->
+          <button id="sq-toggle-latin-btn" type="button" onclick="toggleStudentOption('showLatin')" class="px-2.5 py-1.5 text-xs rounded-lg border ${showLatin ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition shadow-xs flex items-center gap-1">
+            <i data-lucide="type" class="w-3.5 h-3.5"></i>
+            <span>Teks Latin</span>
+          </button>
+
+          <!-- Toggle Terjemahan -->
+          <button id="sq-toggle-trans-btn" type="button" onclick="toggleStudentOption('showTranslation')" class="px-2.5 py-1.5 text-xs rounded-lg border ${showTranslation ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition shadow-xs flex items-center gap-1">
+            <i data-lucide="languages" class="w-3.5 h-3.5"></i>
+            <span>Terjemahan</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Font Size Control -->
+          <div class="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden text-xs shadow-xs">
+            <span class="px-2 py-1 text-[11px] text-slate-400 font-medium border-r border-slate-200">Huruf Arab:</span>
+            <button type="button" onclick="changeStudentFontSize(-1)" class="px-2 py-1 text-slate-700 hover:bg-slate-100 font-bold border-r border-slate-200 transition" title="Kecilkan Huruf Arab">A-</button>
+            <button type="button" onclick="changeStudentFontSize(1)" class="px-2 py-1 text-slate-700 hover:bg-slate-100 font-bold transition" title="Besarkan Huruf Arab">A+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Surah Info Ribbon -->
+    <div id="sq-surah-ribbon" class="px-5 py-3 bg-slate-100/60 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <span id="sq-surah-badge-num" class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+          ${currentSurahNo}
+        </span>
+        <div>
+          <span id="sq-surah-name" class="font-bold text-slate-800 text-sm">Memuat Surat...</span>
+          <span id="sq-surah-meta-text" class="text-xs text-slate-500 ml-2"></span>
+        </div>
+      </div>
+      <div id="sq-surah-arabic-title" class="font-arabic text-emerald-800 text-xl font-normal hidden sm:block"></div>
+    </div>
+
+    <!-- Ayah List Container -->
+    <div id="sq-content-body" class="p-4 sm:p-6 space-y-4 max-h-[650px] overflow-y-auto bg-slate-100/40">
+      <div class="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+        <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-sm font-medium">Sedang memuat ayat Al-Qur'an...</span>
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Load Surah data from cache/API and render ayahs in widget
+ */
+async function loadAndRenderStudentSurah(surahNo) {
+  const contentBody = document.getElementById('sq-content-body');
+  if (!contentBody) return;
+
+  try {
+    const data = await fetchSurahData(surahNo);
+
+    // Update Ribbon Info
+    const badgeNum = document.getElementById('sq-surah-badge-num');
+    const nameEl = document.getElementById('sq-surah-name');
+    const metaEl = document.getElementById('sq-surah-meta-text');
+    const arabEl = document.getElementById('sq-surah-arabic-title');
+    const toAyahInput = document.getElementById('sq-to-ayah');
+
+    if (badgeNum) badgeNum.textContent = data.nomor;
+    if (nameEl) nameEl.textContent = `Surat ${data.namaLatin}`;
+    if (arabEl) arabEl.textContent = data.namaArab;
+    if (metaEl) {
+      metaEl.innerHTML = `• ${data.tempatTurun} • ${data.jumlahAyat} Ayat • <span class="italic text-slate-400">"${data.arti}"</span>`;
+    }
+
+    if (toAyahInput && (!StudentQuranState.toAyah || StudentQuranState.toAyah > data.jumlahAyat)) {
+      StudentQuranState.toAyah = data.jumlahAyat;
+      toAyahInput.value = data.jumlahAyat;
+      toAyahInput.max = data.jumlahAyat;
+    }
+
+    // Render Ayahs
+    renderStudentAyahs(data);
+
+    // If there is a target start ayah, smooth scroll to it
+    setTimeout(() => {
+      const targetAyahEl = document.getElementById(`sq-ayah-${StudentQuranState.fromAyah}`);
+      if (targetAyahEl) {
+        targetAyahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 250);
+
+  } catch (err) {
+    contentBody.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-16 text-center px-4 bg-white rounded-2xl border border-red-100">
+        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-3">
+          <i data-lucide="wifi-off" class="w-6 h-6"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm mb-1">Gagal Memuat Surat</h4>
+        <p class="text-xs text-slate-500 max-w-sm mb-4">${err.message || 'Koneksi ke API Al-Qur\'an terputus. Pastikan perangkat Anda terhubung dengan internet.'}</p>
+        <button type="button" onclick="loadAndRenderStudentSurah(${surahNo})" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Coba Lagi
+        </button>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+/**
+ * Render Ayahs List inside Student Quran Widget
+ */
+function renderStudentAyahs(data) {
+  const contentBody = document.getElementById('sq-content-body');
+  if (!contentBody) return;
+
+  const { fromAyah, toAyah, showLatin, showTranslation, filterOnlyTargetRange, fontSizeLevel } = StudentQuranState;
+  const fontSizeClass = QURAN_FONT_SIZES[fontSizeLevel] || QURAN_FONT_SIZES[2];
+
+  let displayAyat = data.ayat;
+  if (filterOnlyTargetRange) {
+    displayAyat = data.ayat.filter(a => a.nomorAyat >= fromAyah && a.nomorAyat <= toAyah);
+  }
+
+  let bismillahHtml = '';
+  // Don't show Bismillah for At-Taubah (Surah 9) or Al-Fatihah (already Ayah 1)
+  if (data.nomor !== 9 && data.nomor !== 1 && !filterOnlyTargetRange) {
+    bismillahHtml = `
+      <div class="text-center py-5 px-4 bg-white rounded-2xl shadow-xs border border-slate-200/80 mb-4">
+        <div class="font-arabic text-2xl md:text-3xl text-slate-800 tracking-wide font-normal leading-[2.4]">
+          بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1 italic">Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang</div>
+      </div>
+    `;
+  }
+
+  const ayahsHtml = displayAyat.map(a => {
+    const isTarget = a.nomorAyat >= fromAyah && a.nomorAyat <= toAyah;
+    const isPlaying = StudentQuranState.currentPlayingAyah === a.nomorAyat;
+
+    return `
+      <div id="sq-ayah-${a.nomorAyat}" class="relative bg-white rounded-2xl p-4 sm:p-6 shadow-xs border transition-all duration-200 ${
+        isTarget 
+          ? 'border-l-4 border-l-purple-500 border-slate-200 bg-purple-50/20 shadow-sm' 
+          : 'border-slate-200/80 hover:border-slate-300'
+      } ${isPlaying ? 'ring-2 ring-purple-500 bg-purple-50/40 shadow-md' : ''}">
+        
+        <!-- Header: Number, Target Badge, Audio, Copy -->
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full ${isTarget ? 'bg-purple-600 text-white font-bold' : 'bg-slate-100 text-slate-700 font-semibold'} flex items-center justify-center text-xs shadow-inner">
+              ${a.nomorAyat}
+            </div>
+
+            ${isTarget ? `
+              <span class="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
+                <i data-lucide="bookmark" class="w-3 h-3 text-purple-600"></i>
+                Target Hafalan Anda (${fromAyah}-${toAyah})
+              </span>
+            ` : ''}
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-1.5">
+            ${a.audioUrl ? `
+              <button type="button" onclick="playStudentAyahAudio('${a.audioUrl}', ${a.nomorAyat})" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                isPlaying 
+                  ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-300' 
+                  : 'bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800'
+              }">
+                <i data-lucide="${isPlaying ? 'pause' : 'volume-2'}" class="w-3.5 h-3.5 ${isPlaying ? 'animate-bounce' : ''}"></i>
+                <span class="text-[11px]">${isPlaying ? 'Memutar' : 'Audio'}</span>
+              </button>
+            ` : ''}
+
+            <button type="button" onclick="copyStudentAyahText(${a.nomorAyat})" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Salin Teks Ayat">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Arabic Script -->
+        <div class="text-right dir-rtl font-arabic ${fontSizeClass} text-slate-900 mb-3 tracking-normal" dir="rtl">
+          ${a.teksArab}
+          <span class="inline-flex items-center justify-center w-7 h-7 mx-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-full font-sans font-bold" dir="ltr">
+            ${a.nomorAyat}
+          </span>
+        </div>
+
+        <!-- Latin Transliteration -->
+        ${showLatin && a.teksLatin ? `
+          <div class="text-xs sm:text-sm text-emerald-800 font-medium italic mb-2 leading-relaxed bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/60">
+            <span class="font-bold text-emerald-600 mr-1 not-italic">[Latin]</span>${a.teksLatin}
+          </div>
+        ` : ''}
+
+        <!-- Indonesian Translation -->
+        ${showTranslation && a.teksIndonesia ? `
+          <div class="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+            <span class="font-semibold text-slate-400 mr-1">${a.nomorAyat}.</span>${a.teksIndonesia}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  contentBody.innerHTML = `
+    <div class="max-w-3xl mx-auto">
+      ${bismillahHtml}
+      <div class="space-y-4">
+        ${ayahsHtml.length ? ayahsHtml : '<div class="py-12 text-center text-slate-400 text-xs">Tidak ada ayat dalam rentang filter.</div>'}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Audio Player for Student Quran Widget
+ */
+function playStudentAyahAudio(url, ayahNo, isAuto = false) {
+  if (StudentQuranState.currentAudio && StudentQuranState.currentPlayingAyah === ayahNo && !isAuto) {
+    if (!StudentQuranState.currentAudio.paused) {
+      StudentQuranState.currentAudio.pause();
+      StudentQuranState.currentPlayingAyah = null;
+      rerenderStudentAyahsAfterAudioChange();
+      return;
+    }
+  }
+
+  stopStudentAudioOnly();
+
+  try {
+    const audio = new Audio(url);
+    StudentQuranState.currentAudio = audio;
+    StudentQuranState.currentPlayingAyah = ayahNo;
+    rerenderStudentAyahsAfterAudioChange();
+
+    // Scroll smoothly to playing ayah
+    const el = document.getElementById(`sq-ayah-${ayahNo}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    audio.play().catch(err => {
+      console.warn('Failed to play student audio:', err);
+      showToast('Gagal memutar audio murottal', 'warning');
+      StudentQuranState.currentPlayingAyah = null;
+      rerenderStudentAyahsAfterAudioChange();
+    });
+
+    audio.onended = () => {
+      StudentQuranState.currentPlayingAyah = null;
+      
+      // Auto-play next ayah if in Muroja'ah playlist mode
+      if (StudentQuranState.isAutoPlaying) {
+        const nextAyahNo = ayahNo + 1;
+        if (nextAyahNo <= StudentQuranState.toAyah) {
+          const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+          const nextAyah = cached ? cached.ayat.find(x => x.nomorAyat === nextAyahNo) : null;
+          if (nextAyah && nextAyah.audioUrl) {
+            playStudentAyahAudio(nextAyah.audioUrl, nextAyahNo, true);
+            return;
+          }
+        }
+        // Ended playlist
+        StudentQuranState.isAutoPlaying = false;
+        updateStudentAutoPlayBtn();
+        showToast('Muroja\'ah target ayat selesai! Alhamdulillah.', 'success');
+      }
+
+      rerenderStudentAyahsAfterAudioChange();
+    };
+
+    audio.onerror = () => {
+      StudentQuranState.currentPlayingAyah = null;
+      if (StudentQuranState.isAutoPlaying) {
+        StudentQuranState.isAutoPlaying = false;
+        updateStudentAutoPlayBtn();
+      }
+      rerenderStudentAyahsAfterAudioChange();
+    };
+  } catch (e) {
+    console.error('Audio initialization error:', e);
+  }
+}
+
+function stopStudentAudioOnly() {
+  if (StudentQuranState.currentAudio) {
+    StudentQuranState.currentAudio.pause();
+    StudentQuranState.currentAudio = null;
+  }
+  StudentQuranState.currentPlayingAyah = null;
+}
+
+function stopStudentAudio() {
+  stopStudentAudioOnly();
+  StudentQuranState.isAutoPlaying = false;
+  updateStudentAutoPlayBtn();
+}
+
+function rerenderStudentAyahsAfterAudioChange() {
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (cached) {
+    renderStudentAyahs(cached);
+  }
+}
+
+/**
+ * Toggle Muroja'ah Auto-Play (plays consecutively through target ayahs)
+ */
+function toggleStudentAutoPlay() {
+  if (StudentQuranState.isAutoPlaying) {
+    stopStudentAudio();
+    showToast('Pemutaran Muroja\'ah dihentikan');
+    return;
+  }
+
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (!cached || !cached.ayat || !cached.ayat.length) {
+    showToast('Ayat belum selesai dimuat', 'warning');
+    return;
+  }
+
+  const startAyah = Math.max(1, StudentQuranState.fromAyah);
+  const targetAyah = cached.ayat.find(a => a.nomorAyat === startAyah) || cached.ayat[0];
+  if (!targetAyah || !targetAyah.audioUrl) {
+    showToast('Audio ayat tidak tersedia', 'warning');
+    return;
+  }
+
+  StudentQuranState.isAutoPlaying = true;
+  updateStudentAutoPlayBtn();
+  showToast(`Memulai Muroja'ah Ayat ${StudentQuranState.fromAyah} - ${StudentQuranState.toAyah}...`, 'info');
+  playStudentAyahAudio(targetAyah.audioUrl, targetAyah.nomorAyat, true);
+}
+
+function updateStudentAutoPlayBtn() {
+  const btn = document.getElementById('sq-autoplay-btn');
+  const label = document.getElementById('sq-autoplay-label');
+  if (!btn || !label) return;
+
+  if (StudentQuranState.isAutoPlaying) {
+    btn.className = 'w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-sm animate-pulse';
+    label.textContent = 'Hentikan Muroja\'ah';
+    btn.querySelector('i')?.setAttribute('data-lucide', 'square');
+  } else {
+    btn.className = 'w-full py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-sm';
+    label.textContent = 'Putar Muroja\'ah (Auto)';
+    btn.querySelector('i')?.setAttribute('data-lucide', 'play');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Handle changing Surah from dropdown
+ */
+async function handleStudentSurahChange(val) {
+  const surahNo = parseInt(val);
+  if (!surahNo) return;
+
+  stopStudentAudio();
+  StudentQuranState.currentSurahNo = surahNo;
+  StudentQuranState.fromAyah = 1;
+  const meta = getSurahMeta(surahNo);
+  StudentQuranState.toAyah = meta ? meta.ayat : 10;
+
+  // Update inputs
+  const fromInput = document.getElementById('sq-from-ayah');
+  const toInput = document.getElementById('sq-to-ayah');
+  if (fromInput) fromInput.value = 1;
+  if (toInput) toInput.value = StudentQuranState.toAyah;
+
+  updateResetHafalanButtonVisibility();
+  await loadAndRenderStudentSurah(surahNo);
+}
+
+/**
+ * Reset back to student's last hafalan surah
+ */
+async function resetToLastHafalanSurah() {
+  stopStudentAudio();
+
+  const surahNo = StudentQuranState.defaultSurahNo;
+  StudentQuranState.currentSurahNo = surahNo;
+  StudentQuranState.fromAyah = StudentQuranState.lastHafalanFrom;
+  StudentQuranState.toAyah = StudentQuranState.lastHafalanTo;
+
+  // Update select & inputs
+  const select = document.getElementById('sq-surah-select');
+  const fromInput = document.getElementById('sq-from-ayah');
+  const toInput = document.getElementById('sq-to-ayah');
+
+  if (select) select.value = surahNo;
+  if (fromInput) fromInput.value = StudentQuranState.fromAyah;
+  if (toInput) toInput.value = StudentQuranState.toAyah;
+
+  updateResetHafalanButtonVisibility();
+  showToast(`Kembali ke hafalan QS. ${StudentQuranState.lastHafalanSurahName}`, 'info');
+  await loadAndRenderStudentSurah(surahNo);
+}
+
+function updateResetHafalanButtonVisibility() {
+  const container = document.getElementById('sq-reset-hafalan-container');
+  if (!container) return;
+
+  const { currentSurahNo, defaultSurahNo, fromAyah, toAyah, lastHafalanFrom, lastHafalanTo, lastHafalanSurahName } = StudentQuranState;
+  const isDifferent = currentSurahNo !== defaultSurahNo || fromAyah !== lastHafalanFrom || toAyah !== lastHafalanTo;
+
+  if (isDifferent) {
+    container.innerHTML = `
+      <button type="button" onclick="resetToLastHafalanSurah()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-purple-100 text-purple-700 font-bold rounded-lg border border-purple-300 shadow-xs transition text-xs">
+        <i data-lucide="rotate-ccw" class="w-3 h-3 text-purple-600"></i>
+        Kembali ke Hafalan Terakhir
+      </button>
+    `;
+  } else {
+    container.innerHTML = `
+      <span class="text-purple-600/80 italic text-[11px] hidden sm:inline">Surat saat ini sesuai hafalan Anda</span>
+    `;
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Handle changes to from/to ayah range inputs
+ */
+function handleStudentAyahRangeChange() {
+  const fromInput = document.getElementById('sq-from-ayah');
+  const toInput = document.getElementById('sq-to-ayah');
+  if (!fromInput || !toInput) return;
+
+  let f = parseInt(fromInput.value) || 1;
+  let t = parseInt(toInput.value) || f;
+  if (f < 1) f = 1;
+  if (t < f) t = f;
+
+  StudentQuranState.fromAyah = f;
+  StudentQuranState.toAyah = t;
+
+  updateResetHafalanButtonVisibility();
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (cached) renderStudentAyahs(cached);
+}
+
+/**
+ * Toggle focus range (only show target ayahs)
+ */
+function toggleStudentRangeFilter() {
+  StudentQuranState.filterOnlyTargetRange = !StudentQuranState.filterOnlyTargetRange;
+  const label = document.getElementById('sq-filter-range-label');
+  const btn = document.getElementById('sq-filter-range-btn');
+
+  if (label) {
+    label.textContent = StudentQuranState.filterOnlyTargetRange ? 'Lihat Semua Ayat' : 'Fokus Ayat Target';
+  }
+  if (btn) {
+    if (StudentQuranState.filterOnlyTargetRange) {
+      btn.className = 'px-2.5 py-1.5 bg-purple-600 text-white border-purple-600 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs';
+    } else {
+      btn.className = 'px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs';
+    }
+  }
+
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (cached) renderStudentAyahs(cached);
+}
+
+/**
+ * Toggle Latin / Translation views for student widget
+ */
+function toggleStudentOption(opt) {
+  StudentQuranState[opt] = !StudentQuranState[opt];
+  const btnLatin = document.getElementById('sq-toggle-latin-btn');
+  const btnTrans = document.getElementById('sq-toggle-trans-btn');
+
+  if (opt === 'showLatin' && btnLatin) {
+    btnLatin.className = `px-2.5 py-1.5 text-xs rounded-lg border ${StudentQuranState.showLatin ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition shadow-xs flex items-center gap-1`;
+  }
+  if (opt === 'showTranslation' && btnTrans) {
+    btnTrans.className = `px-2.5 py-1.5 text-xs rounded-lg border ${StudentQuranState.showTranslation ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold' : 'bg-white text-slate-500 border-slate-300'} transition shadow-xs flex items-center gap-1`;
+  }
+
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (cached) renderStudentAyahs(cached);
+}
+
+/**
+ * Change Arabic Font Size for student widget
+ */
+function changeStudentFontSize(delta) {
+  const next = StudentQuranState.fontSizeLevel + delta;
+  if (next >= 1 && next <= 3) {
+    StudentQuranState.fontSizeLevel = next;
+    const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+    if (cached) renderStudentAyahs(cached);
+  }
+}
+
+/**
+ * Open Fullscreen Quran Modal from student widget
+ */
+function openStudentFullscreenQuran() {
+  stopStudentAudio();
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  const surahName = cached ? cached.namaLatin : (getSurahMeta(StudentQuranState.currentSurahNo)?.name || 'An-Naba');
+  
+  openQuranViewer({
+    surah: surahName,
+    fromAyah: StudentQuranState.fromAyah,
+    toAyah: StudentQuranState.toAyah,
+    studentName: StudentQuranState.studentName,
+    reportType: 'hafalan'
+  });
+}
+
+/**
+ * Select specific surah and range in student Quran widget
+ */
+async function setStudentQuranSurahAndRange(surah, fromAyah = 1, toAyah = 1) {
+  const surahNo = getSurahNumberByName(surah);
+  const meta = getSurahMeta(surahNo);
+
+  stopStudentAudio();
+  StudentQuranState.currentSurahNo = surahNo;
+  StudentQuranState.fromAyah = Math.max(1, parseInt(fromAyah) || 1);
+  StudentQuranState.toAyah = Math.max(StudentQuranState.fromAyah, parseInt(toAyah) || (meta ? meta.ayat : 10));
+
+  const select = document.getElementById('sq-surah-select');
+  const fromInput = document.getElementById('sq-from-ayah');
+  const toInput = document.getElementById('sq-to-ayah');
+
+  if (select) select.value = surahNo;
+  if (fromInput) fromInput.value = StudentQuranState.fromAyah;
+  if (toInput) toInput.value = StudentQuranState.toAyah;
+
+  updateResetHafalanButtonVisibility();
+  await loadAndRenderStudentSurah(surahNo);
+}
+
+/**
+ * Copy Ayah text from student widget
+ */
+function copyStudentAyahText(ayahNo) {
+  const cached = QuranViewerState.cache[StudentQuranState.currentSurahNo];
+  if (!cached) return;
+  const a = cached.ayat.find(x => x.nomorAyat === ayahNo);
+  if (!a) return;
+
+  const textToCopy = `${a.teksArab}\n\n"${a.teksIndonesia}" (QS. ${cached.namaLatin}: ${a.nomorAyat})`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast(`Ayat ${ayahNo} disalin ke clipboard!`, 'success');
+    });
+  } else {
+    showToast(`Ayat ${ayahNo} disalin!`, 'success');
+  }
+}
+
+// Expose functions to window
+window.initStudentQuranWidget = initStudentQuranWidget;
+window.setStudentQuranSurahAndRange = setStudentQuranSurahAndRange;
+window.handleStudentSurahChange = handleStudentSurahChange;
+window.handleStudentAyahRangeChange = handleStudentAyahRangeChange;
+window.resetToLastHafalanSurah = resetToLastHafalanSurah;
+window.toggleStudentAutoPlay = toggleStudentAutoPlay;
+window.toggleStudentRangeFilter = toggleStudentRangeFilter;
+window.toggleStudentOption = toggleStudentOption;
+window.changeStudentFontSize = changeStudentFontSize;
+window.openStudentFullscreenQuran = openStudentFullscreenQuran;
+window.playStudentAyahAudio = playStudentAyahAudio;
+window.copyStudentAyahText = copyStudentAyahText;
