@@ -216,10 +216,33 @@ function renderStudentDashboard(el) {
     isBacaanTuntas = getBacaanScore(latest.report_type, latest.iqro_jilid, latest.iqro_halaman) >= targetBacaanScore;
     currentBacaanText = latest.report_type === 'iqro' ? `Jilid ${latest.iqro_jilid} Hal ${latest.iqro_halaman}` : `${latest.surat} ${latest.ayat_dari}-${latest.ayat_sampai}`;
   }
+  let latestHafalanSurat = '';
+  let latestHafalanFrom = 1;
+  let latestHafalanTo = 1;
+
   if (hafalanReports.length > 0) {
     const latest = hafalanReports[0];
     isHafalanTuntas = getHafalanScore(latest.juz, latest.surat, latest.ayat_sampai) >= targetHafalanScore;
     currentHafalanText = `${latest.surat} Ayat ${latest.ayat_dari}-${latest.ayat_sampai}`;
+    latestHafalanSurat = latest.surat || '';
+    latestHafalanFrom = parseInt(latest.ayat_dari) || 1;
+    latestHafalanTo = parseInt(latest.ayat_sampai) || latestHafalanFrom;
+  } else {
+    // If no hafalan report yet, check if there is any quran reading report
+    const quranRep = bacaanReports.find(r => r.report_type === 'quran');
+    if (quranRep && quranRep.surat) {
+      latestHafalanSurat = quranRep.surat;
+      latestHafalanFrom = parseInt(quranRep.ayat_dari) || 1;
+      latestHafalanTo = parseInt(quranRep.ayat_sampai) || latestHafalanFrom;
+    } else if (tHafalan && tHafalan.target_surat_awal) {
+      latestHafalanSurat = tHafalan.target_surat_awal;
+      latestHafalanFrom = 1;
+      latestHafalanTo = parseInt(tHafalan.target_ayat_akhir) || 10;
+    } else {
+      latestHafalanSurat = 'An-Naba';
+      latestHafalanFrom = 1;
+      latestHafalanTo = 40;
+    }
   }
 
   // Helper: normalize any date value to YYYY-MM-DD string for comparison
@@ -379,15 +402,35 @@ function renderStudentDashboard(el) {
               </div>
             </div>
           </div>
+
+          <!-- Quick Jump to Quran Memorizer -->
+          <div class="pt-4 mt-4 border-t border-slate-100">
+            <button type="button" onclick="scrollToStudentQuranWidget()" class="w-full bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs">
+              <i data-lucide="headphones" class="w-4 h-4 text-purple-600"></i>
+              <span>Muroja'ah Hafalan Ini (${latestHafalanSurat}) 🎧</span>
+            </button>
+          </div>
         </div>
 
       </div>
 
+      <!-- Al-Qur'an & Hafalan Mandiri Card (Muroja'ah Audio & Latin) -->
+      <section id="student-quran-section" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300">
+        <div id="student-quran-widget-container">
+          <div class="p-8 text-center text-slate-400">
+            <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p class="text-xs font-medium">Menyiapkan fitur Al-Qur'an & Hafalan...</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Riwayat Laporan & Catatan Guru -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-slate-600"></i> Riwayat Belajar & Catatan Guru</h3>
-          <p class="text-xs text-slate-500 mt-1">Siswa dapat melihat catatan dari guru di setiap sesi laporan pembelajaran</p>
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-slate-600"></i> Riwayat Belajar & Catatan Guru</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Klik pada nama surat untuk langsung mendengarkan dan menghafal di fitur Al-Qur'an</p>
+          </div>
         </div>
         
         <div class="overflow-x-auto w-full">
@@ -396,20 +439,33 @@ function renderStudentDashboard(el) {
               <tr>
                 <th class="text-left px-5 py-4 font-semibold text-slate-600 w-28">Tanggal</th>
                 <th class="text-left px-5 py-4 font-semibold text-slate-600 w-24">Tipe</th>
-                <th class="text-left px-5 py-4 font-semibold text-slate-600 w-44">Capaian</th>
+                <th class="text-left px-5 py-4 font-semibold text-slate-600 w-52">Capaian</th>
                 <th class="text-left px-5 py-4 font-semibold text-slate-600">Catatan Guru</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              ${progressReports.length ? [...progressReports].sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(b.created_at || 0)).map(r => {
+              ${progressReports.length ? [...progressReports].sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(r => {
                 const isIqro = r.report_type === 'iqro';
+                const isHafalan = r.report_type === 'hafalan';
                 const typeLabel = isIqro ? '📖 Bacaan' : r.report_type === 'quran' ? '📖 Bacaan' : '📚 Hafalan';
-                const detail = isIqro ? `Jilid ${r.iqro_jilid} Halaman ${r.iqro_halaman}` : `${r.surat} Ayat ${r.ayat_dari}-${r.ayat_sampai}`;
+                const safeSurat = (r.surat || '').replace(/'/g, "\\'");
+                const fromAy = parseInt(r.ayat_dari) || 1;
+                const toAy = parseInt(r.ayat_sampai) || fromAy;
+
+                const detailContent = isIqro 
+                  ? `Jilid ${r.iqro_jilid} Halaman ${r.iqro_halaman}`
+                  : `
+                    <button type="button" onclick="selectStudentQuranSurah('${safeSurat}', ${fromAy}, ${toAy})" class="text-left font-semibold ${isHafalan ? 'text-purple-700 hover:text-purple-900' : 'text-blue-700 hover:text-blue-900'} hover:underline inline-flex items-center gap-1.5 transition" title="Buka dan dengarkan di Al-Qur'an">
+                      <i data-lucide="book-open" class="w-3.5 h-3.5 ${isHafalan ? 'text-purple-500' : 'text-blue-500'}"></i>
+                      <span>${r.surat} Ayat ${r.ayat_dari}-${r.ayat_sampai}</span>
+                    </button>
+                  `;
+
                 return `
                   <tr class="hover:bg-slate-50/50 transition">
                     <td class="px-5 py-4 text-slate-500 whitespace-nowrap">${r.tanggal}</td>
                     <td class="px-5 py-4 whitespace-nowrap"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs border border-slate-200 font-semibold">${typeLabel}</span></td>
-                    <td class="px-5 py-4 font-semibold text-slate-850">${detail}</td>
+                    <td class="px-5 py-4 font-semibold text-slate-850">${detailContent}</td>
                     <td class="px-5 py-4 text-slate-600 break-words leading-relaxed">${r.catatan || '<span class="text-slate-400 italic">Tidak ada catatan</span>'}</td>
                   </tr>`;
               }).join('') : `<tr><td colspan="4" class="px-5 py-12 text-center text-slate-400">Belum ada riwayat pembelajaran yang tercatat.</td></tr>`}
@@ -420,8 +476,38 @@ function renderStudentDashboard(el) {
 
     </main>
   </div>`;
+
   if (window.lucide) lucide.createIcons();
+
+  // Initialize the Student Quran Widget with the student's latest memorized surah
+  if (window.initStudentQuranWidget) {
+    initStudentQuranWidget({
+      surah: latestHafalanSurat,
+      fromAyah: latestHafalanFrom,
+      toAyah: latestHafalanTo,
+      studentName: student.name
+    });
+  }
 }
+
+function scrollToStudentQuranWidget() {
+  const el = document.getElementById('student-quran-section');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.classList.add('ring-2', 'ring-purple-400');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400'), 1600);
+  }
+}
+
+function selectStudentQuranSurah(surah, fromAyah, toAyah) {
+  if (window.setStudentQuranSurahAndRange) {
+    window.setStudentQuranSurahAndRange(surah, fromAyah, toAyah);
+    scrollToStudentQuranWidget();
+  }
+}
+
+window.scrollToStudentQuranWidget = scrollToStudentQuranWidget;
+window.selectStudentQuranSurah = selectStudentQuranSurah;
 
 function showChangePasswordModal() {
   const modal = document.createElement('div');

@@ -172,3 +172,31 @@ html, body { height: 100%; margin: 0; font-family: 'Plus Jakarta Sans', sans-ser
   }
 }
 
+/* Quran Widget Animations & Styles */
+#student-quran-section {
+  scroll-margin-top: 1.5rem;
+}
+
+#sq-content-body::-webkit-scrollbar {
+  width: 6px;
+}
+#sq-content-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+#sq-content-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+#sq-content-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@keyframes audioPulseWave {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
+
+.audio-playing-pulse {
+  animation: audioPulseWave 1.8s ease-in-out infinite;
+}
+
