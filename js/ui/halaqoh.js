@@ -167,12 +167,16 @@ function renderHalaqohContent(options = {}) {
 
   // Hitung metrik ringkas halaqoh
   const halaqohReports = getReports();
-  let tuntasCount = 0;
+  let tuntasBacaanCount = 0;
+  let tuntasHafalanCount = 0;
   halaqohStudents.forEach(st => {
     const metrics = computeStudentHalaqohProgress(st, halaqohReports, halaqohPeriodFilter, halaqohDateInput);
-    if (metrics.bacaanTuntas && metrics.hafalanTuntas) tuntasCount++;
+    if (metrics.bacaanTuntas) tuntasBacaanCount++;
+    if (metrics.hafalanTuntas) tuntasHafalanCount++;
   });
-  const tuntasPct = halaqohStudents.length > 0 ? Math.round((tuntasCount / halaqohStudents.length) * 100) : 0;
+  const totalStudents = halaqohStudents.length;
+  const tuntasBacaanPct = totalStudents > 0 ? Math.round((tuntasBacaanCount / totalStudents) * 100) : 0;
+  const tuntasHafalanPct = totalStudents > 0 ? Math.round((tuntasHafalanCount / totalStudents) * 100) : 0;
 
   // Update Badge Jumlah Halaqoh
   if (badgeEl) {
@@ -192,7 +196,7 @@ function renderHalaqohContent(options = {}) {
   tabsContainer.innerHTML = renderHalaqohTabButtons(myHalaqohList, isAdmin);
 
   // Update Isi Konten Aktif
-  container.innerHTML = renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasPct, isAdmin);
+  container.innerHTML = renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasBacaanPct, tuntasHafalanPct, isAdmin);
 
   // Animasi Halus & Nyaman (hanya saat perpindahan halaqoh atau filter periode)
   if (options.animateSwitch) {
@@ -325,7 +329,7 @@ function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
   `;
 }
 
-function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasPct, isAdmin) {
+function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports, tuntasBacaanPct, tuntasHafalanPct, isAdmin) {
   if (!activeHalaqoh) {
     return `
       <div class="bg-white rounded-3xl p-10 md:p-14 text-center shadow-sm border border-slate-100 no-print">
@@ -370,14 +374,18 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
           ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${activeHalaqoh.notes}</p>` : ''}
         </div>
 
-        <div class="flex items-center gap-4 flex-wrap w-full md:w-auto">
-          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
-            <div class="text-2xl font-black">${halaqohStudents.length}</div>
-            <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Total Siswa</div>
+        <div class="flex items-center gap-3 flex-wrap w-full md:w-auto">
+          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[85px]">
+            <div class="text-xl sm:text-2xl font-black">${halaqohStudents.length}</div>
+            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Total Siswa</div>
           </div>
-          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-3 rounded-2xl text-center min-w-[100px]">
-            <div class="text-2xl font-black text-amber-300">${tuntasPct}%</div>
-            <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Ketuntasan</div>
+          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[90px]">
+            <div class="text-xl sm:text-2xl font-black text-emerald-300">${tuntasBacaanPct}%</div>
+            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Tuntas Bacaan</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[90px]">
+            <div class="text-xl sm:text-2xl font-black text-amber-300">${tuntasHafalanPct}%</div>
+            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Tuntas Hafalan</div>
           </div>
           ${isAdmin ? `
             <div class="flex items-center gap-2">
