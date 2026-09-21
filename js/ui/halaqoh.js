@@ -105,8 +105,8 @@ function renderHalaqoh(el, options = {}) {
 function setHalaqohAdminScope(scope) {
   halaqohAdminViewScope = scope;
   selectedHalaqohId = null;
-  const main = document.getElementById('main-content');
-  if (main) renderHalaqoh(main, { animateSwitch: true });
+  halaqohSearchQuery = '';
+  renderHalaqohContent({ animateSwitch: true });
 }
 
 function renderHalaqohContent(options = {}) {
@@ -114,6 +114,19 @@ function renderHalaqohContent(options = {}) {
   const tabsContainer = document.getElementById('halaqoh-tabs-container');
   const badgeEl = document.getElementById('halaqoh-count-badge');
   const printSlot = document.getElementById('halaqoh-print-btn-slot');
+
+  // Update Status Tombol Filter Scope Admin (Semua Halaqoh vs Halaqoh Saya)
+  const btnAll = document.getElementById('btn-scope-all');
+  const btnMine = document.getElementById('btn-scope-mine');
+  if (btnAll && btnMine) {
+    if (halaqohAdminViewScope === 'mine') {
+      btnMine.className = 'px-3 py-1 rounded-lg transition bg-white text-emerald-700 shadow-sm font-bold';
+      btnAll.className = 'px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-800';
+    } else {
+      btnAll.className = 'px-3 py-1 rounded-lg transition bg-white text-emerald-700 shadow-sm font-bold';
+      btnMine.className = 'px-3 py-1 rounded-lg transition text-slate-600 hover:text-slate-800';
+    }
+  }
 
   if (!container || !tabsContainer) {
     const main = document.getElementById('main-content');
@@ -189,6 +202,9 @@ function renderHalaqohContent(options = {}) {
   }
 
   if (window.lucide) lucide.createIcons();
+  if (halaqohSearchQuery) {
+    handleHalaqohSearch(halaqohSearchQuery);
+  }
 }
 
 function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
@@ -334,13 +350,11 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
           <!-- Pencarian Siswa -->
           <div class="flex-1 md:w-72">
             <div class="relative">
-              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-              <input type="text" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
-              ${halaqohSearchQuery ? `
-                <button onclick="handleHalaqohSearch('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                </button>
-              ` : ''}
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input type="text" id="search-halaqoh-student" placeholder="Cari nama siswa di halaqoh..." value="${halaqohSearchQuery}" oninput="handleHalaqohSearch(this.value)" class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition">
+              <button id="clear-halaqoh-search-btn" type="button" onclick="clearHalaqohSearch()" class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition ${halaqohSearchQuery ? '' : 'hidden'}" title="Hapus pencarian">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -387,7 +401,7 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
               </tr>
             `}
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody id="halaqoh-student-table-body" class="divide-y divide-slate-100">
             ${renderHalaqohStudentRows(halaqohStudents, halaqohReports)}
           </tbody>
         </table>
@@ -418,24 +432,14 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
 
 // ============ STUDENT ROWS GENERATION ============
 function renderHalaqohStudentRows(studentsList, reportsList) {
-  let filtered = [...studentsList];
-  if (halaqohSearchQuery) {
-    const q = halaqohSearchQuery.toLowerCase().trim();
-    filtered = filtered.filter(s => 
-      s.name.toLowerCase().includes(q) || 
-      (s.nis && s.nis.toLowerCase().includes(q)) ||
-      (s.kelas && s.kelas.toLowerCase().includes(q))
-    );
-  }
-
-  if (filtered.length === 0) {
+  if (!studentsList || studentsList.length === 0) {
     return `
-      <tr>
+      <tr id="halaqoh-table-empty">
         <td colspan="${isHalaqohCompactTable ? 3 : 8}" class="py-12 text-center text-slate-400">
           <div class="flex flex-col items-center justify-center">
             <i data-lucide="user-x" class="w-8 h-8 text-slate-300 mb-2"></i>
-            <p class="font-medium text-sm">Tidak ada siswa yang ditemukan</p>
-            ${studentsList.length === 0 ? `<p class="text-xs text-slate-400 mt-1">Gunakan tombol <strong>Kelola Siswa</strong> untuk menambahkan siswa ke halaqoh ini.</p>` : ''}
+            <p class="font-medium text-sm">Belum ada siswa di halaqoh ini</p>
+            <p class="text-xs text-slate-400 mt-1">Gunakan tombol <strong>Kelola Siswa</strong> untuk menambahkan siswa ke halaqoh ini.</p>
           </div>
         </td>
       </tr>
@@ -443,14 +447,29 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
   }
 
   // Urutkan siswa berdasarkan nama
-  filtered.sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = [...studentsList].sort((a, b) => a.name.localeCompare(b.name));
+  const query = (halaqohSearchQuery || '').toLowerCase().trim();
+  let visibleCount = 0;
 
-  return filtered.map((st, idx) => {
+  const rowsHtml = sorted.map((st, idx) => {
+    const nameLower = (st.name || '').toLowerCase();
+    const nisLower = (st.nis || '').toLowerCase();
+    const kelasLower = (st.kelas || st.grade || '').toLowerCase();
+    const isVisible = !query || nameLower.includes(query) || nisLower.includes(query) || kelasLower.includes(query);
+    if (isVisible) visibleCount++;
+
+    const rowNumber = isVisible ? visibleCount : idx + 1;
+    const displayStyle = isVisible ? '' : 'style="display: none;"';
+
     // Mode Perkecil Tabel (Khusus Mobile / Input Cepat: No, Nama, Laporan Vertikal)
     if (isHalaqohCompactTable) {
       return `
-        <tr class="hover:bg-slate-50/70 transition">
-          <td class="px-2.5 py-3 text-center text-xs font-semibold text-slate-400 w-10">${idx + 1}</td>
+        <tr class="halaqoh-student-row hover:bg-slate-50/70 transition"
+            data-name="${nameLower}"
+            data-nis="${nisLower}"
+            data-kelas="${kelasLower}"
+            ${displayStyle}>
+          <td class="halaqoh-row-number px-2.5 py-3 text-center text-xs font-semibold text-slate-400 w-10">${rowNumber}</td>
           <td class="px-3 py-3 font-bold text-slate-800">
             <div class="flex items-center gap-1.5">
               <span>${st.name}</span>
@@ -468,11 +487,11 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
                 <span>Bacaan</span>
               </button>
               <button onclick="showHalaqohHafalanModal('${st.__backendId}')" class="w-full inline-flex items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200/80 font-bold px-2 py-1.5 rounded-lg text-[11px] transition shadow-xs" title="Input Laporan Hafalan (${st.name})">
-                <i data-lucide="bookmark" class="w-3 h-3"></i>
+                <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
                 <span>Hafalan</span>
               </button>
               <button onclick="showHalaqohHistoryModal('${st.__backendId}')" class="w-full inline-flex items-center justify-center gap-1 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-700 border border-sky-200/80 font-bold px-2 py-1.5 rounded-lg text-[11px] transition shadow-xs" title="Preview Riwayat Laporan (${st.name})">
-                <i data-lucide="history" class="w-3 h-3"></i>
+                <i data-lucide="history" class="w-3.5 h-3.5"></i>
                 <span>Riwayat</span>
               </button>
             </div>
@@ -498,8 +517,12 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
     `;
 
     return `
-      <tr class="hover:bg-slate-50/70 transition">
-        <td class="px-4 py-3.5 text-center text-xs font-semibold text-slate-400">${idx + 1}</td>
+      <tr class="halaqoh-student-row hover:bg-slate-50/70 transition"
+          data-name="${nameLower}"
+          data-nis="${nisLower}"
+          data-kelas="${kelasLower}"
+          ${displayStyle}>
+        <td class="halaqoh-row-number px-4 py-3.5 text-center text-xs font-semibold text-slate-400">${rowNumber}</td>
         <td class="px-5 py-3.5 font-bold text-slate-800">
           <div class="flex items-center gap-2">
             <span>${st.name}</span>
@@ -544,6 +567,21 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
       </tr>
     `;
   }).join('');
+
+  const noResultsClass = (query && visibleCount === 0) ? '' : 'hidden';
+  const noResultsRow = `
+    <tr id="halaqoh-table-no-results" class="${noResultsClass}">
+      <td colspan="${isHalaqohCompactTable ? 3 : 8}" class="py-12 text-center text-slate-400">
+        <div class="flex flex-col items-center justify-center">
+          <i data-lucide="search-x" class="w-8 h-8 text-slate-300 mb-2"></i>
+          <p class="font-medium text-sm">Tidak ada siswa yang cocok dengan pencarian</p>
+          <p class="text-xs text-slate-400 mt-1">Coba gunakan kata kunci pencarian yang lain.</p>
+        </div>
+      </td>
+    </tr>
+  `;
+
+  return rowsHtml + noResultsRow;
 }
 
 // ============ METRICS COMPUTATION ============
@@ -710,6 +748,7 @@ function getHalaqohPeriodShortLabel(period) {
 function selectHalaqoh(id) {
   if (selectedHalaqohId === id) return;
   selectedHalaqohId = id;
+  halaqohSearchQuery = '';
   renderHalaqohContent({ animateSwitch: true });
 }
 
@@ -723,9 +762,53 @@ function setHalaqohDate(d) {
   renderHalaqohContent({ animateSwitch: false });
 }
 
-function handleHalaqohSearch(q) {
-  halaqohSearchQuery = q;
-  renderHalaqohContent({ animateSwitch: false });
+function handleHalaqohSearch(val) {
+  halaqohSearchQuery = val;
+  const clearBtn = document.getElementById('clear-halaqoh-search-btn');
+  if (clearBtn) {
+    if (val && val.trim().length > 0) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
+
+  const query = (val || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#halaqoh-student-table-body tr.halaqoh-student-row');
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const name = row.getAttribute('data-name') || '';
+    const nis = row.getAttribute('data-nis') || '';
+    const kelas = row.getAttribute('data-kelas') || '';
+
+    if (!query || name.includes(query) || nis.includes(query) || kelas.includes(query)) {
+      row.style.display = '';
+      visibleCount++;
+      const numCell = row.querySelector('.halaqoh-row-number');
+      if (numCell) numCell.textContent = visibleCount;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const noResultsRow = document.getElementById('halaqoh-table-no-results');
+  if (noResultsRow) {
+    if (visibleCount === 0 && rows.length > 0) {
+      noResultsRow.classList.remove('hidden');
+    } else {
+      noResultsRow.classList.add('hidden');
+    }
+  }
+}
+
+function clearHalaqohSearch() {
+  const input = document.getElementById('search-halaqoh-student');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  handleHalaqohSearch('');
 }
 
 function printHalaqohReport() {
