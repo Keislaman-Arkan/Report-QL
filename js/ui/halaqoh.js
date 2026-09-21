@@ -205,8 +205,10 @@ function renderHalaqohContent(options = {}) {
 
   if (window.lucide) lucide.createIcons();
 
-  // Sinkronkan filter pencarian halaqoh jika sedang aktif
-  if (halaqohListFilterQuery) {
+  const showAdminSearchToolbar = isAdmin && halaqohAdminViewScope === 'all';
+
+  // Sinkronkan filter pencarian halaqoh jika sedang aktif (hanya di mode Semua Halaqoh Admin)
+  if (showAdminSearchToolbar && halaqohListFilterQuery) {
     handleHalaqohListSearch(halaqohListFilterQuery);
   }
 
@@ -246,47 +248,51 @@ function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
     `;
   }
 
+  const showAdminSearchToolbar = isAdmin && halaqohAdminViewScope === 'all';
+
   return `
     <div class="space-y-3">
-      <!-- Toolbar: Pencarian Halaqoh & Dropdown Pilih Cepat -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-        <!-- Pencarian Nama Halaqoh / Guru -->
-        <div class="relative flex-1">
-          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-          <input type="text" 
-                 id="search-halaqoh-list" 
-                 placeholder="Cari nama halaqoh atau guru pengampu..." 
-                 value="${halaqohListFilterQuery}" 
-                 oninput="handleHalaqohListSearch(this.value)" 
-                 class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition bg-slate-50/60 focus:bg-white">
-          <button id="clear-hlq-list-search-btn" 
-                  type="button" 
-                  onclick="clearHalaqohListSearch()" 
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition ${halaqohListFilterQuery ? '' : 'hidden'}" 
-                  title="Hapus pencarian halaqoh">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
+      ${showAdminSearchToolbar ? `
+        <!-- Toolbar: Pencarian Halaqoh & Dropdown Pilih Cepat (Khusus Mode Semua Halaqoh Admin) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <!-- Pencarian Nama Halaqoh / Guru -->
+          <div class="relative flex-1">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            <input type="text" 
+                   id="search-halaqoh-list" 
+                   placeholder="Cari nama halaqoh atau guru pengampu..." 
+                   value="${halaqohListFilterQuery}" 
+                   oninput="handleHalaqohListSearch(this.value)" 
+                   class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition bg-slate-50/60 focus:bg-white">
+            <button id="clear-hlq-list-search-btn" 
+                    type="button" 
+                    onclick="clearHalaqohListSearch()" 
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition ${halaqohListFilterQuery ? '' : 'hidden'}" 
+                    title="Hapus pencarian halaqoh">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
 
-        <!-- Dropdown Pilih Cepat Halaqoh -->
-        <div class="sm:w-80 shrink-0">
-          <div class="relative">
-            <select id="select-active-halaqoh" 
-                    onchange="selectHalaqoh(this.value)" 
-                    class="w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none transition cursor-pointer appearance-none shadow-xs">
-              ${myHalaqohList.map(h => `
-                <option value="${h.id}" ${h.id === selectedHalaqohId ? 'selected' : ''}>
-                  ${h.name} (${h.teacher_name || 'Guru'} &bull; ${(h.student_ids || []).length} Siswa)
-                </option>
-              `).join('')}
-            </select>
-            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <!-- Dropdown Pilih Cepat Halaqoh -->
+          <div class="sm:w-80 shrink-0">
+            <div class="relative">
+              <select id="select-active-halaqoh" 
+                      onchange="selectHalaqoh(this.value)" 
+                      class="w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none transition cursor-pointer appearance-none shadow-xs">
+                ${myHalaqohList.map(h => `
+                  <option value="${h.id}" ${h.id === selectedHalaqohId ? 'selected' : ''}>
+                    ${h.name} (${h.teacher_name || 'Guru'} &bull; ${(h.student_ids || []).length} Siswa)
+                  </option>
+                `).join('')}
+              </select>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
           </div>
         </div>
-      </div>
+      ` : ''}
 
-      <!-- Container Pills Halaqoh (Wrapping + Vertical Scroll, Tidak Terpotong di Desktop) -->
-      <div id="halaqoh-pills-container" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1 py-1">
+      <!-- Container Pills Halaqoh (Wrapping, Tidak Terpotong di Desktop) -->
+      <div id="halaqoh-pills-container" class="flex flex-wrap gap-2 ${showAdminSearchToolbar ? 'max-h-48 overflow-y-auto' : ''} pr-1 py-1">
         ${myHalaqohList.map(h => {
           const isSelected = h.id === selectedHalaqohId;
           const studentCount = (h.student_ids || []).length;
@@ -309,9 +315,11 @@ function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
             </button>
           `;
         }).join('')}
-        <div id="hlq-list-no-results" class="w-full py-4 text-center text-xs text-slate-400 hidden">
-          Tidak ada halaqoh yang cocok dengan kata kunci pencarian.
-        </div>
+        ${showAdminSearchToolbar ? `
+          <div id="hlq-list-no-results" class="w-full py-4 text-center text-xs text-slate-400 hidden">
+            Tidak ada halaqoh yang cocok dengan kata kunci pencarian.
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
