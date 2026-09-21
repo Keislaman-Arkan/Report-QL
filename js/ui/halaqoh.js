@@ -354,9 +354,9 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
 
   return `
     <!-- Kartu Ringkasan Informasi Halaqoh -->
-    <div class="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden no-print">
+    <div class="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden no-print">
       <div class="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6 relative z-10">
         <div>
           <div class="flex items-center gap-2 flex-wrap mb-1">
             <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/20">
@@ -374,28 +374,32 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
           ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${activeHalaqoh.notes}</p>` : ''}
         </div>
 
-        <div class="flex items-center gap-3 flex-wrap w-full md:w-auto">
-          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[85px]">
-            <div class="text-xl sm:text-2xl font-black">${halaqohStudents.length}</div>
-            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Total Siswa</div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <!-- 3 Kotak Statistik (Selalu Berjejer ke Samping di Mobile) -->
+          <div class="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2.5">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-2 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl text-center sm:min-w-[85px] flex flex-col justify-center">
+              <div class="text-lg sm:text-2xl font-black leading-none">${halaqohStudents.length}</div>
+              <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-emerald-200 font-semibold mt-1 leading-tight">Total Siswa</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-2 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl text-center sm:min-w-[90px] flex flex-col justify-center">
+              <div class="text-lg sm:text-2xl font-black text-emerald-300 leading-none">${tuntasBacaanPct}%</div>
+              <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-emerald-200 font-semibold mt-1 leading-tight">Tuntas Bacaan</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-2 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl text-center sm:min-w-[90px] flex flex-col justify-center">
+              <div class="text-lg sm:text-2xl font-black text-amber-300 leading-none">${tuntasHafalanPct}%</div>
+              <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-emerald-200 font-semibold mt-1 leading-tight">Tuntas Hafalan</div>
+            </div>
           </div>
-          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[90px]">
-            <div class="text-xl sm:text-2xl font-black text-emerald-300">${tuntasBacaanPct}%</div>
-            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Tuntas Bacaan</div>
-          </div>
-          <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-center min-w-[90px]">
-            <div class="text-xl sm:text-2xl font-black text-amber-300">${tuntasHafalanPct}%</div>
-            <div class="text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Tuntas Hafalan</div>
-          </div>
+
           ${isAdmin ? `
-            <div class="flex items-center gap-2">
-              <button onclick="showManageHalaqohStudents('${activeHalaqoh.id}')" class="bg-white text-emerald-800 hover:bg-emerald-50 px-4 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-1.5" title="Masukkan / kurangi murid">
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="showManageHalaqohStudents('${activeHalaqoh.id}')" class="bg-white text-emerald-800 hover:bg-emerald-50 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center gap-1.5 flex-1 sm:flex-initial" title="Masukkan / kurangi murid">
                 <i data-lucide="user-plus" class="w-4 h-4 text-emerald-600"></i> Kelola Siswa
               </button>
-              <button onclick="showEditHalaqohModal('${activeHalaqoh.id}')" class="p-3 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition" title="Edit Halaqoh">
+              <button onclick="showEditHalaqohModal('${activeHalaqoh.id}')" class="p-2 sm:p-2.5 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition flex items-center justify-center" title="Edit Halaqoh">
                 <i data-lucide="edit-3" class="w-4 h-4"></i>
               </button>
-              <button onclick="confirmDeleteHalaqoh('${activeHalaqoh.id}')" class="p-3 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl transition" title="Hapus Halaqoh">
+              <button onclick="confirmDeleteHalaqoh('${activeHalaqoh.id}')" class="p-2 sm:p-2.5 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl transition flex items-center justify-center" title="Hapus Halaqoh">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
               </button>
             </div>
