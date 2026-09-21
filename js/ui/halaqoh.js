@@ -4,6 +4,7 @@ let selectedHalaqohId = null;
 let halaqohPeriodFilter = 'all'; // 'all' | 'today' | 'week' | 'month'
 let halaqohDateInput = today();
 let halaqohSearchQuery = '';
+let halaqohListFilterQuery = '';
 let halaqohAdminViewScope = 'all'; // 'all' | 'mine' untuk admin
 let isHalaqohCompactTable = localStorage.getItem('ikasi_hlq_compact') === 'true';
 
@@ -106,6 +107,7 @@ function setHalaqohAdminScope(scope) {
   halaqohAdminViewScope = scope;
   selectedHalaqohId = null;
   halaqohSearchQuery = '';
+  halaqohListFilterQuery = '';
   renderHalaqohContent({ animateSwitch: true });
 }
 
@@ -202,6 +204,22 @@ function renderHalaqohContent(options = {}) {
   }
 
   if (window.lucide) lucide.createIcons();
+
+  // Sinkronkan filter pencarian halaqoh jika sedang aktif
+  if (halaqohListFilterQuery) {
+    handleHalaqohListSearch(halaqohListFilterQuery);
+  }
+
+  // Scroll active pill into view
+  if (selectedHalaqohId) {
+    const activePill = document.querySelector(`#halaqoh-pills-container button[data-hlq-id="${selectedHalaqohId}"]`);
+    if (activePill) {
+      try {
+        activePill.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      } catch (e) {}
+    }
+  }
+
   if (halaqohSearchQuery) {
     handleHalaqohSearch(halaqohSearchQuery);
   }
@@ -229,24 +247,72 @@ function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
   }
 
   return `
-    <div class="flex gap-2 overflow-x-auto pb-1 hide-scroll">
-      ${myHalaqohList.map(h => {
-        const isSelected = h.id === selectedHalaqohId;
-        const studentCount = (h.student_ids || []).length;
-        return `
-          <button onclick="selectHalaqoh('${h.id}')" class="halaqoh-tab-btn shrink-0 text-left px-4 py-3 rounded-xl border flex items-center gap-3 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'}">
-              ${(h.name || 'H').charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div class="font-bold text-sm leading-tight truncate max-w-[180px]">${h.name}</div>
-              <div class="text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-500'} mt-0.5">
-                ${h.teacher_name || 'Guru'} &bull; ${studentCount} Siswa
-              </div>
-            </div>
+    <div class="space-y-3">
+      <!-- Toolbar: Pencarian Halaqoh & Dropdown Pilih Cepat -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+        <!-- Pencarian Nama Halaqoh / Guru -->
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input type="text" 
+                 id="search-halaqoh-list" 
+                 placeholder="Cari nama halaqoh atau guru pengampu..." 
+                 value="${halaqohListFilterQuery}" 
+                 oninput="handleHalaqohListSearch(this.value)" 
+                 class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition bg-slate-50/60 focus:bg-white">
+          <button id="clear-hlq-list-search-btn" 
+                  type="button" 
+                  onclick="clearHalaqohListSearch()" 
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition ${halaqohListFilterQuery ? '' : 'hidden'}" 
+                  title="Hapus pencarian halaqoh">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
-        `;
-      }).join('')}
+        </div>
+
+        <!-- Dropdown Pilih Cepat Halaqoh -->
+        <div class="sm:w-80 shrink-0">
+          <div class="relative">
+            <select id="select-active-halaqoh" 
+                    onchange="selectHalaqoh(this.value)" 
+                    class="w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none transition cursor-pointer appearance-none shadow-xs">
+              ${myHalaqohList.map(h => `
+                <option value="${h.id}" ${h.id === selectedHalaqohId ? 'selected' : ''}>
+                  ${h.name} (${h.teacher_name || 'Guru'} &bull; ${(h.student_ids || []).length} Siswa)
+                </option>
+              `).join('')}
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container Pills Halaqoh (Wrapping + Vertical Scroll, Tidak Terpotong di Desktop) -->
+      <div id="halaqoh-pills-container" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1 py-1">
+        ${myHalaqohList.map(h => {
+          const isSelected = h.id === selectedHalaqohId;
+          const studentCount = (h.student_ids || []).length;
+          return `
+            <button type="button" 
+                    onclick="selectHalaqoh('${h.id}')" 
+                    data-hlq-id="${h.id}"
+                    data-hlq-name="${(h.name || '').toLowerCase()}" 
+                    data-hlq-teacher="${(h.teacher_name || '').toLowerCase()}" 
+                    class="hlq-pill-item text-left px-3 py-2 rounded-xl border text-xs transition flex items-center gap-2.5 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm font-bold' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 font-medium'}">
+              <span class="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'}">
+                ${(h.name || 'H').charAt(0).toUpperCase()}
+              </span>
+              <div class="flex flex-col min-w-0">
+                <div class="truncate max-w-[170px] leading-tight">${h.name}</div>
+                <div class="text-[10px] ${isSelected ? 'text-emerald-100' : 'text-slate-400'} leading-tight mt-0.5 truncate max-w-[170px]">
+                  ${h.teacher_name || 'Guru'} &bull; ${studentCount} Siswa
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('')}
+        <div id="hlq-list-no-results" class="w-full py-4 text-center text-xs text-slate-400 hidden">
+          Tidak ada halaqoh yang cocok dengan kata kunci pencarian.
+        </div>
+      </div>
     </div>
   `;
 }
@@ -745,6 +811,65 @@ function getHalaqohPeriodShortLabel(period) {
 }
 
 // ============ ACTIONS & STATE SETTERS ============
+function handleHalaqohListSearch(val) {
+  halaqohListFilterQuery = val;
+  const clearBtn = document.getElementById('clear-hlq-list-search-btn');
+  if (clearBtn) {
+    if (val && val.trim().length > 0) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
+
+  const query = (val || '').toLowerCase().trim();
+  const pills = document.querySelectorAll('#halaqoh-pills-container button.hlq-pill-item');
+  let visibleCount = 0;
+
+  pills.forEach(pill => {
+    const name = pill.getAttribute('data-hlq-name') || '';
+    const teacher = pill.getAttribute('data-hlq-teacher') || '';
+
+    if (!query || name.includes(query) || teacher.includes(query)) {
+      pill.style.display = '';
+      visibleCount++;
+    } else {
+      pill.style.display = 'none';
+    }
+  });
+
+  const noResultsEl = document.getElementById('hlq-list-no-results');
+  if (noResultsEl) {
+    if (visibleCount === 0 && pills.length > 0) {
+      noResultsEl.classList.remove('hidden');
+    } else {
+      noResultsEl.classList.add('hidden');
+    }
+  }
+
+  // Sinkronkan dropdown pilihan
+  const selectDropdown = document.getElementById('select-active-halaqoh');
+  if (selectDropdown) {
+    Array.from(selectDropdown.options).forEach(opt => {
+      const txt = opt.textContent.toLowerCase();
+      if (!query || txt.includes(query)) {
+        opt.hidden = false;
+      } else {
+        opt.hidden = true;
+      }
+    });
+  }
+}
+
+function clearHalaqohListSearch() {
+  const input = document.getElementById('search-halaqoh-list');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  handleHalaqohListSearch('');
+}
+
 function selectHalaqoh(id) {
   if (selectedHalaqohId === id) return;
   selectedHalaqohId = id;
