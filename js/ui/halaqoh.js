@@ -418,7 +418,7 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
                 <i data-lucide="user-plus" class="w-4 h-4 text-emerald-600"></i> Kelola Siswa
               </button>
               <button onclick="showEditHalaqohModal('${activeHalaqoh.id}')" class="p-2 sm:p-2.5 bg-white/20 hover:bg-white/30 text-white rounded-2xl transition flex items-center justify-center" title="Edit Halaqoh">
-                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                <i data-lucide="edit" class="w-4 h-4"></i>
               </button>
               <button onclick="confirmDeleteHalaqoh('${activeHalaqoh.id}')" class="p-2 sm:p-2.5 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl transition flex items-center justify-center" title="Hapus Halaqoh">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -1122,11 +1122,13 @@ function showHalaqohFormModal(editId) {
       </div>
 
       <div class="flex gap-3 mt-8">
-        <button onclick="closeHalaqohModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-2xl text-sm transition">
-          Batal
+        <button onclick="closeHalaqohModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-2xl text-sm transition flex items-center justify-center gap-2">
+          <i data-lucide="x" class="w-4 h-4"></i>
+          <span>Batal</span>
         </button>
-        <button onclick="saveHalaqohForm('${editId || ''}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-2xl text-sm shadow-md shadow-emerald-200 transition">
-          ${editData ? 'Perbarui Halaqoh' : 'Simpan Halaqoh'}
+        <button onclick="saveHalaqohForm('${editId || ''}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-2xl text-sm shadow-md shadow-emerald-200 transition flex items-center justify-center gap-2">
+          <i data-lucide="${editData ? 'edit' : 'plus-circle'}" class="w-4 h-4"></i>
+          <span>${editData ? 'Perbarui Halaqoh' : 'Simpan Halaqoh'}</span>
         </button>
       </div>
     </div>
