@@ -433,12 +433,6 @@ function renderStudentDashboard(el) {
               </p>
             </div>
           </div>
-
-          <!-- Quick direct button for latest hafalan -->
-          <button type="button" onclick="openQuranViewer({ surah: '${latestHafalanSurat.replace(/'/g, "\\'")}', fromAyah: ${latestHafalanFrom}, toAyah: ${latestHafalanTo}, studentName: '${student.name.replace(/'/g, "\\'")}', reportType: 'hafalan' })" class="shrink-0 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border border-purple-200 shadow-xs">
-            <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-600"></i>
-            <span>Langsung Buka Hafalan (${latestHafalanSurat})</span>
-          </button>
         </div>
 
         <!-- Form Pemilihan Surat & Ayat -->
