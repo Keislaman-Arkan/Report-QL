@@ -50,7 +50,7 @@ function renderHalaqoh(el, options = {}) {
       </div>
       <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
         <div id="halaqoh-print-btn-slot"></div>
-        ${isAdmin ? `
+        ${(isAdmin || currentUser.role === 'guru') ? `
           <button onclick="showCreateHalaqohModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition flex items-center justify-center gap-2 flex-1 md:flex-none">
             <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Halaqoh Baru
           </button>
@@ -245,9 +245,16 @@ function renderHalaqohTabButtons(myHalaqohList, isAdmin) {
         </p>
         <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
           ${!isAdmin 
-            ? 'Silakan hubungi Administrator untuk mendaftarkan Anda sebagai guru pengampu halaqoh.' 
+            ? 'Silakan klik tombol <strong>+ Buat Halaqoh Baru</strong> untuk membuat kelompok halaqoh Anda sendiri.' 
             : (halaqohAdminViewScope === 'mine' ? 'Klik tombol <strong>Semua Halaqoh</strong> di atas untuk melihat seluruh kelompok, atau buat halaqoh baru.' : 'Klik tombol <strong>+ Buat Halaqoh Baru</strong> di atas untuk membuat halaqoh pertama.')}
         </p>
+        ${(isAdmin || currentUser.role === 'guru') ? `
+          <div class="mt-3">
+            <button onclick="showCreateHalaqohModal()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Halaqoh Baru
+            </button>
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -343,14 +350,28 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
         </h3>
         <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
           ${!isAdmin 
-            ? 'Nama Anda saat ini belum tercatat sebagai guru pengampu di kelompok halaqoh mana pun. Silakan hubungi admin untuk mendaftarkan nama Anda sebagai pengampu.' 
+            ? 'Anda belum memiliki kelompok halaqoh. Silakan klik tombol di bawah untuk membuat kelompok halaqoh baru Anda sendiri.' 
             : (halaqohAdminViewScope === 'mine' 
               ? 'Anda saat ini belum mengampu kelompok halaqoh secara langsung. Klik tombol "Semua Halaqoh" di atas untuk melihat seluruh kelompok.' 
               : 'Silakan klik salah satu kelompok halaqoh pada daftar di atas untuk melihat detail siswa, capaian bacaan/hafalan, dan mencetak laporan.')}
         </p>
+        ${(isAdmin || currentUser.role === 'guru') ? `
+          <div class="mt-4">
+            <button onclick="showCreateHalaqohModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md transition">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Halaqoh Baru
+            </button>
+          </div>
+        ` : ''}
       </div>
     `;
   }
+
+  const isMyHalaqoh = activeHalaqoh && (
+    activeHalaqoh.teacher_id === currentUser.id || 
+    (activeHalaqoh.teacher_name && currentUser.name && activeHalaqoh.teacher_name.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (currentUser.role === 'admin' && activeHalaqoh.teacher_name && (activeHalaqoh.teacher_name.toLowerCase() === 'admin' || activeHalaqoh.teacher_name.toLowerCase() === currentUser.name.toLowerCase()))
+  );
+  const canManageActiveHalaqoh = isAdmin || isMyHalaqoh;
 
   return `
     <!-- Kartu Ringkasan Informasi Halaqoh -->
@@ -391,7 +412,7 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
             </div>
           </div>
 
-          ${isAdmin ? `
+          ${canManageActiveHalaqoh ? `
             <div class="flex items-center gap-2 shrink-0">
               <button onclick="showManageHalaqohStudents('${activeHalaqoh.id}')" class="bg-white text-emerald-800 hover:bg-emerald-50 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center gap-1.5 flex-1 sm:flex-initial" title="Masukkan / kurangi murid">
                 <i data-lucide="user-plus" class="w-4 h-4 text-emerald-600"></i> Kelola Siswa
@@ -526,6 +547,11 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
             <i data-lucide="user-x" class="w-8 h-8 text-slate-300 mb-2"></i>
             <p class="font-medium text-sm">Belum ada siswa di halaqoh ini</p>
             <p class="text-xs text-slate-400 mt-1">Gunakan tombol <strong>Kelola Siswa</strong> untuk menambahkan siswa ke halaqoh ini.</p>
+            ${selectedHalaqohId ? `
+              <button onclick="showManageHalaqohStudents('${selectedHalaqohId}')" class="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Kelola Siswa
+              </button>
+            ` : ''}
           </div>
         </td>
       </tr>
@@ -977,6 +1003,18 @@ function showCreateHalaqohModal() {
 }
 
 function showEditHalaqohModal(id) {
+  const isAdmin = currentUser.role === 'admin';
+  if (!isAdmin) {
+    const halaqohList = getHalaqohList();
+    const halaqoh = halaqohList.find(h => h.id === id);
+    if (!halaqoh) return;
+    const isOwner = halaqoh.teacher_id === currentUser.id ||
+      (halaqoh.teacher_name && currentUser.name && halaqoh.teacher_name.toLowerCase() === currentUser.name.toLowerCase());
+    if (!isOwner) {
+      showToast('Anda hanya dapat mengubah halaqoh milik Anda sendiri', 'error');
+      return;
+    }
+  }
   showHalaqohFormModal(id);
 }
 
@@ -984,9 +1022,21 @@ function showHalaqohFormModal(editId) {
   const container = document.getElementById('halaqoh-modal-container');
   if (!container) return;
 
+  const isAdmin = currentUser.role === 'admin';
   const halaqohList = getHalaqohList();
   const editData = editId ? halaqohList.find(h => h.id === editId) : null;
   const allTeachers = getAllTeacherProfiles();
+
+  if (editId && !isAdmin) {
+    const isOwner = editData && (
+      editData.teacher_id === currentUser.id ||
+      (editData.teacher_name && currentUser.name && editData.teacher_name.toLowerCase() === currentUser.name.toLowerCase())
+    );
+    if (!isOwner) {
+      showToast('Anda hanya dapat mengubah halaqoh milik Anda sendiri', 'error');
+      return;
+    }
+  }
 
   container.innerHTML = `
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
@@ -998,7 +1048,7 @@ function showHalaqohFormModal(editId) {
           </div>
           <div>
             <h3 class="font-bold text-lg text-slate-800">${editData ? 'Edit Halaqoh' : 'Buat Halaqoh Baru'}</h3>
-            <p class="text-xs text-slate-500">Atur kelompok belajar Al-Qur'an dan guru pengampu</p>
+            <p class="text-xs text-slate-500">${isAdmin ? 'Atur kelompok belajar Al-Qur\'an dan guru pengampu' : 'Atur nama kelompok dan tingkat halaqoh Anda'}</p>
           </div>
         </div>
         <button onclick="closeHalaqohModal()" class="text-slate-400 hover:text-slate-600 p-1">
@@ -1028,19 +1078,32 @@ function showHalaqohFormModal(editId) {
 
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Guru Pengampu <span class="text-red-500">*</span></label>
-            <select id="form-hlq-teacher" onchange="checkSelectedTeacherQuota(this.value, '${editId || ''}')" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-              <option value="">-- Pilih Guru / Pengampu --</option>
-              ${allTeachers.map(t => {
-                const count = getTeacherHalaqohCount(t.__backendId || t.name, editId);
-                const isSelected = editData && (editData.teacher_id === t.__backendId || editData.teacher_name === t.name);
-                const roleTag = (t.role === 'admin' || t.name === 'Admin') ? ' [Admin]' : '';
-                return `
-                  <option value="${t.__backendId || t.name}" data-name="${t.name}" data-count="${count}" ${isSelected ? 'selected' : ''}>
-                    ${t.name}${roleTag} (${count}/3 Halaqoh)
-                  </option>
-                `;
-              }).join('')}
-            </select>
+            ${isAdmin ? `
+              <select id="form-hlq-teacher" onchange="checkSelectedTeacherQuota(this.value, '${editId || ''}')" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                <option value="">-- Pilih Guru / Pengampu --</option>
+                ${allTeachers.map(t => {
+                  const count = getTeacherHalaqohCount(t.__backendId || t.name, editId);
+                  const isSelected = editData && (editData.teacher_id === t.__backendId || editData.teacher_name === t.name);
+                  const roleTag = (t.role === 'admin' || t.name === 'Admin') ? ' [Admin]' : '';
+                  return `
+                    <option value="${t.__backendId || t.name}" data-name="${t.name}" data-count="${count}" ${isSelected ? 'selected' : ''}>
+                      ${t.name}${roleTag} (${count}/3 Halaqoh)
+                    </option>
+                  `;
+                }).join('')}
+              </select>
+            ` : `
+              <div class="flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-sm text-slate-800">
+                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <i data-lucide="user-check" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                  <span class="font-bold text-slate-800 truncate block">${currentUser.name}</span>
+                  <span class="text-[10px] text-emerald-600 font-medium block">Pengampu Otomatis (Akun Anda)</span>
+                </div>
+              </div>
+              <input type="hidden" id="form-hlq-teacher" value="${currentUser.id || currentUser.name}" data-name="${currentUser.name}">
+            `}
           </div>
         </div>
 
@@ -1048,7 +1111,7 @@ function showHalaqohFormModal(editId) {
         <div id="teacher-quota-warning" class="hidden p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-start gap-2">
           <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
           <div>
-            <strong>Perhatian:</strong> Guru ini sudah memegang 3 halaqoh (batas maksimal rekomendasi per guru).
+            <strong>Perhatian:</strong> ${isAdmin ? 'Guru ini sudah memegang 3 halaqoh (batas maksimal rekomendasi per guru).' : 'Anda sudah memegang 3 halaqoh (batas maksimal rekomendasi per guru).'}
           </div>
         </div>
 
@@ -1072,7 +1135,7 @@ function showHalaqohFormModal(editId) {
 
   if (window.lucide) lucide.createIcons();
 
-  // Cek kuota awal jika edit
+  // Cek kuota awal jika edit atau buat halaqoh
   const selTeacher = document.getElementById('form-hlq-teacher');
   if (selTeacher && selTeacher.value) {
     checkSelectedTeacherQuota(selTeacher.value, editId || '');
@@ -1093,11 +1156,29 @@ function checkSelectedTeacherQuota(teacherId, excludeId) {
 async function saveHalaqohForm(editId) {
   const name = document.getElementById('form-hlq-name').value.trim();
   const grade = document.getElementById('form-hlq-grade').value;
-  const teacherSelect = document.getElementById('form-hlq-teacher');
-  const teacherVal = teacherSelect.value;
-  const selectedOption = teacherSelect.options[teacherSelect.selectedIndex];
-  const teacherName = selectedOption ? (selectedOption.getAttribute('data-name') || selectedOption.text.split('(')[0].trim()) : '';
+  const teacherInput = document.getElementById('form-hlq-teacher');
   const notes = document.getElementById('form-hlq-notes').value.trim();
+  const isAdmin = currentUser.role === 'admin';
+
+  let teacherVal = '';
+  let teacherName = '';
+
+  if (teacherInput) {
+    if (teacherInput.tagName === 'SELECT') {
+      teacherVal = teacherInput.value;
+      const selectedOption = teacherInput.options[teacherInput.selectedIndex];
+      teacherName = selectedOption ? (selectedOption.getAttribute('data-name') || selectedOption.text.split('(')[0].trim()) : '';
+    } else {
+      teacherVal = teacherInput.value;
+      teacherName = teacherInput.getAttribute('data-name') || currentUser.name;
+    }
+  }
+
+  // Fallback otomatis jika guru biasa
+  if (!teacherVal && !isAdmin) {
+    teacherVal = currentUser.id || currentUser.name;
+    teacherName = currentUser.name;
+  }
 
   if (!name) {
     showToast('Nama halaqoh wajib diisi', 'error');
@@ -1113,10 +1194,21 @@ async function saveHalaqohForm(editId) {
   if (editId) {
     const idx = halaqohList.findIndex(h => h.id === editId);
     if (idx !== -1) {
+      if (!isAdmin) {
+        const isOwner = halaqohList[idx].teacher_id === currentUser.id ||
+          (halaqohList[idx].teacher_name && currentUser.name && halaqohList[idx].teacher_name.toLowerCase() === currentUser.name.toLowerCase());
+        if (!isOwner) {
+          showToast('Anda hanya dapat mengubah halaqoh milik Anda sendiri', 'error');
+          return;
+        }
+      }
+
       halaqohList[idx].name = name;
       halaqohList[idx].grade = grade;
-      halaqohList[idx].teacher_id = teacherVal;
-      halaqohList[idx].teacher_name = teacherName;
+      if (isAdmin) {
+        halaqohList[idx].teacher_id = teacherVal;
+        halaqohList[idx].teacher_name = teacherName;
+      }
       halaqohList[idx].notes = notes;
     }
   } else {
@@ -1146,12 +1238,23 @@ async function saveHalaqohForm(editId) {
 
 // ============ HAPUS HALAQOH ============
 function confirmDeleteHalaqoh(id) {
+  const isAdmin = currentUser.role === 'admin';
+  const halaqohList = getHalaqohList();
+  const halaqoh = halaqohList.find(h => h.id === id);
+  if (!halaqoh) return;
+
+  if (!isAdmin) {
+    const isOwner = halaqoh.teacher_id === currentUser.id ||
+      (halaqoh.teacher_name && currentUser.name && halaqoh.teacher_name.toLowerCase() === currentUser.name.toLowerCase());
+    if (!isOwner) {
+      showToast('Anda hanya dapat menghapus halaqoh milik Anda sendiri', 'error');
+      return;
+    }
+  }
+
   pendingDeleteHalaqohId = id;
   const container = document.getElementById('halaqoh-modal-container');
   if (!container) return;
-
-  const halaqohList = getHalaqohList();
-  const halaqoh = halaqohList.find(h => h.id === id);
 
   container.innerHTML = `
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -1175,13 +1278,22 @@ function confirmDeleteHalaqoh(id) {
 
 async function doDeleteHalaqoh() {
   if (!pendingDeleteHalaqohId) return;
+  const isAdmin = currentUser.role === 'admin';
   let halaqohList = getHalaqohList();
   halaqohList = halaqohList.filter(h => h.id !== pendingDeleteHalaqohId);
 
   const res = await saveHalaqohList(halaqohList);
   if (res && res.isOk !== false) {
     showToast('Halaqoh berhasil dihapus', 'success');
-    selectedHalaqohId = halaqohList.length > 0 ? halaqohList[0].id : null;
+    if (isAdmin) {
+      selectedHalaqohId = halaqohList.length > 0 ? halaqohList[0].id : null;
+    } else {
+      const mineRemaining = halaqohList.filter(h => 
+        h.teacher_id === currentUser.id || 
+        (h.teacher_name && currentUser.name && h.teacher_name.toLowerCase() === currentUser.name.toLowerCase())
+      );
+      selectedHalaqohId = mineRemaining.length > 0 ? mineRemaining[0].id : null;
+    }
     closeHalaqohModal();
     renderHalaqohContent({ animateSwitch: true });
   } else {
@@ -1195,9 +1307,19 @@ function showManageHalaqohStudents(halaqohId) {
   const container = document.getElementById('halaqoh-modal-container');
   if (!container) return;
 
+  const isAdmin = currentUser.role === 'admin';
   const halaqohList = getHalaqohList();
   const halaqoh = halaqohList.find(h => h.id === halaqohId);
   if (!halaqoh) return;
+
+  if (!isAdmin) {
+    const isOwner = halaqoh.teacher_id === currentUser.id ||
+      (halaqoh.teacher_name && currentUser.name && halaqoh.teacher_name.toLowerCase() === currentUser.name.toLowerCase());
+    if (!isOwner) {
+      showToast('Anda hanya dapat mengelola siswa halaqoh milik Anda sendiri', 'error');
+      return;
+    }
+  }
 
   // Inisialisasi set siswa terpilih
   tempSelectedStudentIds = new Set(halaqoh.student_ids || []);
