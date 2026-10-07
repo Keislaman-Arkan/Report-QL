@@ -19,9 +19,10 @@ function renderReportBacaan(el) {
               <div id="dropdown-ri-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
             </div>
           </div>
+          <div id="ri-warning-container" class="hidden"></div>
           <div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Jilid</label><input id="ri-jilid" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Halaman</label><input id="ri-hal" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="ri-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="ri-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportIqro()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Iqro</button>
         </div>
@@ -41,6 +42,7 @@ function renderReportBacaan(el) {
               <div id="dropdown-rq-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
             </div>
           </div>
+          <div id="rq-warning-container" class="hidden"></div>
           <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Juz</label><select id="rq-juz" onchange="updateQuranSuratDropdown()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">Juz ${i+1}</option>`).join('')}</select></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Surat</label><select id="rq-surat" onchange="updateQuranAyatMax()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"></select></div>
@@ -54,7 +56,7 @@ function renderReportBacaan(el) {
           </button>
           <div class="grid grid-cols-2 gap-4">
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
           </div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rq-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportQuran()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Qur'an</button>
@@ -83,6 +85,7 @@ function renderReportHafalan(el) {
             <div id="dropdown-rh-student" class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto hidden"></div>
           </div>
         </div>
+        <div id="rh-warning-container" class="hidden"></div>
         <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Juz</label><select id="rh-juz" onchange="updateSuratDropdownH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">${Array.from({length:30},(_,i)=>`<option value="${i+1}">Juz ${i+1}</option>`).join('')}</select></div>
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Surat</label><select id="rh-surat" onchange="updateAyatMaxH()" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"></select></div>
@@ -96,7 +99,7 @@ function renderReportHafalan(el) {
         </button>
         <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option>Lancar</option><option>Tidak Lancar</option><option>Mengulang</option></select></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
         </div>
         <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rh-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Masukkan catatan perkembangan hafalan siswa..."></textarea></div>
         <button onclick="saveReportHafalan()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold shadow-md mt-2 transition">Simpan Laporan Hafalan</button>
@@ -122,6 +125,8 @@ async function saveReportIqro(){
   document.getElementById('ri-catatan').value='';
   const clearBtn = document.getElementById('clear-ri-student-btn');
   if (clearBtn) clearBtn.classList.add('hidden');
+  const warn = document.getElementById('ri-warning-container');
+  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
 }
 async function saveReportQuran(){
   const st=document.getElementById('rq-student').value;
@@ -134,6 +139,8 @@ async function saveReportQuran(){
   document.getElementById('rq-catatan').value='';
   const clearBtn = document.getElementById('clear-rq-student-btn');
   if (clearBtn) clearBtn.classList.add('hidden');
+  const warn = document.getElementById('rq-warning-container');
+  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
 }
 async function saveReportHafalan(){
   const st=document.getElementById('rh-student').value;
@@ -146,6 +153,8 @@ async function saveReportHafalan(){
   document.getElementById('rh-catatan').value='';
   const clearBtn = document.getElementById('clear-rh-student-btn');
   if (clearBtn) clearBtn.classList.add('hidden');
+  const warn = document.getElementById('rh-warning-container');
+  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
 }
 
 let reportSearchQuery = "";
@@ -445,14 +454,18 @@ function renderReports(el) {
               let detail = r.report_type==='iqro'
                 ? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` 
                 : `<span class="inline-flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 hover:underline font-medium" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" title="Klik untuk membuka teks ayat"><i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400 hover:text-emerald-600 no-print"></i> Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})</span>`;
-              const color = r.status==='Lancar'?'bg-emerald-100 text-emerald-700':r.status==='Mengulang'?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700';
+              const isLancar = r.status === 'Lancar';
+              const displayStatus = (r.status === 'Tidak Lancar' || r.status === 'Mengulang' || r.status === 'Belum Lancar') ? 'Belum Lancar' : (r.status || 'Lancar');
+              const color = isLancar 
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                : 'bg-amber-100 text-amber-800 border border-amber-200';
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
                 <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>
                 <td class="px-5 py-3 font-semibold text-slate-800 report-student-name-cell">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
                 <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
-                <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${r.status}</span></td>
+                <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${displayStatus}</span></td>
                 <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate cursor-pointer hover:text-slate-900 transition-all duration-200" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas/menciutkan">${r.catatan||'-'}</td>
                 <td class="px-5 py-3">${getPerkembangan(r, getReports())}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>

@@ -23,10 +23,9 @@ function renderStatistics(el) {
   const map = getGradeKelasMap();
   
   const lancar = latestReports.filter(r=>r.status==='Lancar').length;
-  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
-  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const belumLancar = latestReports.filter(r=>r.status!=='Lancar').length;
   const total = latestReports.length || 1;
-  const maxVal = Math.max(lancar, mengulang, tidakLancar, 1);
+  const maxVal = Math.max(lancar, belumLancar, 1);
   
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto">
@@ -51,8 +50,7 @@ function renderStatistics(el) {
         <h3 class="font-bold text-slate-700 mb-4">Status Kelancaran (Berdasarkan Update Terakhir)</h3>
         <div class="space-y-4">
           <div><div class="flex justify-between text-sm mb-1"><span class="text-emerald-600 font-bold">Lancar</span><span class="font-semibold text-slate-700">${lancar} <span class="text-slate-400 font-normal">(${Math.round(lancar/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-emerald-500" style="width:${lancar/maxVal*100}%"></div></div></div>
-          <div><div class="flex justify-between text-sm mb-1"><span class="text-amber-600 font-bold">Mengulang</span><span class="font-semibold text-slate-700">${mengulang} <span class="text-slate-400 font-normal">(${Math.round(mengulang/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-amber-500" style="width:${mengulang/maxVal*100}%"></div></div></div>
-          <div><div class="flex justify-between text-sm mb-1"><span class="text-red-600 font-bold">Tidak Lancar</span><span class="font-semibold text-slate-700">${tidakLancar} <span class="text-slate-400 font-normal">(${Math.round(tidakLancar/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-red-500" style="width:${tidakLancar/maxVal*100}%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span class="text-amber-600 font-bold">Belum Lancar</span><span class="font-semibold text-slate-700">${belumLancar} <span class="text-slate-400 font-normal">(${Math.round(belumLancar/total*100)}%)</span></span></div><div class="w-full bg-slate-100 rounded-full h-3"><div class="h-3 rounded-full bg-amber-500" style="width:${belumLancar/maxVal*100}%"></div></div></div>
         </div>
       </div>
       
@@ -101,8 +99,7 @@ function exportStatsPDF() {
   const students = getStudents();
   const map = getGradeKelasMap();
   const lancar = latestReports.filter(r=>r.status==='Lancar').length;
-  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
-  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const belumLancar = latestReports.filter(r=>r.status!=='Lancar').length;
   const total = latestReports.length || 1;
   const reportCount = reports.length;
   const avg = latestReports.length > 0 ? Math.round(lancar/latestReports.length*100) : 0;
@@ -128,12 +125,11 @@ function exportStatsPDF() {
       <h1>📊 Laporan Statistik Pembelajaran Al-Qur'an</h1>
       <div class="period-label">Periode: ${getPeriodLabel()}</div>
       
-      <h2>1. Status Bacaan (Berdasarkan Update Terakhir Anak)</h2>
+      <h2>1. Status Kelancaran (Berdasarkan Update Terakhir Anak)</h2>
       <table>
         <tr><th>Status</th><th>Jumlah Anak</th><th>Persentase</th></tr>
         <tr><td>Lancar</td><td>${lancar}</td><td>${latestReports.length > 0 ? Math.round(lancar/total*100) : 0}%</td></tr>
-        <tr><td>Mengulang</td><td>${mengulang}</td><td>${latestReports.length > 0 ? Math.round(mengulang/total*100) : 0}%</td></tr>
-        <tr><td>Tidak Lancar</td><td>${tidakLancar}</td><td>${latestReports.length > 0 ? Math.round(tidakLancar/total*100) : 0}%</td></tr>
+        <tr><td>Belum Lancar</td><td>${belumLancar}</td><td>${latestReports.length > 0 ? Math.round(belumLancar/total*100) : 0}%</td></tr>
         <tr style="background-color: #ecfdf5;"><td><strong>Total Anak Disimak</strong></td><td><strong>${latestReports.length}</strong></td><td><strong>100%</strong></td></tr>
       </table>
       
@@ -192,8 +188,7 @@ function printStats() {
   const students = getStudents();
   const map = getGradeKelasMap();
   const lancar = latestReports.filter(r=>r.status==='Lancar').length;
-  const mengulang = latestReports.filter(r=>r.status==='Mengulang').length;
-  const tidakLancar = latestReports.filter(r=>r.status==='Tidak Lancar').length;
+  const belumLancar = latestReports.filter(r=>r.status!=='Lancar').length;
   const total = latestReports.length || 1;
   const reportCount = reports.length;
   const avg = latestReports.length > 0 ? Math.round(lancar/latestReports.length*100) : 0;
@@ -243,8 +238,7 @@ function printStats() {
         <table>
           <tr><th>Status</th><th>Jumlah Anak</th><th>Persentase</th></tr>
           <tr><td style="font-weight:bold; color:#059669">✓ Lancar</td><td>${lancar}</td><td>${latestReports.length > 0 ? Math.round(lancar/total*100) : 0}%</td></tr>
-          <tr><td style="font-weight:bold; color:#f59e0b">⟲ Mengulang</td><td>${mengulang}</td><td>${latestReports.length > 0 ? Math.round(mengulang/total*100) : 0}%</td></tr>
-          <tr><td style="font-weight:bold; color:#ef4444">✗ Tidak Lancar</td><td>${tidakLancar}</td><td>${latestReports.length > 0 ? Math.round(tidakLancar/total*100) : 0}%</td></tr>
+          <tr><td style="font-weight:bold; color:#f59e0b">⚠ Belum Lancar</td><td>${belumLancar}</td><td>${latestReports.length > 0 ? Math.round(belumLancar/total*100) : 0}%</td></tr>
           <tr style="background-color: #ecfdf5; font-weight: bold;"><td>Total</td><td>${total}</td><td>100%</td></tr>
         </table>
         

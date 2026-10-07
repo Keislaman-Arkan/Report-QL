@@ -508,6 +508,7 @@ function clearStudentSearch(prefix) {
   const hiddenInput = document.getElementById(`${prefix}-student`);
   const clearBtn = document.getElementById(`clear-${prefix}-student-btn`);
   const dropdown = document.getElementById(`dropdown-${prefix}-student`);
+  const warnContainer = document.getElementById(`${prefix}-warning-container`);
   
   if (searchInput) {
     searchInput.value = '';
@@ -519,6 +520,10 @@ function clearStudentSearch(prefix) {
   }
   if (clearBtn) clearBtn.classList.add('hidden');
   if (dropdown) dropdown.classList.add('hidden');
+  if (warnContainer) {
+    warnContainer.innerHTML = '';
+    warnContainer.classList.add('hidden');
+  }
 
   if (prefix === 'history') {
     if (typeof clearHistoryStudentSelection === 'function') {
@@ -583,6 +588,12 @@ function autoFillReportForm(prefix, studentId) {
   else if (prefix === 'rq') reportType = 'quran';
   else if (prefix === 'rh') reportType = 'hafalan';
 
+  const warnContainer = document.getElementById(`${prefix}-warning-container`);
+  if (warnContainer) {
+    warnContainer.innerHTML = '';
+    warnContainer.classList.add('hidden');
+  }
+
   const stReports = reports.filter(r => r.student_id === studentId && r.report_type === reportType);
   
   // Sortir untuk memastikan data terakhir diinput (berdasarkan tanggal dan created_at descending)
@@ -594,9 +605,35 @@ function autoFillReportForm(prefix, studentId) {
   
   if (stReports.length > 0) {
     const latest = stReports[0];
+    const isBelumLancar = latest && latest.status !== 'Lancar';
+
     if (prefix === 'ri') {
       document.getElementById('ri-jilid').value = latest.iqro_jilid || 1;
-      document.getElementById('ri-hal').value = (latest.iqro_halaman || 0) + 1; // Tambah 1 halaman
+      if (isBelumLancar) {
+        document.getElementById('ri-hal').value = latest.iqro_halaman || 1; // Mengulang halaman sebelumnya
+        if (warnContainer) {
+          warnContainer.innerHTML = `
+            <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+              <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1 leading-relaxed">
+                <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                  <span>Peringatan: Setoran Sebelumnya Belum Lancar!</span>
+                </div>
+                <p class="mt-0.5 text-amber-800">
+                  Pada tanggal <strong>${latest.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latest.iqro_jilid || 1} Hal ${latest.iqro_halaman || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Halaman disetel mengulang halaman ini.
+                </p>
+                ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+              </div>
+            </div>
+          `;
+          warnContainer.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+        }
+      } else {
+        document.getElementById('ri-hal').value = (latest.iqro_halaman || 0) + 1; // Tambah 1 halaman
+      }
     } else if (prefix === 'rq') {
       document.getElementById('rq-juz').value = latest.juz || 1;
       updateQuranSuratDropdown(); 
@@ -605,13 +642,38 @@ function autoFillReportForm(prefix, studentId) {
         if (suratEl && latest.surat) suratEl.value = latest.surat;
         updateQuranAyatMax();
         
-        const mx = getAyatCount(latest.juz || 1, latest.surat);
-        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
-
         const dariEl = document.getElementById('rq-ayat-dari');
         const sampaiEl = document.getElementById('rq-ayat-sampai');
-        if (dariEl) dariEl.value = nextAyat; 
-        if (sampaiEl) sampaiEl.value = nextAyat; 
+
+        if (isBelumLancar) {
+          if (dariEl) dariEl.value = latest.ayat_dari || 1;
+          if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+          if (warnContainer) {
+            warnContainer.innerHTML = `
+              <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+                <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 leading-relaxed">
+                  <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                    <span>Peringatan: Setoran Sebelumnya Belum Lancar!</span>
+                  </div>
+                  <p class="mt-0.5 text-amber-800">
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, bacaan <strong>Surat ${latest.surat || '-'} Ayat ${latest.ayat_dari || 1}-${latest.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang ayat sebelumnya.
+                  </p>
+                  ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                </div>
+              </div>
+            `;
+            warnContainer.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+          }
+        } else {
+          const mx = getAyatCount(latest.juz || 1, latest.surat);
+          const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+          if (dariEl) dariEl.value = nextAyat; 
+          if (sampaiEl) sampaiEl.value = nextAyat; 
+        }
       }, 50);
     } else if (prefix === 'rh') {
       document.getElementById('rh-juz').value = latest.juz || 30;
@@ -621,13 +683,38 @@ function autoFillReportForm(prefix, studentId) {
         if (suratEl && latest.surat) suratEl.value = latest.surat;
         updateAyatMaxH();
         
-        const mx = getAyatCount(latest.juz || 30, latest.surat);
-        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
-
         const dariEl = document.getElementById('rh-ayat-dari');
         const sampaiEl = document.getElementById('rh-ayat-sampai');
-        if (dariEl) dariEl.value = nextAyat;
-        if (sampaiEl) sampaiEl.value = nextAyat;
+
+        if (isBelumLancar) {
+          if (dariEl) dariEl.value = latest.ayat_dari || 1;
+          if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+          if (warnContainer) {
+            warnContainer.innerHTML = `
+              <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+                <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 leading-relaxed">
+                  <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                    <span>Peringatan: Setoran Hafalan Sebelumnya Belum Lancar!</span>
+                  </div>
+                  <p class="mt-0.5 text-amber-800">
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, hafalan <strong>Surat ${latest.surat || '-'} Ayat ${latest.ayat_dari || 1}-${latest.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang hafalan ini.
+                  </p>
+                  ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                </div>
+              </div>
+            `;
+            warnContainer.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+          }
+        } else {
+          const mx = getAyatCount(latest.juz || 30, latest.surat);
+          const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+          if (dariEl) dariEl.value = nextAyat;
+          if (sampaiEl) sampaiEl.value = nextAyat;
+        }
       }, 50);
     }
   } else {
