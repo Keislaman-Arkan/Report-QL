@@ -740,7 +740,8 @@ function computeStudentHalaqohProgress(student, allReports, periodFilter, custom
       ? `Iqro' Jld ${latestBacaan.iqro_jilid} Hal ${latestBacaan.iqro_halaman}`
       : `${latestBacaan.surat} Ayat ${latestBacaan.ayat_dari}-${latestBacaan.ayat_sampai}`;
     bacaanDate = latestBacaan.tanggal || '';
-    bacaanStatus = latestBacaan.status || 'Lancar';
+    const bs = latestBacaan.status || 'Lancar';
+    bacaanStatus = (bs === 'Tidak Lancar' || bs === 'Mengulang' || bs === 'Belum Lancar') ? 'Belum Lancar' : bs;
   }
 
   let hafalanText = 'Belum ada setoran';
@@ -749,7 +750,8 @@ function computeStudentHalaqohProgress(student, allReports, periodFilter, custom
   if (latestHafalan) {
     hafalanText = `${latestHafalan.surat} Ayat ${latestHafalan.ayat_dari}-${latestHafalan.ayat_sampai}`;
     hafalanDate = latestHafalan.tanggal || '';
-    hafalanStatus = latestHafalan.status || 'Lancar';
+    const hs = latestHafalan.status || 'Lancar';
+    hafalanStatus = (hs === 'Tidak Lancar' || hs === 'Mengulang' || hs === 'Belum Lancar') ? 'Belum Lancar' : hs;
   }
 
   // 3. Hitung Perkembangan Halaman & Ayat Sesuai Periode
@@ -1591,15 +1593,47 @@ function showHalaqohBacaanModal(studentId) {
   // Tentukan mode awal (iqro / quran)
   currentHalaqohBacaanMode = (latestBacaan && latestBacaan.report_type === 'quran') ? 'quran' : 'iqro';
 
+  const iqroReports = stReports
+    .filter(r => r.report_type === 'iqro')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const latestIqro = iqroReports[0];
+  const isIqroBelumLancar = latestIqro && latestIqro.status !== 'Lancar';
+
+  const quranReports = stReports
+    .filter(r => r.report_type === 'quran')
+    .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const latestQuran = quranReports[0];
+  const isQuranBelumLancar = latestQuran && latestQuran.status !== 'Lancar';
+
   // Nilai awal Iqro
   let initIqroJilid = 1;
   let initIqroHal = 1;
-  if (latestBacaan && latestBacaan.report_type === 'iqro') {
-    initIqroJilid = latestBacaan.iqro_jilid || 1;
-    initIqroHal = (latestBacaan.iqro_halaman || 0) + 1;
+  if (latestIqro) {
+    initIqroJilid = latestIqro.iqro_jilid || 1;
+    initIqroHal = isIqroBelumLancar ? (latestIqro.iqro_halaman || 1) : ((latestIqro.iqro_halaman || 0) + 1);
   } else if (student.iqro_jilid) {
     initIqroJilid = student.iqro_jilid || 1;
     initIqroHal = student.iqro_halaman || 1;
+  }
+
+  let iqroWarningHtml = '';
+  if (isIqroBelumLancar) {
+    iqroWarningHtml = `
+      <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+            <span>Peringatan: Setoran Iqro' Sebelumnya Belum Lancar!</span>
+          </div>
+          <p class="mt-0.5 text-amber-800 text-[11px]">
+            Pada tanggal <strong>${latestIqro.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latestIqro.iqro_jilid || 1} Hal ${latestIqro.iqro_halaman || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Halaman disetel mengulang halaman ini.
+          </p>
+          ${latestIqro.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestIqro.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
   }
 
   // Nilai awal Al-Qur'an
@@ -1608,16 +1642,41 @@ function showHalaqohBacaanModal(studentId) {
   let initQuranDari = 1;
   let initQuranSampai = 1;
 
-  if (latestBacaan && latestBacaan.report_type === 'quran') {
-    initQuranJuz = latestBacaan.juz || 1;
-    initQuranSurat = latestBacaan.surat || 'Al-Fatihah';
-    const mx = getAyatCount(initQuranJuz, initQuranSurat);
-    const nextAyat = Math.min((latestBacaan.ayat_sampai || 0) + 1, mx || 1);
-    initQuranDari = nextAyat;
-    initQuranSampai = nextAyat;
+  if (latestQuran) {
+    initQuranJuz = latestQuran.juz || 1;
+    initQuranSurat = latestQuran.surat || 'Al-Fatihah';
+    if (isQuranBelumLancar) {
+      initQuranDari = latestQuran.ayat_dari || 1;
+      initQuranSampai = latestQuran.ayat_sampai || 1;
+    } else {
+      const mx = getAyatCount(initQuranJuz, initQuranSurat);
+      const nextAyat = Math.min((latestQuran.ayat_sampai || 0) + 1, mx || 1);
+      initQuranDari = nextAyat;
+      initQuranSampai = nextAyat;
+    }
   } else {
     const listSurat = getSuratByJuz(1);
     if (listSurat && listSurat.length > 0) initQuranSurat = listSurat[0].name;
+  }
+
+  let quranWarningHtml = '';
+  if (isQuranBelumLancar) {
+    quranWarningHtml = `
+      <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+            <span>Peringatan: Setoran Al-Qur'an Sebelumnya Belum Lancar!</span>
+          </div>
+          <p class="mt-0.5 text-amber-800 text-[11px]">
+            Pada tanggal <strong>${latestQuran.tanggal || '-'}</strong>, bacaan <strong>Surat ${latestQuran.surat || '-'} Ayat ${latestQuran.ayat_dari || 1}-${latestQuran.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang ayat sebelumnya.
+          </p>
+          ${latestQuran.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestQuran.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
   }
 
   const safeStudentName = student.name.replace(/'/g, "\\'");
@@ -1653,6 +1712,7 @@ function showHalaqohBacaanModal(studentId) {
 
       <!-- Form Section: Iqro' -->
       <div id="hlq-bacaan-iqro-section" class="space-y-4 ${currentHalaqohBacaanMode === 'iqro' ? '' : 'hidden'}">
+        ${iqroWarningHtml}
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Jilid Iqro'</label>
@@ -1673,8 +1733,7 @@ function showHalaqohBacaanModal(studentId) {
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               <option value="Lancar">Lancar</option>
-              <option value="Tidak Lancar">Tidak Lancar</option>
-              <option value="Mengulang">Mengulang</option>
+              <option value="Belum Lancar">Belum Lancar</option>
             </select>
           </div>
         </div>
@@ -1687,6 +1746,7 @@ function showHalaqohBacaanModal(studentId) {
 
       <!-- Form Section: Al-Qur'an -->
       <div id="hlq-bacaan-quran-section" class="space-y-4 ${currentHalaqohBacaanMode === 'quran' ? '' : 'hidden'}">
+        ${quranWarningHtml}
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Juz</label>
@@ -1725,8 +1785,7 @@ function showHalaqohBacaanModal(studentId) {
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
               <option value="Lancar">Lancar</option>
-              <option value="Tidak Lancar">Tidak Lancar</option>
-              <option value="Mengulang">Mengulang</option>
+              <option value="Belum Lancar">Belum Lancar</option>
             </select>
           </div>
         </div>
@@ -1875,6 +1934,7 @@ function showHalaqohHafalanModal(studentId) {
     .filter(r => r.report_type === 'hafalan')
     .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const latestHafalan = hafalanReports[0];
+  const isHafalanBelumLancar = latestHafalan && latestHafalan.status !== 'Lancar';
 
   let initJuz = 30;
   let initSurat = "An-Naba'";
@@ -1884,10 +1944,15 @@ function showHalaqohHafalanModal(studentId) {
   if (latestHafalan) {
     initJuz = latestHafalan.juz || 30;
     initSurat = latestHafalan.surat;
-    const mx = getAyatCount(initJuz, initSurat);
-    const nextAyat = Math.min((latestHafalan.ayat_sampai || 0) + 1, mx || 1);
-    initDari = nextAyat;
-    initSampai = nextAyat;
+    if (isHafalanBelumLancar) {
+      initDari = latestHafalan.ayat_dari || 1;
+      initSampai = latestHafalan.ayat_sampai || 1;
+    } else {
+      const mx = getAyatCount(initJuz, initSurat);
+      const nextAyat = Math.min((latestHafalan.ayat_sampai || 0) + 1, mx || 1);
+      initDari = nextAyat;
+      initSampai = nextAyat;
+    }
   } else {
     if (student.target_juz && !student.target_hafalan_surat) {
       initJuz = student.target_juz;
@@ -1912,6 +1977,26 @@ function showHalaqohHafalanModal(studentId) {
     }
   }
 
+  let hafalanWarningHtml = '';
+  if (isHafalanBelumLancar) {
+    hafalanWarningHtml = `
+      <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+            <span>Peringatan: Setoran Hafalan Sebelumnya Belum Lancar!</span>
+          </div>
+          <p class="mt-0.5 text-amber-800 text-[11px]">
+            Pada tanggal <strong>${latestHafalan.tanggal || '-'}</strong>, hafalan <strong>Surat ${latestHafalan.surat || '-'} Ayat ${latestHafalan.ayat_dari || 1}-${latestHafalan.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang hafalan ini.
+          </p>
+          ${latestHafalan.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestHafalan.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
   const safeStudentName = student.name.replace(/'/g, "\\'");
 
   container.innerHTML = `
@@ -1933,6 +2018,7 @@ function showHalaqohHafalanModal(studentId) {
       </div>
 
       <div class="space-y-4">
+        ${hafalanWarningHtml}
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Juz</label>
@@ -1971,8 +2057,7 @@ function showHalaqohHafalanModal(studentId) {
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
               <option value="Lancar">Lancar</option>
-              <option value="Tidak Lancar">Tidak Lancar</option>
-              <option value="Mengulang">Mengulang</option>
+              <option value="Belum Lancar">Belum Lancar</option>
             </select>
           </div>
         </div>
@@ -2224,9 +2309,11 @@ function showHalaqohHistoryModal(studentId, filterCategory = 'all') {
                     detail = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1 font-medium text-slate-800" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${safeStudentName}', reportType: 'hafalan' })" title="Buka teks ayat">Juz ${r.juz || 30} &bull; ${r.surat} (${r.ayat_dari}-${r.ayat_sampai}) <i data-lucide="book-open" class="w-3 h-3 text-purple-500"></i></span>`;
                   }
 
-                  const statusColor = r.status === 'Lancar' 
+                  const isLancar = r.status === 'Lancar';
+                  const displayStatus = (r.status === 'Tidak Lancar' || r.status === 'Mengulang' || r.status === 'Belum Lancar') ? 'Belum Lancar' : (r.status || 'Lancar');
+                  const statusColor = isLancar 
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : (r.status === 'Mengulang' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200');
+                    : 'bg-amber-50 text-amber-800 border border-amber-200';
 
                   return `
                     <tr class="hover:bg-slate-50 transition">
@@ -2234,7 +2321,7 @@ function showHalaqohHistoryModal(studentId, filterCategory = 'all') {
                       <td class="px-3 py-2.5 text-slate-600 font-medium">${r.tanggal || '-'}</td>
                       <td class="px-3 py-2.5">${badge}</td>
                       <td class="px-3 py-2.5">${detail}</td>
-                      <td class="px-3 py-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor}">${r.status || 'Lancar'}</span></td>
+                      <td class="px-3 py-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor}">${displayStatus}</span></td>
                       <td class="px-3 py-2.5 text-slate-600 max-w-[180px] truncate" title="${r.catatan || ''}">${r.catatan || '<span class="text-slate-300 italic">-</span>'}</td>
                     </tr>
                   `;
