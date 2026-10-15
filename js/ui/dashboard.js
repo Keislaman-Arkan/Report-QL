@@ -26,10 +26,10 @@ function renderDashboard(el) {
   const totalReports = reports.length;
   
   // Calculate overall percentages
-  const pctBacaanAll = metrics.evaluatedBacaan > 0 ? Math.round((metrics.tuntasBacaan / metrics.evaluatedBacaan) * 100) : 0;
-  const pctHafalanAll = metrics.evaluatedHafalan > 0 ? Math.round((metrics.tuntasHafalan / metrics.evaluatedHafalan) * 100) : 0;
-  const belumBacaan = metrics.evaluatedBacaan - metrics.tuntasBacaan;
-  const belumHafalan = metrics.evaluatedHafalan - metrics.tuntasHafalan;
+  const pctBacaanAll = students.length > 0 ? Math.round((metrics.tuntasBacaan / students.length) * 100) : 0;
+  const pctHafalanAll = students.length > 0 ? Math.round((metrics.tuntasHafalan / students.length) * 100) : 0;
+  const belumBacaan = students.length - metrics.tuntasBacaan;
+  const belumHafalan = students.length - metrics.tuntasHafalan;
   const belumDievaluasiBacaan = students.length - metrics.evaluatedBacaan;
   const belumDievaluasiHafalan = students.length - metrics.evaluatedHafalan;
   
@@ -111,10 +111,10 @@ function renderDashboard(el) {
         const ks = students.filter(s => s.grade === gradeName);
         const stMetrics = calculateTuntasMetrics(ks, reports);
         
-        const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((stMetrics.tuntasBacaan/stMetrics.evaluatedBacaan)*100) : 0;
-        const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((stMetrics.tuntasHafalan/stMetrics.evaluatedHafalan)*100) : 0;
-        const bBacaan = stMetrics.evaluatedBacaan - stMetrics.tuntasBacaan;
-        const bHafalan = stMetrics.evaluatedHafalan - stMetrics.tuntasHafalan;
+        const pctBacaan = ks.length > 0 ? Math.round((stMetrics.tuntasBacaan / ks.length) * 100) : 0;
+        const pctHafalan = ks.length > 0 ? Math.round((stMetrics.tuntasHafalan / ks.length) * 100) : 0;
+        const bBacaan = ks.length - stMetrics.tuntasBacaan;
+        const bHafalan = ks.length - stMetrics.tuntasHafalan;
         
         return `
         <div class="card-hover bg-white rounded-2xl p-5 shadow-sm border border-slate-100 cursor-pointer" onclick="reportFilterGrade='${gradeName}';reportFilterClass='';navigate('reports')">
@@ -129,8 +129,8 @@ function renderDashboard(el) {
               <div class="chart-tooltip">
                 <div class="font-bold text-emerald-400 mb-1">📖 Bacaan — ${gradeName}</div>
                 <div>✅ Tuntas: <strong>${stMetrics.tuntasBacaan}</strong> siswa</div>
-                <div>⏳ Belum: <strong>${bBacaan}</strong> siswa</div>
-                <div class="text-slate-400 mt-1 text-[11px]">Dievaluasi: ${stMetrics.evaluatedBacaan} dari ${ks.length}</div>
+                <div>⏳ Belum Tuntas: <strong>${bBacaan}</strong> siswa</div>
+                <div class="text-slate-400 mt-1 text-[11px]">Total: ${ks.length} siswa (${stMetrics.evaluatedBacaan} sudah dinilai)</div>
               </div>
               <div class="donut-chart" style="width:90px;height:90px">
                 ${createDonutSVG(pctBacaan, '#10b981', 90, 10)}
@@ -146,8 +146,8 @@ function renderDashboard(el) {
               <div class="chart-tooltip">
                 <div class="font-bold text-purple-400 mb-1">📚 Hafalan — ${gradeName}</div>
                 <div>✅ Tuntas: <strong>${stMetrics.tuntasHafalan}</strong> siswa</div>
-                <div>⏳ Belum: <strong>${bHafalan}</strong> siswa</div>
-                <div class="text-slate-400 mt-1 text-[11px]">Dievaluasi: ${stMetrics.evaluatedHafalan} dari ${ks.length}</div>
+                <div>⏳ Belum Tuntas: <strong>${bHafalan}</strong> siswa</div>
+                <div class="text-slate-400 mt-1 text-[11px]">Total: ${ks.length} siswa (${stMetrics.evaluatedHafalan} sudah dinilai)</div>
               </div>
               <div class="donut-chart" style="width:90px;height:90px">
                 ${createDonutSVG(pctHafalan, '#8b5cf6', 90, 10)}
