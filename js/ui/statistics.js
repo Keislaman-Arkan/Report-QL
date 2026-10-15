@@ -186,17 +186,6 @@ function renderStatistics(el) {
   const total = latestReports.length || 1;
   const maxVal = Math.max(lancar, belumLancar, 1);
 
-  // Hitung total ringkasan ketuntasan sekolah
-  let totalSiswaSemua = 0;
-  let totalTuntasBacaan = 0;
-  let totalTuntasHafalan = 0;
-  Object.keys(map).forEach(gradeName => {
-    const ks = students.filter(s => s.grade === gradeName);
-    totalSiswaSemua += ks.length;
-    const stMetrics = calculateTuntasMetrics(ks, reports);
-    totalTuntasBacaan += stMetrics.tuntasBacaan;
-    totalTuntasHafalan += stMetrics.tuntasHafalan;
-  });
 
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto space-y-6">
@@ -377,11 +366,11 @@ function renderStatistics(el) {
             
             const tercapaiB = stMetrics.tuntasBacaan;
             const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
-            const pctBacaan = stMetrics.evaluatedBacaan > 0 ? Math.round((tercapaiB / stMetrics.evaluatedBacaan) * 100) : 0;
+            const pctBacaan = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
             
             const tercapaiH = stMetrics.tuntasHafalan;
             const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
-            const pctHafalan = stMetrics.evaluatedHafalan > 0 ? Math.round((tercapaiH / stMetrics.evaluatedHafalan) * 100) : 0;
+            const pctHafalan = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
             
             return `
             <div class="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-slate-200 transition">
@@ -445,10 +434,8 @@ function exportStatsPDF() {
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
   let grandTidakTercapaiBacaan = 0;
-  let grandEvaluatedBacaan = 0;
   let grandTercapaiHafalan = 0;
   let grandTidakTercapaiHafalan = 0;
-  let grandEvaluatedHafalan = 0;
 
   const tableRowsHtml = Object.keys(map).map(gradeName => {
     const ks = students.filter(s => s.grade === gradeName);
@@ -457,19 +444,17 @@ function exportStatsPDF() {
     
     const tercapaiB = stMetrics.tuntasBacaan;
     const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
-    const pctB = stMetrics.evaluatedBacaan > 0 ? Math.round((tercapaiB / stMetrics.evaluatedBacaan) * 100) : 0;
+    const pctB = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
 
     const tercapaiH = stMetrics.tuntasHafalan;
     const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
-    const pctH = stMetrics.evaluatedHafalan > 0 ? Math.round((tercapaiH / stMetrics.evaluatedHafalan) * 100) : 0;
+    const pctH = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
 
     grandTotalSiswa += totalSiswa;
     grandTercapaiBacaan += tercapaiB;
     grandTidakTercapaiBacaan += tidakTercapaiB;
-    grandEvaluatedBacaan += stMetrics.evaluatedBacaan;
     grandTercapaiHafalan += tercapaiH;
     grandTidakTercapaiHafalan += tidakTercapaiH;
-    grandEvaluatedHafalan += stMetrics.evaluatedHafalan;
 
     return `
       <tr>
@@ -485,8 +470,8 @@ function exportStatsPDF() {
     `;
   }).join('');
 
-  const grandPctBacaan = grandEvaluatedBacaan > 0 ? Math.round((grandTercapaiBacaan / grandEvaluatedBacaan) * 100) : 0;
-  const grandPctHafalan = grandEvaluatedHafalan > 0 ? Math.round((grandTercapaiHafalan / grandEvaluatedHafalan) * 100) : 0;
+  const grandPctBacaan = grandTotalSiswa > 0 ? Math.round((grandTercapaiBacaan / grandTotalSiswa) * 100) : 0;
+  const grandPctHafalan = grandTotalSiswa > 0 ? Math.round((grandTercapaiHafalan / grandTotalSiswa) * 100) : 0;
 
   const totalRowHtml = `
     <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #059669;">
@@ -603,10 +588,8 @@ function printStats() {
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
   let grandTidakTercapaiBacaan = 0;
-  let grandEvaluatedBacaan = 0;
   let grandTercapaiHafalan = 0;
   let grandTidakTercapaiHafalan = 0;
-  let grandEvaluatedHafalan = 0;
 
   const tableRowsHtml = Object.keys(map).map(gradeName => {
     const ks = students.filter(s => s.grade === gradeName);
@@ -615,19 +598,17 @@ function printStats() {
     
     const tercapaiB = stMetrics.tuntasBacaan;
     const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
-    const pctB = stMetrics.evaluatedBacaan > 0 ? Math.round((tercapaiB / stMetrics.evaluatedBacaan) * 100) : 0;
+    const pctB = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
 
     const tercapaiH = stMetrics.tuntasHafalan;
     const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
-    const pctH = stMetrics.evaluatedHafalan > 0 ? Math.round((tercapaiH / stMetrics.evaluatedHafalan) * 100) : 0;
+    const pctH = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
 
     grandTotalSiswa += totalSiswa;
     grandTercapaiBacaan += tercapaiB;
     grandTidakTercapaiBacaan += tidakTercapaiB;
-    grandEvaluatedBacaan += stMetrics.evaluatedBacaan;
     grandTercapaiHafalan += tercapaiH;
     grandTidakTercapaiHafalan += tidakTercapaiH;
-    grandEvaluatedHafalan += stMetrics.evaluatedHafalan;
 
     return `
       <tr>
@@ -643,8 +624,8 @@ function printStats() {
     `;
   }).join('');
 
-  const grandPctBacaan = grandEvaluatedBacaan > 0 ? Math.round((grandTercapaiBacaan / grandEvaluatedBacaan) * 100) : 0;
-  const grandPctHafalan = grandEvaluatedHafalan > 0 ? Math.round((grandTercapaiHafalan / grandEvaluatedHafalan) * 100) : 0;
+  const grandPctBacaan = grandTotalSiswa > 0 ? Math.round((grandTercapaiBacaan / grandTotalSiswa) * 100) : 0;
+  const grandPctHafalan = grandTotalSiswa > 0 ? Math.round((grandTercapaiHafalan / grandTotalSiswa) * 100) : 0;
 
   const totalRowHtml = `
     <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #059669;">
