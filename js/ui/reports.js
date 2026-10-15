@@ -118,43 +118,55 @@ async function saveReportIqro(){
   const st=document.getElementById('ri-student').value;
   if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
   const catatan = document.getElementById('ri-catatan').value.trim();
-  await window.dataSdk.create({type:'report',report_type:'iqro',student_id:st,iqro_jilid:parseInt(document.getElementById('ri-jilid').value),iqro_halaman:parseInt(document.getElementById('ri-hal').value),status:document.getElementById('ri-status').value,tanggal:document.getElementById('ri-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,subject:'iqro',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
-  showToast('Laporan Iqro disimpan');
-  document.getElementById('ri-student').value='';
-  document.getElementById('search-ri-student').value='';
-  document.getElementById('ri-catatan').value='';
-  const clearBtn = document.getElementById('clear-ri-student-btn');
-  if (clearBtn) clearBtn.classList.add('hidden');
-  const warn = document.getElementById('ri-warning-container');
-  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  const res = await window.dataSdk.create({type:'report',report_type:'iqro',student_id:st,iqro_jilid:parseInt(document.getElementById('ri-jilid').value),iqro_halaman:parseInt(document.getElementById('ri-hal').value),status:document.getElementById('ri-status').value,tanggal:document.getElementById('ri-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,subject:'iqro',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  if (res && res.isOk) {
+    showToast('Laporan Iqro berhasil disimpan', 'success');
+    document.getElementById('ri-student').value='';
+    document.getElementById('search-ri-student').value='';
+    document.getElementById('ri-catatan').value='';
+    const clearBtn = document.getElementById('clear-ri-student-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const warn = document.getElementById('ri-warning-container');
+    if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  } else {
+    showToast('Gagal menyimpan laporan: ' + (res?.error || 'Periksa koneksi database Supabase'), 'error');
+  }
 }
 async function saveReportQuran(){
   const st=document.getElementById('rq-student').value;
   if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
   const catatan = document.getElementById('rq-catatan').value.trim();
-  await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
-  showToast('Laporan Quran disimpan');
-  document.getElementById('rq-student').value='';
-  document.getElementById('search-rq-student').value='';
-  document.getElementById('rq-catatan').value='';
-  const clearBtn = document.getElementById('clear-rq-student-btn');
-  if (clearBtn) clearBtn.classList.add('hidden');
-  const warn = document.getElementById('rq-warning-container');
-  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  const res = await window.dataSdk.create({type:'report',report_type:'quran',student_id:st,juz:parseInt(document.getElementById('rq-juz').value),surat:document.getElementById('rq-surat').value,ayat_dari:parseInt(document.getElementById('rq-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rq-ayat-sampai').value),status:document.getElementById('rq-status').value,tanggal:document.getElementById('rq-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  if (res && res.isOk) {
+    showToast('Laporan Quran berhasil disimpan', 'success');
+    document.getElementById('rq-student').value='';
+    document.getElementById('search-rq-student').value='';
+    document.getElementById('rq-catatan').value='';
+    const clearBtn = document.getElementById('clear-rq-student-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const warn = document.getElementById('rq-warning-container');
+    if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  } else {
+    showToast('Gagal menyimpan laporan: ' + (res?.error || 'Periksa koneksi database Supabase'), 'error');
+  }
 }
 async function saveReportHafalan(){
   const st=document.getElementById('rh-student').value;
   if(!st){showToast('Pilih siswa dari daftar pencarian terlebih dahulu','warning'); return;}
   const catatan = document.getElementById('rh-catatan').value.trim();
-  await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
-  showToast('Laporan Hafalan disimpan');
-  document.getElementById('rh-student').value='';
-  document.getElementById('search-rh-student').value='';
-  document.getElementById('rh-catatan').value='';
-  const clearBtn = document.getElementById('clear-rh-student-btn');
-  if (clearBtn) clearBtn.classList.add('hidden');
-  const warn = document.getElementById('rh-warning-container');
-  if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  const res = await window.dataSdk.create({type:'report',report_type:'hafalan',student_id:st,juz:parseInt(document.getElementById('rh-juz').value),surat:document.getElementById('rh-surat').value,ayat_dari:parseInt(document.getElementById('rh-ayat-dari').value),ayat_sampai:parseInt(document.getElementById('rh-ayat-sampai').value),status:document.getElementById('rh-status').value,tanggal:document.getElementById('rh-date').value,catatan:catatan,name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,subject:'',nip:'',phone:'',address:'',specialization:'',target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0,setting_kelas:0});
+  if (res && res.isOk) {
+    showToast('Laporan Hafalan berhasil disimpan', 'success');
+    document.getElementById('rh-student').value='';
+    document.getElementById('search-rh-student').value='';
+    document.getElementById('rh-catatan').value='';
+    const clearBtn = document.getElementById('clear-rh-student-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const warn = document.getElementById('rh-warning-container');
+    if (warn) { warn.innerHTML = ''; warn.classList.add('hidden'); }
+  } else {
+    showToast('Gagal menyimpan laporan: ' + (res?.error || 'Periksa koneksi database Supabase'), 'error');
+  }
 }
 
 let reportSearchQuery = "";

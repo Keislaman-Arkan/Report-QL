@@ -1873,6 +1873,7 @@ async function saveHalaqohBacaan(studentId) {
     return;
   }
 
+  let res;
   if (currentHalaqohBacaanMode === 'iqro') {
     const jilid = parseInt(document.getElementById('hlq-ri-jilid').value) || 1;
     const hal = parseInt(document.getElementById('hlq-ri-hal').value) || 1;
@@ -1880,7 +1881,7 @@ async function saveHalaqohBacaan(studentId) {
     const status = document.getElementById('hlq-ri-status').value || 'Lancar';
     const catatan = document.getElementById('hlq-ri-catatan').value.trim();
 
-    await window.dataSdk.create({
+    res = await window.dataSdk.create({
       type: 'report',
       report_type: 'iqro',
       student_id: studentId,
@@ -1900,7 +1901,7 @@ async function saveHalaqohBacaan(studentId) {
     const status = document.getElementById('hlq-rq-status').value || 'Lancar';
     const catatan = document.getElementById('hlq-rq-catatan').value.trim();
 
-    await window.dataSdk.create({
+    res = await window.dataSdk.create({
       type: 'report',
       report_type: 'quran',
       student_id: studentId,
@@ -1915,9 +1916,13 @@ async function saveHalaqohBacaan(studentId) {
     });
   }
 
-  showToast('Laporan bacaan berhasil disimpan', 'success');
-  closeHalaqohModal();
-  renderHalaqohContent({ animateSwitch: false });
+  if (res && res.isOk) {
+    showToast('Laporan bacaan berhasil disimpan', 'success');
+    closeHalaqohModal();
+    renderHalaqohContent({ animateSwitch: false });
+  } else {
+    showToast('Gagal menyimpan laporan: ' + (res?.error || 'Periksa koneksi database Supabase'), 'error');
+  }
 }
 
 // ============ MODAL: INPUT LAPORAN HAFALAN (HALAQOH) ============
@@ -2142,7 +2147,7 @@ async function saveHalaqohHafalan(studentId) {
   const status = document.getElementById('hlq-rh-status').value || 'Lancar';
   const catatan = document.getElementById('hlq-rh-catatan').value.trim();
 
-  await window.dataSdk.create({
+  const res = await window.dataSdk.create({
     type: 'report',
     report_type: 'hafalan',
     student_id: studentId,
@@ -2156,9 +2161,13 @@ async function saveHalaqohHafalan(studentId) {
     name: '', email: '', password: '', role: '', kelas: 0, target_juz: 0, iqro_jilid: 0, iqro_halaman: 0, subject: '', nip: '', phone: '', address: '', specialization: '', target_iqro_jilid: 0, target_iqro_halaman: 0, target_hafalan_juz: 0, target_surat_awal: '', target_surat_akhir: '', target_ayat_awal: 0, target_ayat_akhir: 0, standar_ketuntasan: 0, setting_kelas: 0
   });
 
-  showToast('Laporan hafalan berhasil disimpan', 'success');
-  closeHalaqohModal();
-  renderHalaqohContent({ animateSwitch: false });
+  if (res && res.isOk) {
+    showToast('Laporan hafalan berhasil disimpan', 'success');
+    closeHalaqohModal();
+    renderHalaqohContent({ animateSwitch: false });
+  } else {
+    showToast('Gagal menyimpan laporan: ' + (res?.error || 'Periksa koneksi database Supabase'), 'error');
+  }
 }
 
 // ============ MODAL: PREVIEW RIWAYAT LAPORAN (HALAQOH) ============
