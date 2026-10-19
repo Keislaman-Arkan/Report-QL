@@ -57,6 +57,39 @@ function getHafalanScore(juz, surat, ayat) {
    return (suratIndex * 1000) + (parseInt(ayat) || 1);
 }
 
+function getKetuntasanTolerance() {
+  const setting = allData.find(x => x.type === 'setting' && x.subject === 'ketuntasan_tolerance');
+  let data = setting?.data;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch (e) {}
+  }
+  const tolBacaan = (data && typeof data.toleransiHalamanBacaan === 'number') ? data.toleransiHalamanBacaan : 15;
+  const tolHafalan = (data && typeof data.toleransiSuratHafalan === 'number') ? data.toleransiSuratHafalan : 3;
+  return {
+    toleransiHalamanBacaan: Math.max(1, tolBacaan),
+    toleransiSuratHafalan: Math.max(1, tolHafalan)
+  };
+}
+
+async function saveKetuntasanTolerance(toleransiHalamanBacaan, toleransiSuratHafalan) {
+  let setting = allData.find(x => x.type === 'setting' && x.subject === 'ketuntasan_tolerance');
+  const payloadData = {
+    toleransiHalamanBacaan: Math.max(1, parseInt(toleransiHalamanBacaan) || 15),
+    toleransiSuratHafalan: Math.max(1, parseInt(toleransiSuratHafalan) || 3)
+  };
+  if (setting) {
+    setting.data = payloadData;
+    await window.dataSdk.update(setting);
+  } else {
+    await window.dataSdk.create({
+      type: 'setting',
+      subject: 'ketuntasan_tolerance',
+      data: payloadData,
+      name:'',email:'',password:'',role:'',kelas:0,target_juz:0,iqro_jilid:0,iqro_halaman:0,juz:0,surat:'',ayat_dari:0,ayat_sampai:0,status:'',tanggal:'',student_id:'',report_type:'',nip:'',phone:'',address:'',specialization:'',setting_kelas:0,target_iqro_jilid:0,target_iqro_halaman:0,target_hafalan_juz:0,target_surat_awal:'',target_surat_akhir:'',target_ayat_awal:0,target_ayat_akhir:0,standar_ketuntasan:0
+    });
+  }
+}
+
 function calculateTuntasMetrics(studentsList, reportsList) {
   let tuntasBacaan = 0;
   let hampirTercapaiBacaan = 0;
@@ -68,6 +101,8 @@ function calculateTuntasMetrics(studentsList, reportsList) {
 
   let evaluatedBacaan = 0;
   let evaluatedHafalan = 0;
+
+  const globalTolerance = getKetuntasanTolerance();
 
   studentsList.forEach(student => {
     const grade = student.grade;
@@ -83,12 +118,15 @@ function calculateTuntasMetrics(studentsList, reportsList) {
     const tIqro = allData.find(x => x.type === 'setting' && x.subject === `iqro_target_${grade}`)?.data || { target_iqro_jilid: 1, target_iqro_halaman: 120 };
     const tHafalan = allData.find(x => x.type === 'setting' && x.subject === `hafalan_target_${grade}`)?.data || { target_hafalan_juz: 30, target_surat_awal: '', target_ayat_akhir: 1 };
 
+    const tolBacaan = (tIqro && typeof tIqro.toleransi_halaman === 'number') ? tIqro.toleransi_halaman : globalTolerance.toleransiHalamanBacaan;
+    const tolHafalan = (tHafalan && typeof tHafalan.toleransi_surat === 'number') ? tHafalan.toleransi_surat : globalTolerance.toleransiSuratHafalan;
+
     const targetBacaanScore = getBacaanScore('iqro', tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
     const targetHafalanScore = getHafalanScore(tHafalan.target_hafalan_juz, tHafalan.target_surat_awal, tHafalan.target_ayat_akhir);
 
     const targetPageIndex = getIqroPageIndex(tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
 
-    // 1. Evaluasi Bacaan: Tercapai, Hampir Tercapai (<= 15 hal sebelum target), Tertinggal (> 15 hal)
+    // 1. Evaluasi Bacaan: Tercapai, Hampir Tercapai (<= tolBacaan hal sebelum target), Tertinggal (> tolBacaan hal)
     if (bacaanReports.length > 0) {
       evaluatedBacaan++;
       const latest = bacaanReports[0];
@@ -98,7 +136,7 @@ function calculateTuntasMetrics(studentsList, reportsList) {
       } else {
         const studentPageIndex = getIqroPageIndex(latest.iqro_jilid, latest.iqro_halaman);
         const pageDiff = targetPageIndex - studentPageIndex;
-        if (pageDiff <= 15) {
+        if (pageDiff <= tolBacaan) {
           hampirTercapaiBacaan++;
         } else {
           tertinggalBacaan++;
@@ -114,7 +152,7 @@ function calculateTuntasMetrics(studentsList, reportsList) {
         } else {
           const studentPageIndex = getIqroPageIndex(initJilid, initHal);
           const pageDiff = targetPageIndex - studentPageIndex;
-          if (pageDiff <= 15) {
+          if (pageDiff <= tolBacaan) {
             hampirTercapaiBacaan++;
           } else {
             tertinggalBacaan++;
@@ -123,7 +161,7 @@ function calculateTuntasMetrics(studentsList, reportsList) {
       } else {
         const studentPageIndex = 1;
         const pageDiff = targetPageIndex - studentPageIndex;
-        if (pageDiff <= 15 && targetPageIndex <= 15) {
+        if (pageDiff <= tolBacaan && targetPageIndex <= tolBacaan) {
           hampirTercapaiBacaan++;
         } else {
           tertinggalBacaan++;
@@ -131,7 +169,7 @@ function calculateTuntasMetrics(studentsList, reportsList) {
       }
     }
 
-    // 2. Evaluasi Hafalan: Tercapai, Hampir Tercapai (<= 3 surat sebelum target), Tertinggal (> 3 surat)
+    // 2. Evaluasi Hafalan: Tercapai, Hampir Tercapai (<= tolHafalan surat sebelum target), Tertinggal (> tolHafalan surat)
     const targetSurat = tHafalan.target_surat_awal || (getSuratByJuz(tHafalan.target_hafalan_juz || 30)[0]?.name || 'An-Naba');
     let targetSuratIdx = getHafalanSuratIndex(targetSurat);
     if (targetSuratIdx === -1) targetSuratIdx = getHafalanSuratIndex('An-Naba');
@@ -146,7 +184,7 @@ function calculateTuntasMetrics(studentsList, reportsList) {
         const studentSuratIdx = getHafalanSuratIndex(latest.surat);
         if (studentSuratIdx !== -1) {
           const suratDiff = targetSuratIdx - studentSuratIdx;
-          if (suratDiff <= 3 && suratDiff >= 0) {
+          if (suratDiff <= tolHafalan && suratDiff >= 0) {
             hampirTercapaiHafalan++;
           } else {
             tertinggalHafalan++;
