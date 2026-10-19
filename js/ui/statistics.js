@@ -365,11 +365,13 @@ function renderStatistics(el) {
             const stMetrics = calculateTuntasMetrics(ks, reports);
             
             const tercapaiB = stMetrics.tuntasBacaan;
-            const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
+            const hampirTercapaiB = stMetrics.hampirTercapaiBacaan;
+            const tertinggalB = stMetrics.tertinggalBacaan;
             const pctBacaan = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
             
             const tercapaiH = stMetrics.tuntasHafalan;
-            const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
+            const hampirTercapaiH = stMetrics.hampirTercapaiHafalan;
+            const tertinggalH = stMetrics.tertinggalHafalan;
             const pctHafalan = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
             
             return `
@@ -388,9 +390,10 @@ function renderStatistics(el) {
                 <div class="w-full bg-slate-100 rounded-full h-2 mb-1.5 overflow-hidden">
                   <div class="h-2 rounded-full bg-emerald-500" style="width:${pctBacaan}%"></div>
                 </div>
-                <div class="flex justify-between text-[11px] font-medium text-slate-500">
-                  <span class="text-emerald-700">✓ Tercapai: <strong>${tercapaiB}</strong> siswa</span>
-                  <span class="text-rose-600">✗ Belum: <strong>${tidakTercapaiB}</strong> siswa</span>
+                <div class="flex justify-between text-[11px] font-medium text-slate-500 gap-1 flex-wrap">
+                  <span class="text-emerald-700">✓ Tercapai: <strong>${tercapaiB}</strong></span>
+                  <span class="text-amber-600">⚡ Hampir: <strong>${hampirTercapaiB}</strong></span>
+                  <span class="text-rose-600">✗ Tertinggal: <strong>${tertinggalB}</strong></span>
                 </div>
               </div>
 
@@ -403,9 +406,10 @@ function renderStatistics(el) {
                 <div class="w-full bg-slate-100 rounded-full h-2 mb-1.5 overflow-hidden">
                   <div class="h-2 rounded-full bg-purple-500" style="width:${pctHafalan}%"></div>
                 </div>
-                <div class="flex justify-between text-[11px] font-medium text-slate-500">
-                  <span class="text-purple-700">✓ Tercapai: <strong>${tercapaiH}</strong> siswa</span>
-                  <span class="text-rose-600">✗ Belum: <strong>${tidakTercapaiH}</strong> siswa</span>
+                <div class="flex justify-between text-[11px] font-medium text-slate-500 gap-1 flex-wrap">
+                  <span class="text-purple-700">✓ Tercapai: <strong>${tercapaiH}</strong></span>
+                  <span class="text-amber-600">⚡ Hampir: <strong>${hampirTercapaiH}</strong></span>
+                  <span class="text-rose-600">✗ Tertinggal: <strong>${tertinggalH}</strong></span>
                 </div>
               </div>
             </div>`;
@@ -433,9 +437,11 @@ function exportStatsPDF() {
 
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
-  let grandTidakTercapaiBacaan = 0;
+  let grandHampirTercapaiBacaan = 0;
+  let grandTertinggalBacaan = 0;
   let grandTercapaiHafalan = 0;
-  let grandTidakTercapaiHafalan = 0;
+  let grandHampirTercapaiHafalan = 0;
+  let grandTertinggalHafalan = 0;
 
   const tableRowsHtml = Object.keys(map).map(gradeName => {
     const ks = students.filter(s => s.grade === gradeName);
@@ -443,28 +449,34 @@ function exportStatsPDF() {
     const stMetrics = calculateTuntasMetrics(ks, reports);
     
     const tercapaiB = stMetrics.tuntasBacaan;
-    const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
+    const hampirTercapaiB = stMetrics.hampirTercapaiBacaan;
+    const tertinggalB = stMetrics.tertinggalBacaan;
     const pctB = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
 
     const tercapaiH = stMetrics.tuntasHafalan;
-    const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
+    const hampirTercapaiH = stMetrics.hampirTercapaiHafalan;
+    const tertinggalH = stMetrics.tertinggalHafalan;
     const pctH = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
 
     grandTotalSiswa += totalSiswa;
     grandTercapaiBacaan += tercapaiB;
-    grandTidakTercapaiBacaan += tidakTercapaiB;
+    grandHampirTercapaiBacaan += hampirTercapaiB;
+    grandTertinggalBacaan += tertinggalB;
     grandTercapaiHafalan += tercapaiH;
-    grandTidakTercapaiHafalan += tidakTercapaiH;
+    grandHampirTercapaiHafalan += hampirTercapaiH;
+    grandTertinggalHafalan += tertinggalH;
 
     return `
       <tr>
         <td style="font-weight: bold; border: 1px solid #cbd5e1; padding: 8px;">${gradeName}</td>
         <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${totalSiswa}</td>
         <td style="text-align: center; font-weight: bold; color: #047857; border: 1px solid #cbd5e1; padding: 8px; background-color: #f0fdf4;">${tercapaiB}</td>
-        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 8px; background-color: #fef2f2;">${tidakTercapaiB}</td>
+        <td style="text-align: center; font-weight: bold; color: #b45309; border: 1px solid #cbd5e1; padding: 8px; background-color: #fffbeb;">${hampirTercapaiB}</td>
+        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 8px; background-color: #fef2f2;">${tertinggalB}</td>
         <td style="text-align: center; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px;">${pctB}%</td>
         <td style="text-align: center; font-weight: bold; color: #6d28d9; border: 1px solid #cbd5e1; padding: 8px; background-color: #faf5ff;">${tercapaiH}</td>
-        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 8px; background-color: #fef2f2;">${tidakTercapaiH}</td>
+        <td style="text-align: center; font-weight: bold; color: #b45309; border: 1px solid #cbd5e1; padding: 8px; background-color: #fffbeb;">${hampirTercapaiH}</td>
+        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 8px; background-color: #fef2f2;">${tertinggalH}</td>
         <td style="text-align: center; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px;">${pctH}%</td>
       </tr>
     `;
@@ -478,10 +490,12 @@ function exportStatsPDF() {
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">TOTAL KESELURUHAN</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandTotalSiswa}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #047857; background-color: #dcfce7;">${grandTercapaiBacaan}</td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTidakTercapaiBacaan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b45309; background-color: #fef3c7;">${grandHampirTercapaiBacaan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTertinggalBacaan}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandPctBacaan}%</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #6d28d9; background-color: #f3e8ff;">${grandTercapaiHafalan}</td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTidakTercapaiHafalan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b45309; background-color: #fef3c7;">${grandHampirTercapaiHafalan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTertinggalHafalan}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandPctHafalan}%</td>
     </tr>
   `;
@@ -524,15 +538,17 @@ function exportStatsPDF() {
           <tr style="background-color: #064e3b; color: white;">
             <th rowspan="2" style="border: 1px solid #cbd5e1; padding: 8px; text-align: left; vertical-align: middle;">Tingkat (Grade)</th>
             <th rowspan="2" style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle;">Total Siswa</th>
-            <th colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #047857;">Target Bacaan (Iqro / Al-Qur'an)</th>
-            <th colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #6d28d9;">Target Hafalan</th>
+            <th colspan="4" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #047857;">Target Bacaan (Iqro / Al-Qur'an)</th>
+            <th colspan="4" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #6d28d9;">Target Hafalan</th>
           </tr>
           <tr style="color: white;">
             <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tercapai</th>
-            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tidak Tercapai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Hampir Tercapai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tertinggal</th>
             <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">%</th>
             <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tercapai</th>
-            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tidak Tercapai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Hampir Tercapai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tertinggal</th>
             <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">%</th>
           </tr>
         </thead>
@@ -541,6 +557,9 @@ function exportStatsPDF() {
           ${totalRowHtml}
         </tbody>
       </table>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-style: italic;">
+        * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
+      </div>
       
       <h2>3. Komposisi Tipe Laporan Masuk</h2>
       <table>
@@ -587,9 +606,11 @@ function printStats() {
 
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
-  let grandTidakTercapaiBacaan = 0;
+  let grandHampirTercapaiBacaan = 0;
+  let grandTertinggalBacaan = 0;
   let grandTercapaiHafalan = 0;
-  let grandTidakTercapaiHafalan = 0;
+  let grandHampirTercapaiHafalan = 0;
+  let grandTertinggalHafalan = 0;
 
   const tableRowsHtml = Object.keys(map).map(gradeName => {
     const ks = students.filter(s => s.grade === gradeName);
@@ -597,28 +618,34 @@ function printStats() {
     const stMetrics = calculateTuntasMetrics(ks, reports);
     
     const tercapaiB = stMetrics.tuntasBacaan;
-    const tidakTercapaiB = Math.max(0, totalSiswa - tercapaiB);
+    const hampirTercapaiB = stMetrics.hampirTercapaiBacaan;
+    const tertinggalB = stMetrics.tertinggalBacaan;
     const pctB = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
 
     const tercapaiH = stMetrics.tuntasHafalan;
-    const tidakTercapaiH = Math.max(0, totalSiswa - tercapaiH);
+    const hampirTercapaiH = stMetrics.hampirTercapaiHafalan;
+    const tertinggalH = stMetrics.tertinggalHafalan;
     const pctH = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
 
     grandTotalSiswa += totalSiswa;
     grandTercapaiBacaan += tercapaiB;
-    grandTidakTercapaiBacaan += tidakTercapaiB;
+    grandHampirTercapaiBacaan += hampirTercapaiB;
+    grandTertinggalBacaan += tertinggalB;
     grandTercapaiHafalan += tercapaiH;
-    grandTidakTercapaiHafalan += tidakTercapaiH;
+    grandHampirTercapaiHafalan += hampirTercapaiH;
+    grandTertinggalHafalan += tertinggalH;
 
     return `
       <tr>
         <td style="font-weight: bold; border: 1px solid #cbd5e1; padding: 7px;">${gradeName}</td>
         <td style="text-align: center; border: 1px solid #cbd5e1; padding: 7px;">${totalSiswa}</td>
         <td style="text-align: center; font-weight: bold; color: #047857; border: 1px solid #cbd5e1; padding: 7px; background-color: #f0fdf4;">${tercapaiB}</td>
-        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 7px; background-color: #fef2f2;">${tidakTercapaiB}</td>
+        <td style="text-align: center; font-weight: bold; color: #b45309; border: 1px solid #cbd5e1; padding: 7px; background-color: #fffbeb;">${hampirTercapaiB}</td>
+        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 7px; background-color: #fef2f2;">${tertinggalB}</td>
         <td style="text-align: center; font-weight: bold; border: 1px solid #cbd5e1; padding: 7px;">${pctB}%</td>
         <td style="text-align: center; font-weight: bold; color: #6d28d9; border: 1px solid #cbd5e1; padding: 7px; background-color: #faf5ff;">${tercapaiH}</td>
-        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 7px; background-color: #fef2f2;">${tidakTercapaiH}</td>
+        <td style="text-align: center; font-weight: bold; color: #b45309; border: 1px solid #cbd5e1; padding: 7px; background-color: #fffbeb;">${hampirTercapaiH}</td>
+        <td style="text-align: center; color: #b91c1c; border: 1px solid #cbd5e1; padding: 7px; background-color: #fef2f2;">${tertinggalH}</td>
         <td style="text-align: center; font-weight: bold; border: 1px solid #cbd5e1; padding: 7px;">${pctH}%</td>
       </tr>
     `;
@@ -632,10 +659,12 @@ function printStats() {
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">TOTAL KESELURUHAN</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandTotalSiswa}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #047857; background-color: #dcfce7;">${grandTercapaiBacaan}</td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTidakTercapaiBacaan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b45309; background-color: #fef3c7;">${grandHampirTercapaiBacaan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTertinggalBacaan}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandPctBacaan}%</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #6d28d9; background-color: #f3e8ff;">${grandTercapaiHafalan}</td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTidakTercapaiHafalan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b45309; background-color: #fef3c7;">${grandHampirTercapaiHafalan}</td>
+      <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; color: #b91c1c; background-color: #fee2e2;">${grandTertinggalHafalan}</td>
       <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${grandPctHafalan}%</td>
     </tr>
   `;
@@ -711,15 +740,17 @@ function printStats() {
             <tr style="background-color: #064e3b; color: white;">
               <th rowspan="2" style="border: 1px solid #cbd5e1; padding: 8px; text-align: left; vertical-align: middle;">Tingkat (Grade)</th>
               <th rowspan="2" style="border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle;">Total Siswa</th>
-              <th colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #047857;">Target Bacaan (Iqro / Al-Qur'an)</th>
-              <th colspan="3" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #6d28d9;">Target Hafalan</th>
+              <th colspan="4" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #047857;">Target Bacaan (Iqro / Al-Qur'an)</th>
+              <th colspan="4" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #6d28d9;">Target Hafalan</th>
             </tr>
             <tr style="color: white;">
               <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tercapai</th>
-              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tidak Tercapai</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Hampir Tercapai</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">Tertinggal</th>
               <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #059669; font-size: 11px;">%</th>
               <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tercapai</th>
-              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tidak Tercapai</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Hampir Tercapai</th>
+              <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">Tertinggal</th>
               <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; background-color: #7c3aed; font-size: 11px;">%</th>
             </tr>
           </thead>
@@ -728,6 +759,9 @@ function printStats() {
             ${totalRowHtml}
           </tbody>
         </table>
+        <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-style: italic;">
+          * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
+        </div>
         
         <div class="stats-grid">
           <div class="stat-card">

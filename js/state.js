@@ -33,47 +33,143 @@ function getBacaanScore(type, jilid, hal) {
   return (parseInt(jilid) || 1) * 1000 + (parseInt(hal) || 1);
 }
 
+function getIqroPageIndex(jilid, hal) {
+  return (parseInt(jilid - 1) || 0) * 30 + (parseInt(hal) || 1);
+}
+
 function getJuzRank(j) {
   if(j===30) return 1; if(j===29) return 2; if(j===28) return 3;
   if(j===27) return 4; if(j===26) return 5; return j + 5; 
 }
 
+function getHafalanSuratIndex(suratName) {
+  if (!suratName) return -1;
+  const directIdx = hafalanProgressPath.indexOf(suratName);
+  if (directIdx !== -1) return directIdx;
+  const clean = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const targetClean = clean(suratName);
+  return hafalanProgressPath.findIndex(s => clean(s) === targetClean);
+}
+
 function getHafalanScore(juz, surat, ayat) {
-   const suratIndex = hafalanProgressPath.indexOf(surat);
+   const suratIndex = getHafalanSuratIndex(surat);
    if (suratIndex === -1) return 0;
    return (suratIndex * 1000) + (parseInt(ayat) || 1);
 }
 
 function calculateTuntasMetrics(studentsList, reportsList) {
-  let tuntasBacaan = 0; let tuntasHafalan = 0;
-  let evaluatedBacaan = 0; let evaluatedHafalan = 0;
+  let tuntasBacaan = 0;
+  let hampirTercapaiBacaan = 0;
+  let tertinggalBacaan = 0;
+
+  let tuntasHafalan = 0;
+  let hampirTercapaiHafalan = 0;
+  let tertinggalHafalan = 0;
+
+  let evaluatedBacaan = 0;
+  let evaluatedHafalan = 0;
 
   studentsList.forEach(student => {
     const grade = student.grade;
     const stReports = reportsList.filter(r => r.student_id === student.__backendId);
     
-    const bacaanReports = stReports.filter(r => r.report_type === 'iqro' || r.report_type === 'quran').sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
-    const hafalanReports = stReports.filter(r => r.report_type === 'hafalan').sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
+    const bacaanReports = stReports
+      .filter(r => r.report_type === 'iqro' || r.report_type === 'quran')
+      .sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const hafalanReports = stReports
+      .filter(r => r.report_type === 'hafalan')
+      .sort((a,b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-    const tIqro = allData.find(x => x.type === 'setting' && x.subject === `iqro_target_${grade}`)?.data || {target_iqro_jilid:1, target_iqro_halaman:120};
-    const tHafalan = allData.find(x => x.type === 'setting' && x.subject === `hafalan_target_${grade}`)?.data || {target_hafalan_juz:30, target_surat_awal:'', target_ayat_akhir:1};
+    const tIqro = allData.find(x => x.type === 'setting' && x.subject === `iqro_target_${grade}`)?.data || { target_iqro_jilid: 1, target_iqro_halaman: 120 };
+    const tHafalan = allData.find(x => x.type === 'setting' && x.subject === `hafalan_target_${grade}`)?.data || { target_hafalan_juz: 30, target_surat_awal: '', target_ayat_akhir: 1 };
 
     const targetBacaanScore = getBacaanScore('iqro', tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
     const targetHafalanScore = getHafalanScore(tHafalan.target_hafalan_juz, tHafalan.target_surat_awal, tHafalan.target_ayat_akhir);
 
+    const targetPageIndex = getIqroPageIndex(tIqro.target_iqro_jilid, tIqro.target_iqro_halaman);
+
+    // 1. Evaluasi Bacaan: Tercapai, Hampir Tercapai (<= 15 hal sebelum target), Tertinggal (> 15 hal)
     if (bacaanReports.length > 0) {
-       evaluatedBacaan++;
-       const latest = bacaanReports[0];
-       if (getBacaanScore(latest.report_type, latest.iqro_jilid, latest.iqro_halaman) >= targetBacaanScore) tuntasBacaan++;
+      evaluatedBacaan++;
+      const latest = bacaanReports[0];
+      const isTercapai = latest.report_type === 'quran' || getBacaanScore(latest.report_type, latest.iqro_jilid, latest.iqro_halaman) >= targetBacaanScore;
+      if (isTercapai) {
+        tuntasBacaan++;
+      } else {
+        const studentPageIndex = getIqroPageIndex(latest.iqro_jilid, latest.iqro_halaman);
+        const pageDiff = targetPageIndex - studentPageIndex;
+        if (pageDiff <= 15) {
+          hampirTercapaiBacaan++;
+        } else {
+          tertinggalBacaan++;
+        }
+      }
+    } else {
+      const initJilid = parseInt(student.iqro_jilid) || 0;
+      const initHal = parseInt(student.iqro_halaman) || 0;
+      if (initJilid > 0) {
+        const isTercapai = getBacaanScore('iqro', initJilid, initHal) >= targetBacaanScore;
+        if (isTercapai) {
+          tuntasBacaan++;
+        } else {
+          const studentPageIndex = getIqroPageIndex(initJilid, initHal);
+          const pageDiff = targetPageIndex - studentPageIndex;
+          if (pageDiff <= 15) {
+            hampirTercapaiBacaan++;
+          } else {
+            tertinggalBacaan++;
+          }
+        }
+      } else {
+        const studentPageIndex = 1;
+        const pageDiff = targetPageIndex - studentPageIndex;
+        if (pageDiff <= 15 && targetPageIndex <= 15) {
+          hampirTercapaiBacaan++;
+        } else {
+          tertinggalBacaan++;
+        }
+      }
     }
+
+    // 2. Evaluasi Hafalan: Tercapai, Hampir Tercapai (<= 3 surat sebelum target), Tertinggal (> 3 surat)
+    const targetSurat = tHafalan.target_surat_awal || (getSuratByJuz(tHafalan.target_hafalan_juz || 30)[0]?.name || 'An-Naba');
+    let targetSuratIdx = getHafalanSuratIndex(targetSurat);
+    if (targetSuratIdx === -1) targetSuratIdx = getHafalanSuratIndex('An-Naba');
+
     if (hafalanReports.length > 0) {
-       evaluatedHafalan++;
-       const latest = hafalanReports[0];
-       if (getHafalanScore(latest.juz, latest.surat, latest.ayat_sampai) >= targetHafalanScore) tuntasHafalan++;
+      evaluatedHafalan++;
+      const latest = hafalanReports[0];
+      const studentHafalanScore = getHafalanScore(latest.juz, latest.surat, latest.ayat_sampai);
+      if (studentHafalanScore >= targetHafalanScore) {
+        tuntasHafalan++;
+      } else {
+        const studentSuratIdx = getHafalanSuratIndex(latest.surat);
+        if (studentSuratIdx !== -1) {
+          const suratDiff = targetSuratIdx - studentSuratIdx;
+          if (suratDiff <= 3 && suratDiff >= 0) {
+            hampirTercapaiHafalan++;
+          } else {
+            tertinggalHafalan++;
+          }
+        } else {
+          tertinggalHafalan++;
+        }
+      }
+    } else {
+      tertinggalHafalan++;
     }
   });
 
-  return { tuntasBacaan, tuntasHafalan, evaluatedBacaan, evaluatedHafalan };
+  return {
+    tuntasBacaan,
+    hampirTercapaiBacaan,
+    tertinggalBacaan,
+    tuntasHafalan,
+    hampirTercapaiHafalan,
+    tertinggalHafalan,
+    evaluatedBacaan,
+    evaluatedHafalan
+  };
 }
 
 function getGradeKelasMap() {
