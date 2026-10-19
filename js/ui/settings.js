@@ -4,6 +4,7 @@ let activeSettingsTab = 'kelas-names';
 function renderSettings(el) {
   const map = getGradeKelasMap();
   const grades = Object.keys(map);
+  const tolerance = getKetuntasanTolerance();
 
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto">
@@ -53,43 +54,124 @@ function renderSettings(el) {
     </div>
     <div id="kelas-modal" class="hidden relative z-[100]"></div>
     ` : activeSettingsTab==='targets' ? `
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="space-y-6">
+      <!-- Card Kriteria Toleransi Ketuntasan -->
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="book" class="w-5 h-5 text-emerald-500"></i> Target Iqro' Per Tingkat</h3>
-        <div class="space-y-4">
-          ${grades.map((gradeName, idx) => {
-            const s = allData.find(x=>x.type==='setting' && x.subject===`iqro_target_${gradeName}`);
-            return `<div class="flex items-center gap-3"><span class="text-sm font-medium w-24 truncate" title="${gradeName}">${gradeName}:</span><input id="set-iqro-jilid-${idx}" type="number" min="1" max="6" value="${s?.data?.target_iqro_jilid||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Jilid</span><input id="set-iqro-hal-${idx}" type="number" min="1" max="120" value="${s?.data?.target_iqro_halaman||120}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Hal</span></div>`;
-          }).join('')}
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-slate-100 gap-3">
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+              <i data-lucide="sliders" class="w-5 h-5 text-amber-500"></i>
+              Kriteria Ketuntasan (Hampir Tercapai &amp; Tertinggal)
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">
+              Atur batas rentang (toleransi) sebelum target kurikulum untuk mengklasifikasikan siswa berkategori <strong>Hampir Tercapai</strong> dan <strong>Tertinggal</strong>.
+            </p>
+          </div>
+          <button onclick="saveSettingsTolerance()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-md transition flex items-center gap-1.5 self-start sm:self-auto">
+            <i data-lucide="save" class="w-4 h-4"></i> Simpan Kriteria Toleransi
+          </button>
         </div>
-        <button onclick="saveSettingsIqro()" class="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Iqro'</button>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Toleransi Bacaan -->
+          <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+            <div class="flex items-center gap-2.5 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">📖</div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">Toleransi Target Bacaan (Iqro / Al-Qur'an)</h4>
+                <p class="text-[11px] text-slate-400">Batas halaman sebelum target kurikulum</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <input id="set-tol-bacaan" type="number" min="1" max="200" value="${tolerance.toleransiHalamanBacaan}" oninput="updateTolerancePreview()" class="w-24 px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-center">
+              <span class="text-xs font-semibold text-slate-600">Halaman sebelum target</span>
+            </div>
+            <div class="mt-3 text-xs text-slate-600 space-y-1.5 bg-white p-3 rounded-xl border border-slate-100">
+              <div class="flex items-center gap-1.5 text-emerald-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span><strong>Tercapai:</strong> Mencapai atau melampaui target kurikulum.</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-amber-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                <span><strong>Hampir Tercapai:</strong> Selisih &le; <span id="preview-tol-bacaan" class="font-bold">${tolerance.toleransiHalamanBacaan}</span> halaman sebelum target.</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-rose-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                <span><strong>Tertinggal:</strong> Selisih &gt; <span id="preview-tol-bacaan-gt" class="font-bold">${tolerance.toleransiHalamanBacaan}</span> halaman sebelum target.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toleransi Hafalan -->
+          <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+            <div class="flex items-center gap-2.5 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">📚</div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">Toleransi Target Hafalan (Surat)</h4>
+                <p class="text-[11px] text-slate-400">Batas surat sebelum target kurikulum</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <input id="set-tol-hafalan" type="number" min="1" max="114" value="${tolerance.toleransiSuratHafalan}" oninput="updateTolerancePreview()" class="w-24 px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500 bg-white text-center">
+              <span class="text-xs font-semibold text-slate-600">Surat sebelum target</span>
+            </div>
+            <div class="mt-3 text-xs text-slate-600 space-y-1.5 bg-white p-3 rounded-xl border border-slate-100">
+              <div class="flex items-center gap-1.5 text-purple-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
+                <span><strong>Tercapai:</strong> Mencapai atau melampaui target surat kurikulum.</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-amber-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                <span><strong>Hampir Tercapai:</strong> Selisih &le; <span id="preview-tol-hafalan" class="font-bold">${tolerance.toleransiSuratHafalan}</span> surat sebelum target.</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-rose-700 font-medium">
+                <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                <span><strong>Tertinggal:</strong> Selisih &gt; <span id="preview-tol-hafalan-gt" class="font-bold">${tolerance.toleransiSuratHafalan}</span> surat sebelum target.</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="bookmark" class="w-5 h-5 text-blue-500"></i> Target Hafalan Per Tingkat</h3>
-        <div id="hafalan-settings" class="space-y-4">
-          ${grades.map((gradeName, idx) => {
-            const s = allData.find(x=>x.type==='setting' && x.subject===`hafalan_target_${gradeName}`);
-            const juz = s?.data?.target_hafalan_juz || 30;
-            const surats = getSuratByJuz(juz);
-            const surat = s?.data?.target_surat_awal || (surats[0]?.name || '');
-            const maxAyat = getAyatCount(juz, surat);
-            return `<div class="border border-slate-100 bg-slate-50/50 rounded-xl p-4">
-              <p class="text-sm font-bold text-slate-700 mb-3">${gradeName}</p>
-              <div class="flex items-center gap-2 flex-wrap mb-3">
-                <select id="set-haf-juz-${idx}" onchange="updateSettingSuratAyat(${idx})" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${Array.from({length:30},(_,i)=>`<option value="${i+1}" ${juz==i+1?'selected':''}>Juz ${i+1}</option>`).join('')}</select>
-                <select id="set-haf-surat-${idx}" onchange="updateSettingAyatMax(${idx})" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${surats.map(su=>`<option value="${su.name}" ${surat===su.name?'selected':''}>${su.name}</option>`).join('')}</select>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold text-slate-500 w-10">Ayat</span>
-                <input id="set-haf-ayat-dari-${idx}" type="number" min="1" value="${s?.data?.target_ayat_awal||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                <span class="text-xs text-slate-400">s/d</span>
-                <input id="set-haf-ayat-sampai-${idx}" type="number" min="1" value="${s?.data?.target_ayat_akhir||maxAyat}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-              </div>
-            </div>`;
-          }).join('')}
+      <!-- Grid Target Iqro & Hafalan Per Tingkat -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="book" class="w-5 h-5 text-emerald-500"></i> Target Iqro' Per Tingkat</h3>
+          <div class="space-y-4">
+            ${grades.map((gradeName, idx) => {
+              const s = allData.find(x=>x.type==='setting' && x.subject===`iqro_target_${gradeName}`);
+              return `<div class="flex items-center gap-3"><span class="text-sm font-medium w-24 truncate" title="${gradeName}">${gradeName}:</span><input id="set-iqro-jilid-${idx}" type="number" min="1" max="6" value="${s?.data?.target_iqro_jilid||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Jilid</span><input id="set-iqro-hal-${idx}" type="number" min="1" max="120" value="${s?.data?.target_iqro_halaman||120}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"><span class="text-xs text-slate-500">Hal</span></div>`;
+            }).join('')}
+          </div>
+          <button onclick="saveSettingsIqro()" class="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Iqro'</button>
         </div>
-        <button onclick="saveSettingsHafalan()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Hafalan</button>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="bookmark" class="w-5 h-5 text-blue-500"></i> Target Hafalan Per Tingkat</h3>
+          <div id="hafalan-settings" class="space-y-4">
+            ${grades.map((gradeName, idx) => {
+              const s = allData.find(x=>x.type==='setting' && x.subject===`hafalan_target_${gradeName}`);
+              const juz = s?.data?.target_hafalan_juz || 30;
+              const surats = getSuratByJuz(juz);
+              const surat = s?.data?.target_surat_awal || (surats[0]?.name || '');
+              const maxAyat = getAyatCount(juz, surat);
+              return `<div class="border border-slate-100 bg-slate-50/50 rounded-xl p-4">
+                <p class="text-sm font-bold text-slate-700 mb-3">${gradeName}</p>
+                <div class="flex items-center gap-2 flex-wrap mb-3">
+                  <select id="set-haf-juz-${idx}" onchange="updateSettingSuratAyat(${idx})" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${Array.from({length:30},(_,i)=>`<option value="${i+1}" ${juz==i+1?'selected':''}>Juz ${i+1}</option>`).join('')}</select>
+                  <select id="set-haf-surat-${idx}" onchange="updateSettingAyatMax(${idx})" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">${surats.map(su=>`<option value="${su.name}" ${surat===su.name?'selected':''}>${su.name}</option>`).join('')}</select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-slate-500 w-10">Ayat</span>
+                  <input id="set-haf-ayat-dari-${idx}" type="number" min="1" value="${s?.data?.target_ayat_awal||1}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                  <span class="text-xs text-slate-400">s/d</span>
+                  <input id="set-haf-ayat-sampai-${idx}" type="number" min="1" value="${s?.data?.target_ayat_akhir||maxAyat}" class="w-16 px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          <button onclick="saveSettingsHafalan()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition w-full">Simpan Target Hafalan</button>
+        </div>
       </div>
     </div>
     ` : activeSettingsTab==='features' ? `
@@ -184,6 +266,36 @@ async function saveSettingsHafalan() {
   await Promise.all(operations);
   await window.dataSdk.fetchAll();
   showToast("Target Hafalan per tingkat berhasil disimpan");
+}
+
+function updateTolerancePreview() {
+  const bVal = parseInt(document.getElementById('set-tol-bacaan')?.value) || 15;
+  const hVal = parseInt(document.getElementById('set-tol-hafalan')?.value) || 3;
+  
+  const pb = document.getElementById('preview-tol-bacaan');
+  const pbGt = document.getElementById('preview-tol-bacaan-gt');
+  const ph = document.getElementById('preview-tol-hafalan');
+  const phGt = document.getElementById('preview-tol-hafalan-gt');
+  
+  if (pb) pb.textContent = bVal;
+  if (pbGt) pbGt.textContent = bVal;
+  if (ph) ph.textContent = hVal;
+  if (phGt) phGt.textContent = hVal;
+}
+
+async function saveSettingsTolerance() {
+  const bVal = parseInt(document.getElementById('set-tol-bacaan')?.value);
+  const hVal = parseInt(document.getElementById('set-tol-hafalan')?.value);
+
+  if (isNaN(bVal) || bVal < 1 || isNaN(hVal) || hVal < 1) {
+    showToast('Nilai toleransi halaman dan surat minimal 1', 'error');
+    return;
+  }
+
+  await saveKetuntasanTolerance(bVal, hVal);
+  await window.dataSdk.fetchAll();
+  showToast('Kriteria toleransi ketuntasan berhasil disimpan');
+  renderPage();
 }
 
 function showAddKelasModal(gradeName) {

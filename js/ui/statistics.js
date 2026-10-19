@@ -280,68 +280,6 @@ function generateGradeBarChartSVG(gradeDataList, category) {
   `;
 }
 
-function generateGradeDistributionBarsHtml(gradeDataList) {
-  return `
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
-      ${gradeDataList.map(g => {
-        const total = g.totalSiswa || 1;
-        const pTercapaiB = Math.round((g.tercapaiB / total) * 100);
-        const pHampirB = Math.round((g.hampirTercapaiB / total) * 100);
-        const pTertinggalB = Math.max(0, 100 - pTercapaiB - pHampirB);
-
-        const pTercapaiH = Math.round((g.tercapaiH / total) * 100);
-        const pHampirH = Math.round((g.hampirTercapaiH / total) * 100);
-        const pTertinggalH = Math.max(0, 100 - pTercapaiH - pHampirH);
-
-        return `
-          <div style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; page-break-inside: avoid;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
-              <span style="font-weight: bold; font-size: 12px; color: #1e293b;">${g.gradeName}</span>
-              <span style="font-size: 10px; font-weight: 600; background-color: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; border: 1px solid #e2e8f0;">${g.totalSiswa} Siswa</span>
-            </div>
-
-            <!-- Target Bacaan -->
-            <div style="margin-bottom: 7px;">
-              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; font-weight: 600; color: #047857;">
-                <span>📖 Target Bacaan</span>
-                <span style="font-weight: bold;">${g.pctB}% Tercapai</span>
-              </div>
-              <div style="width: 100%; height: 13px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
-                ${g.tercapaiB > 0 ? `<div style="width: ${pTercapaiB}%; background-color: #059669; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tercapai: ${g.tercapaiB}">${g.tercapaiB}</div>` : ''}
-                ${g.hampirTercapaiB > 0 ? `<div style="width: ${pHampirB}%; background-color: #d97706; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Hampir: ${g.hampirTercapaiB}">${g.hampirTercapaiB}</div>` : ''}
-                ${g.tertinggalB > 0 ? `<div style="width: ${pTertinggalB}%; background-color: #dc2626; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tertinggal: ${g.tertinggalB}">${g.tertinggalB}</div>` : ''}
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 2px;">
-                <span style="color: #047857;">✓ Tercapai: <strong>${g.tercapaiB}</strong></span>
-                <span style="color: #b45309;">⚡ Hampir: <strong>${g.hampirTercapaiB}</strong></span>
-                <span style="color: #b91c1c;">✗ Tertinggal: <strong>${g.tertinggalB}</strong></span>
-              </div>
-            </div>
-
-            <!-- Target Hafalan -->
-            <div>
-              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; font-weight: 600; color: #6d28d9;">
-                <span>📚 Target Hafalan</span>
-                <span style="font-weight: bold;">${g.pctH}% Tercapai</span>
-              </div>
-              <div style="width: 100%; height: 13px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
-                ${g.tercapaiH > 0 ? `<div style="width: ${pTercapaiH}%; background-color: #7c3aed; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tercapai: ${g.tercapaiH}">${g.tercapaiH}</div>` : ''}
-                ${g.hampirTercapaiH > 0 ? `<div style="width: ${pHampirH}%; background-color: #d97706; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Hampir: ${g.hampirTercapaiH}">${g.hampirTercapaiH}</div>` : ''}
-                ${g.tertinggalH > 0 ? `<div style="width: ${pTertinggalH}%; background-color: #dc2626; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tertinggal: ${g.tertinggalH}">${g.tertinggalH}</div>` : ''}
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 2px;">
-                <span style="color: #6d28d9;">✓ Tercapai: <strong>${g.tercapaiH}</strong></span>
-                <span style="color: #b45309;">⚡ Hampir: <strong>${g.hampirTercapaiH}</strong></span>
-                <span style="color: #b91c1c;">✗ Tertinggal: <strong>${g.tertinggalH}</strong></span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
 function renderGradeBarChartSectionHtml(gradeStatsList) {
   return `
     <h2>3. Diagram Batang Capaian Target Tiap Grade</h2>
@@ -382,11 +320,6 @@ function renderGradeBarChartSectionHtml(gradeStatsList) {
         ${generateGradeBarChartSVG(gradeStatsList, 'hafalan')}
       </div>
     </div>
-
-    <div style="font-weight: bold; font-size: 12px; color: #0f172a; margin: 14px 0 4px 0;">
-      Distribusi Proporsi Ketuntasan Per Tingkat:
-    </div>
-    ${generateGradeDistributionBarsHtml(gradeStatsList)}
   `;
 }
 
@@ -705,6 +638,7 @@ function exportStatsPDF() {
   const latestReports = getLatestStudentStatus(reports);
   const students = getStudents();
   const map = getGradeKelasMap();
+  const tol = getKetuntasanTolerance();
   const lancar = latestReports.filter(r => r.status === 'Lancar').length;
   const belumLancar = latestReports.filter(r => r.status !== 'Lancar').length;
   const total = latestReports.length || 1;
@@ -849,7 +783,7 @@ function exportStatsPDF() {
         </tbody>
       </table>
       <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-style: italic;">
-        * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
+        * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; ${tol.toleransiHalamanBacaan} halaman sebelum target / Hafalan &le; ${tol.toleransiSuratHafalan} surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; ${tol.toleransiHalamanBacaan} halaman sebelum target / Hafalan &gt; ${tol.toleransiSuratHafalan} surat sebelum target).
       </div>
       
       ${renderGradeBarChartSectionHtml(gradeStatsList)}
@@ -892,6 +826,7 @@ function printStats() {
   const latestReports = getLatestStudentStatus(reports);
   const students = getStudents();
   const map = getGradeKelasMap();
+  const tol = getKetuntasanTolerance();
   const lancar = latestReports.filter(r => r.status === 'Lancar').length;
   const belumLancar = latestReports.filter(r => r.status !== 'Lancar').length;
   const total = latestReports.length || 1;
@@ -1068,7 +1003,7 @@ function printStats() {
           </tbody>
         </table>
         <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-style: italic;">
-          * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
+          * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; ${tol.toleransiHalamanBacaan} halaman sebelum target / Hafalan &le; ${tol.toleransiSuratHafalan} surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; ${tol.toleransiHalamanBacaan} halaman sebelum target / Hafalan &gt; ${tol.toleransiSuratHafalan} surat sebelum target).
         </div>
         
         ${renderGradeBarChartSectionHtml(gradeStatsList)}
