@@ -175,6 +175,221 @@ function getPeriodLabel() {
   return 'Semua Data';
 }
 
+function generateGradeBarChartSVG(gradeDataList, category) {
+  const isBacaan = category === 'bacaan';
+  const colorTercapai = isBacaan ? '#059669' : '#7c3aed';
+  const colorHampir = '#d97706';
+  const colorTertinggal = '#dc2626';
+
+  let maxVal = 1;
+  gradeDataList.forEach(g => {
+    const v1 = isBacaan ? g.tercapaiB : g.tercapaiH;
+    const v2 = isBacaan ? g.hampirTercapaiB : g.hampirTercapaiH;
+    const v3 = isBacaan ? g.tertinggalB : g.tertinggalH;
+    if (v1 > maxVal) maxVal = v1;
+    if (v2 > maxVal) maxVal = v2;
+    if (v3 > maxVal) maxVal = v3;
+  });
+
+  const step = maxVal <= 6 ? 2 : maxVal <= 15 ? 3 : maxVal <= 30 ? 5 : 10;
+  const yMax = Math.ceil(maxVal / step) * step || 6;
+  const ticks = [];
+  for (let t = 0; t <= yMax; t += step) {
+    ticks.push(t);
+  }
+
+  const svgW = 680;
+  const svgH = 175;
+  const top = 22;
+  const bottom = 34;
+  const left = 35;
+  const right = 15;
+  const plotW = svgW - left - right;
+  const plotH = svgH - top - bottom;
+
+  const N = Math.max(1, gradeDataList.length);
+  const colW = plotW / N;
+
+  // Grid lines
+  const gridLinesSvg = ticks.map(tick => {
+    const y = top + plotH - (tick / yMax) * plotH;
+    return `
+      <line x1="${left}" y1="${y}" x2="${left + plotW}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+      <text x="${left - 6}" y="${y + 3}" font-size="9" fill="#94a3b8" text-anchor="end" font-family="'Segoe UI', Tahoma, sans-serif">${tick}</text>
+    `;
+  }).join('');
+
+  // Base line
+  const baseLineSvg = `<line x1="${left}" y1="${top + plotH}" x2="${left + plotW}" y2="${top + plotH}" stroke="#cbd5e1" stroke-width="1.5" />`;
+
+  // Bars
+  const barsSvg = gradeDataList.map((g, i) => {
+    const v1 = isBacaan ? g.tercapaiB : g.tercapaiH;
+    const v2 = isBacaan ? g.hampirTercapaiB : g.hampirTercapaiH;
+    const v3 = isBacaan ? g.tertinggalB : g.tertinggalH;
+
+    const centerX = left + i * colW + colW / 2;
+    const barW = Math.max(10, Math.min(22, Math.floor((colW - 14) / 3)));
+    const totalGroupW = 3 * barW + 4;
+    const startX = centerX - totalGroupW / 2;
+
+    const h1 = Math.max(0, (v1 / yMax) * plotH);
+    const y1 = top + plotH - h1;
+
+    const x2 = startX + barW + 2;
+    const h2 = Math.max(0, (v2 / yMax) * plotH);
+    const y2 = top + plotH - h2;
+
+    const x3 = x2 + barW + 2;
+    const h3 = Math.max(0, (v3 / yMax) * plotH);
+    const y3 = top + plotH - h3;
+
+    return `
+      <g class="grade-col">
+        <!-- Bar 1: Tercapai -->
+        <rect x="${startX}" y="${y1}" width="${barW}" height="${h1}" rx="3" fill="${colorTercapai}">
+          <title>${g.gradeName} - Tercapai: ${v1}</title>
+        </rect>
+        ${v1 > 0 ? `<text x="${startX + barW / 2}" y="${y1 - 4}" font-size="9" font-weight="bold" fill="${colorTercapai}" text-anchor="middle" font-family="'Segoe UI', Tahoma, sans-serif">${v1}</text>` : ''}
+
+        <!-- Bar 2: Hampir Tercapai -->
+        <rect x="${x2}" y="${y2}" width="${barW}" height="${h2}" rx="3" fill="${colorHampir}">
+          <title>${g.gradeName} - Hampir: ${v2}</title>
+        </rect>
+        ${v2 > 0 ? `<text x="${x2 + barW / 2}" y="${y2 - 4}" font-size="9" font-weight="bold" fill="${colorHampir}" text-anchor="middle" font-family="'Segoe UI', Tahoma, sans-serif">${v2}</text>` : ''}
+
+        <!-- Bar 3: Tertinggal -->
+        <rect x="${x3}" y="${y3}" width="${barW}" height="${h3}" rx="3" fill="${colorTertinggal}">
+          <title>${g.gradeName} - Tertinggal: ${v3}</title>
+        </rect>
+        ${v3 > 0 ? `<text x="${x3 + barW / 2}" y="${y3 - 4}" font-size="9" font-weight="bold" fill="${colorTertinggal}" text-anchor="middle" font-family="'Segoe UI', Tahoma, sans-serif">${v3}</text>` : ''}
+
+        <!-- Grade Label -->
+        <text x="${centerX}" y="${top + plotH + 15}" font-size="10.5" font-weight="bold" fill="#334155" text-anchor="middle" font-family="'Segoe UI', Tahoma, sans-serif">${g.gradeName}</text>
+        <text x="${centerX}" y="${top + plotH + 27}" font-size="8.5" fill="#64748b" text-anchor="middle" font-family="'Segoe UI', Tahoma, sans-serif">(${g.totalSiswa} Siswa)</text>
+      </g>
+    `;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" height="auto" style="overflow: visible; display: block; max-height: 200px;">
+      ${gridLinesSvg}
+      ${baseLineSvg}
+      ${barsSvg}
+    </svg>
+  `;
+}
+
+function generateGradeDistributionBarsHtml(gradeDataList) {
+  return `
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+      ${gradeDataList.map(g => {
+        const total = g.totalSiswa || 1;
+        const pTercapaiB = Math.round((g.tercapaiB / total) * 100);
+        const pHampirB = Math.round((g.hampirTercapaiB / total) * 100);
+        const pTertinggalB = Math.max(0, 100 - pTercapaiB - pHampirB);
+
+        const pTercapaiH = Math.round((g.tercapaiH / total) * 100);
+        const pHampirH = Math.round((g.hampirTercapaiH / total) * 100);
+        const pTertinggalH = Math.max(0, 100 - pTercapaiH - pHampirH);
+
+        return `
+          <div style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; page-break-inside: avoid;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+              <span style="font-weight: bold; font-size: 12px; color: #1e293b;">${g.gradeName}</span>
+              <span style="font-size: 10px; font-weight: 600; background-color: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; border: 1px solid #e2e8f0;">${g.totalSiswa} Siswa</span>
+            </div>
+
+            <!-- Target Bacaan -->
+            <div style="margin-bottom: 7px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; font-weight: 600; color: #047857;">
+                <span>📖 Target Bacaan</span>
+                <span style="font-weight: bold;">${g.pctB}% Tercapai</span>
+              </div>
+              <div style="width: 100%; height: 13px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
+                ${g.tercapaiB > 0 ? `<div style="width: ${pTercapaiB}%; background-color: #059669; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tercapai: ${g.tercapaiB}">${g.tercapaiB}</div>` : ''}
+                ${g.hampirTercapaiB > 0 ? `<div style="width: ${pHampirB}%; background-color: #d97706; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Hampir: ${g.hampirTercapaiB}">${g.hampirTercapaiB}</div>` : ''}
+                ${g.tertinggalB > 0 ? `<div style="width: ${pTertinggalB}%; background-color: #dc2626; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tertinggal: ${g.tertinggalB}">${g.tertinggalB}</div>` : ''}
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 2px;">
+                <span style="color: #047857;">✓ Tercapai: <strong>${g.tercapaiB}</strong></span>
+                <span style="color: #b45309;">⚡ Hampir: <strong>${g.hampirTercapaiB}</strong></span>
+                <span style="color: #b91c1c;">✗ Tertinggal: <strong>${g.tertinggalB}</strong></span>
+              </div>
+            </div>
+
+            <!-- Target Hafalan -->
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; font-weight: 600; color: #6d28d9;">
+                <span>📚 Target Hafalan</span>
+                <span style="font-weight: bold;">${g.pctH}% Tercapai</span>
+              </div>
+              <div style="width: 100%; height: 13px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
+                ${g.tercapaiH > 0 ? `<div style="width: ${pTercapaiH}%; background-color: #7c3aed; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tercapai: ${g.tercapaiH}">${g.tercapaiH}</div>` : ''}
+                ${g.hampirTercapaiH > 0 ? `<div style="width: ${pHampirH}%; background-color: #d97706; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Hampir: ${g.hampirTercapaiH}">${g.hampirTercapaiH}</div>` : ''}
+                ${g.tertinggalH > 0 ? `<div style="width: ${pTertinggalH}%; background-color: #dc2626; height: 100%; color: white; font-size: 8.5px; font-weight: bold; display: flex; align-items: center; justify-content: center;" title="Tertinggal: ${g.tertinggalH}">${g.tertinggalH}</div>` : ''}
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 2px;">
+                <span style="color: #6d28d9;">✓ Tercapai: <strong>${g.tercapaiH}</strong></span>
+                <span style="color: #b45309;">⚡ Hampir: <strong>${g.hampirTercapaiH}</strong></span>
+                <span style="color: #b91c1c;">✗ Tertinggal: <strong>${g.tertinggalH}</strong></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderGradeBarChartSectionHtml(gradeStatsList) {
+  return `
+    <h2>3. Diagram Batang Capaian Target Tiap Grade</h2>
+    
+    <div style="display: flex; justify-content: center; gap: 14px; margin: 10px 0 12px 0; font-size: 11px; background: #f8fafc; padding: 7px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 12px; height: 12px; background-color: #059669; border-radius: 2px; display: inline-block;"></span> 
+        <span>Tercapai (Bacaan)</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 12px; height: 12px; background-color: #7c3aed; border-radius: 2px; display: inline-block;"></span> 
+        <span>Tercapai (Hafalan)</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 12px; height: 12px; background-color: #d97706; border-radius: 2px; display: inline-block;"></span> 
+        <span>Hampir Tercapai</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 12px; height: 12px; background-color: #dc2626; border-radius: 2px; display: inline-block;"></span> 
+        <span>Tertinggal</span>
+      </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px;">
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; page-break-inside: avoid;">
+        <div style="font-weight: bold; font-size: 12px; color: #047857; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📖 Diagram Batang Target Bacaan (Iqro / Al-Qur'an)</span>
+          <span style="font-size: 10px; color: #64748b; font-weight: normal;">(Jumlah Siswa)</span>
+        </div>
+        ${generateGradeBarChartSVG(gradeStatsList, 'bacaan')}
+      </div>
+      
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; page-break-inside: avoid;">
+        <div style="font-weight: bold; font-size: 12px; color: #6d28d9; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📚 Diagram Batang Target Hafalan</span>
+          <span style="font-size: 10px; color: #64748b; font-weight: normal;">(Jumlah Siswa)</span>
+        </div>
+        ${generateGradeBarChartSVG(gradeStatsList, 'hafalan')}
+      </div>
+    </div>
+
+    <div style="font-weight: bold; font-size: 12px; color: #0f172a; margin: 14px 0 4px 0;">
+      Distribusi Proporsi Ketuntasan Per Tingkat:
+    </div>
+    ${generateGradeDistributionBarsHtml(gradeStatsList)}
+  `;
+}
+
 function renderStatistics(el) {
   const reports = getReportsByPeriod(statsPeriod);
   const latestReports = getLatestStudentStatus(reports);
@@ -186,6 +401,31 @@ function renderStatistics(el) {
   const total = latestReports.length || 1;
   const maxVal = Math.max(lancar, belumLancar, 1);
 
+  const gradeStatsList = Object.keys(map).map(gradeName => {
+    const ks = students.filter(s => s.grade === gradeName);
+    const totalSiswa = ks.length;
+    const stMetrics = calculateTuntasMetrics(ks, reports);
+    const tercapaiB = stMetrics.tuntasBacaan;
+    const hampirTercapaiB = stMetrics.hampirTercapaiBacaan;
+    const tertinggalB = stMetrics.tertinggalBacaan;
+    const pctB = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
+    const tercapaiH = stMetrics.tuntasHafalan;
+    const hampirTercapaiH = stMetrics.hampirTercapaiHafalan;
+    const tertinggalH = stMetrics.tertinggalHafalan;
+    const pctH = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
+    return {
+      gradeName,
+      totalSiswa,
+      tercapaiB,
+      hampirTercapaiB,
+      tertinggalB,
+      pctB,
+      tercapaiH,
+      hampirTercapaiH,
+      tertinggalH,
+      pctH
+    };
+  });
 
   el.innerHTML = `
   <div class="fade-in max-w-7xl mx-auto space-y-6">
@@ -348,7 +588,7 @@ function renderStatistics(el) {
         </div>
       </div>
       
-      <!-- Card 2: Progress Ketuntasan Target Per Tingkat (Dengan Jumlah Siswa Tercapai & Belum) -->
+      <!-- Card 2: Progress Ketuntasan Target Per Tingkat -->
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
           <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
@@ -359,41 +599,26 @@ function renderStatistics(el) {
         </div>
 
         <div class="space-y-4 max-h-[480px] overflow-y-auto pr-1">
-          ${Object.keys(map).map(gradeName => {
-            const ks = students.filter(s => s.grade === gradeName);
-            const totalSiswa = ks.length;
-            const stMetrics = calculateTuntasMetrics(ks, reports);
-            
-            const tercapaiB = stMetrics.tuntasBacaan;
-            const hampirTercapaiB = stMetrics.hampirTercapaiBacaan;
-            const tertinggalB = stMetrics.tertinggalBacaan;
-            const pctBacaan = totalSiswa > 0 ? Math.round((tercapaiB / totalSiswa) * 100) : 0;
-            
-            const tercapaiH = stMetrics.tuntasHafalan;
-            const hampirTercapaiH = stMetrics.hampirTercapaiHafalan;
-            const tertinggalH = stMetrics.tertinggalHafalan;
-            const pctHafalan = totalSiswa > 0 ? Math.round((tercapaiH / totalSiswa) * 100) : 0;
-            
-            return `
+          ${gradeStatsList.map(g => `
             <div class="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-slate-200 transition">
               <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-slate-800 text-sm">${gradeName}</span>
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-600">${totalSiswa} Siswa</span>
+                <span class="font-bold text-slate-800 text-sm">${g.gradeName}</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-600">${g.totalSiswa} Siswa</span>
               </div>
 
               <!-- Target Bacaan -->
               <div class="mb-3 bg-white p-2.5 rounded-xl border border-slate-100">
                 <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                   <span class="text-emerald-700 flex items-center gap-1"><i data-lucide="book" class="w-3.5 h-3.5"></i> Target Bacaan</span>
-                  <span class="font-bold">${pctBacaan}%</span>
+                  <span class="font-bold">${g.pctB}%</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-2 mb-1.5 overflow-hidden">
-                  <div class="h-2 rounded-full bg-emerald-500" style="width:${pctBacaan}%"></div>
+                  <div class="h-2 rounded-full bg-emerald-500" style="width:${g.pctB}%"></div>
                 </div>
                 <div class="flex justify-between text-[11px] font-medium text-slate-500 gap-1 flex-wrap">
-                  <span class="text-emerald-700">✓ Tercapai: <strong>${tercapaiB}</strong></span>
-                  <span class="text-amber-600">⚡ Hampir: <strong>${hampirTercapaiB}</strong></span>
-                  <span class="text-rose-600">✗ Tertinggal: <strong>${tertinggalB}</strong></span>
+                  <span class="text-emerald-700">✓ Tercapai: <strong>${g.tercapaiB}</strong></span>
+                  <span class="text-amber-600">⚡ Hampir: <strong>${g.hampirTercapaiB}</strong></span>
+                  <span class="text-rose-600">✗ Tertinggal: <strong>${g.tertinggalB}</strong></span>
                 </div>
               </div>
 
@@ -401,19 +626,70 @@ function renderStatistics(el) {
               <div class="bg-white p-2.5 rounded-xl border border-slate-100">
                 <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                   <span class="text-purple-700 flex items-center gap-1"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i> Target Hafalan</span>
-                  <span class="font-bold">${pctHafalan}%</span>
+                  <span class="font-bold">${g.pctH}%</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-2 mb-1.5 overflow-hidden">
-                  <div class="h-2 rounded-full bg-purple-500" style="width:${pctHafalan}%"></div>
+                  <div class="h-2 rounded-full bg-purple-500" style="width:${g.pctH}%"></div>
                 </div>
                 <div class="flex justify-between text-[11px] font-medium text-slate-500 gap-1 flex-wrap">
-                  <span class="text-purple-700">✓ Tercapai: <strong>${tercapaiH}</strong></span>
-                  <span class="text-amber-600">⚡ Hampir: <strong>${hampirTercapaiH}</strong></span>
-                  <span class="text-rose-600">✗ Tertinggal: <strong>${tertinggalH}</strong></span>
+                  <span class="text-purple-700">✓ Tercapai: <strong>${g.tercapaiH}</strong></span>
+                  <span class="text-amber-600">⚡ Hampir: <strong>${g.hampirTercapaiH}</strong></span>
+                  <span class="text-rose-600">✗ Tertinggal: <strong>${g.tertinggalH}</strong></span>
                 </div>
               </div>
-            </div>`;
-          }).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Diagram Batang Capaian Target Tiap Grade -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-slate-100 gap-3">
+        <div>
+          <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+            <i data-lucide="bar-chart-3" class="w-5 h-5 text-emerald-600"></i>
+            Diagram Batang Capaian Target Tiap Grade
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Visualisasi jumlah siswa Tercapai, Hampir Tercapai, dan Tertinggal antar tingkat</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap text-xs font-semibold">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600"></span> Tercapai (Bacaan)
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-100">
+            <span class="w-2.5 h-2.5 rounded-sm bg-purple-600"></span> Tercapai (Hafalan)
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+            <span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Hampir
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-100">
+            <span class="w-2.5 h-2.5 rounded-sm bg-rose-600"></span> Tertinggal
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Bacaan SVG Chart -->
+        <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+              <i data-lucide="book" class="w-4 h-4"></i> Target Bacaan (Iqro / Al-Qur'an)
+            </span>
+            <span class="text-[11px] text-slate-400 font-medium">Jumlah Siswa</span>
+          </div>
+          ${generateGradeBarChartSVG(gradeStatsList, 'bacaan')}
+        </div>
+
+        <!-- Hafalan SVG Chart -->
+        <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-100">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-bold text-purple-700 flex items-center gap-1.5">
+              <i data-lucide="bookmark" class="w-4 h-4"></i> Target Hafalan
+            </span>
+            <span class="text-[11px] text-slate-400 font-medium">Jumlah Siswa</span>
+          </div>
+          ${generateGradeBarChartSVG(gradeStatsList, 'hafalan')}
         </div>
       </div>
     </div>
@@ -435,6 +711,7 @@ function exportStatsPDF() {
   const reportCount = reports.length;
   const avg = latestReports.length > 0 ? Math.round(lancar / latestReports.length * 100) : 0;
 
+  const gradeStatsList = [];
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
   let grandHampirTercapaiBacaan = 0;
@@ -465,6 +742,19 @@ function exportStatsPDF() {
     grandTercapaiHafalan += tercapaiH;
     grandHampirTercapaiHafalan += hampirTercapaiH;
     grandTertinggalHafalan += tertinggalH;
+
+    gradeStatsList.push({
+      gradeName,
+      totalSiswa,
+      tercapaiB,
+      hampirTercapaiB,
+      tertinggalB,
+      pctB,
+      tercapaiH,
+      hampirTercapaiH,
+      tertinggalH,
+      pctH
+    });
 
     return `
       <tr>
@@ -507,6 +797,7 @@ function exportStatsPDF() {
       <meta charset="utf-8">
       <title>Laporan Statistik Pembelajaran Al-Qur'an</title>
       <style>
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 25px; color: #1e293b; line-height: 1.5; }
         h1 { color: #047857; border-bottom: 3px solid #047857; padding-bottom: 8px; font-size: 20px; }
         h2 { color: #0f172a; margin-top: 22px; font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
@@ -561,7 +852,9 @@ function exportStatsPDF() {
         * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
       </div>
       
-      <h2>3. Komposisi Tipe Laporan Masuk</h2>
+      ${renderGradeBarChartSectionHtml(gradeStatsList)}
+      
+      <h2>4. Komposisi Tipe Laporan Masuk</h2>
       <table>
         <tr style="background-color: #f1f5f9;"><th>Tipe Laporan</th><th>Jumlah Entri</th></tr>
         <tr><td>📖 Iqro'</td><td>${reports.filter(r => r.report_type === 'iqro').length} laporan</td></tr>
@@ -604,6 +897,7 @@ function printStats() {
   const total = latestReports.length || 1;
   const reportCount = reports.length;
 
+  const gradeStatsList = [];
   let grandTotalSiswa = 0;
   let grandTercapaiBacaan = 0;
   let grandHampirTercapaiBacaan = 0;
@@ -634,6 +928,19 @@ function printStats() {
     grandTercapaiHafalan += tercapaiH;
     grandHampirTercapaiHafalan += hampirTercapaiH;
     grandTertinggalHafalan += tertinggalH;
+
+    gradeStatsList.push({
+      gradeName,
+      totalSiswa,
+      tercapaiB,
+      hampirTercapaiB,
+      tertinggalB,
+      pctB,
+      tercapaiH,
+      hampirTercapaiH,
+      tertinggalH,
+      pctH
+    });
 
     return `
       <tr>
@@ -680,6 +987,7 @@ function printStats() {
           body { margin: 0; padding: 15px; }
           .no-print { display: none !important; }
         }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.5; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; }
         h1 { color: #047857; text-align: center; border-bottom: 3px solid #047857; padding-bottom: 8px; font-size: 22px; margin-bottom: 5px; }
@@ -762,6 +1070,8 @@ function printStats() {
         <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-style: italic;">
           * Keterangan Kategori Ketuntasan: <strong>Tercapai</strong> (Mencapai target kurikulum), <strong>Hampir Tercapai</strong> (Bacaan &le; 15 halaman sebelum target / Hafalan &le; 3 surat sebelum target), <strong>Tertinggal</strong> (Bacaan &gt; 15 halaman sebelum target / Hafalan &gt; 3 surat sebelum target).
         </div>
+        
+        ${renderGradeBarChartSectionHtml(gradeStatsList)}
         
         <div class="stats-grid">
           <div class="stat-card">
