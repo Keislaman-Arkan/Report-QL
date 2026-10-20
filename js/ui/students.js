@@ -605,26 +605,62 @@ function autoFillReportForm(prefix, studentId) {
   
   if (stReports.length > 0) {
     const latest = stReports[0];
-    const isBelumLancar = latest && latest.status !== 'Lancar';
+    const normStatus = normalizeReportStatus(latest.status);
+    const isRasib = normStatus === 'Rasib';
+    const isJayyid = normStatus === 'Jayyid';
 
     if (prefix === 'ri') {
       document.getElementById('ri-jilid').value = latest.iqro_jilid || 1;
-      if (isBelumLancar) {
-        document.getElementById('ri-hal').value = latest.iqro_halaman || 1; // Mengulang halaman sebelumnya
+      const repeatHal = latest.iqro_halaman || 1;
+      const nextHal = (latest.iqro_halaman || 0) + 1;
+
+      if (isRasib) {
+        document.getElementById('ri-hal').value = repeatHal; // Mengulang halaman sebelumnya
+        if (warnContainer) {
+          warnContainer.innerHTML = `
+            <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs">
+              <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1 leading-relaxed">
+                <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                  <span>Perhatian: Setoran Sebelumnya Rasib (Harus Mengulang)!</span>
+                </div>
+                <p class="mt-0.5 text-rose-800">
+                  Pada tanggal <strong>${latest.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latest.iqro_jilid || 1} Hal ${latest.iqro_halaman || 1}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> halaman ini.
+                </p>
+                ${latest.catatan ? `<p class="mt-1 text-[11px] text-rose-700 italic border-l-2 border-rose-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+              </div>
+            </div>
+          `;
+          warnContainer.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+        }
+      } else if (isJayyid) {
+        document.getElementById('ri-hal').value = nextHal; // Default lanjut, dengan opsi mengulang
         if (warnContainer) {
           warnContainer.innerHTML = `
             <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
               <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                <i data-lucide="info" class="w-4 h-4"></i>
               </div>
               <div class="flex-1 leading-relaxed">
                 <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                  <span>Peringatan: Setoran Sebelumnya Belum Lancar!</span>
+                  <span>Keterangan: Setoran Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
                 </div>
                 <p class="mt-0.5 text-amber-800">
-                  Pada tanggal <strong>${latest.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latest.iqro_jilid || 1} Hal ${latest.iqro_halaman || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Halaman disetel mengulang halaman ini.
+                  Pada tanggal <strong>${latest.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latest.iqro_jilid || 1} Hal ${latest.iqro_halaman || 1}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
                 </p>
                 ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+                  <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+                  <button type="button" id="ri-btn-lanjut" onclick="applyJayyidChoice('ri', 'advance', { hal: ${nextHal} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+                    <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Hal ${nextHal}
+                  </button>
+                  <button type="button" id="ri-btn-ulang" onclick="applyJayyidChoice('ri', 'repeat', { hal: ${repeatHal} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Hal ${repeatHal}
+                  </button>
+                </div>
               </div>
             </div>
           `;
@@ -632,7 +668,8 @@ function autoFillReportForm(prefix, studentId) {
           if (window.lucide) lucide.createIcons();
         }
       } else {
-        document.getElementById('ri-hal').value = (latest.iqro_halaman || 0) + 1; // Tambah 1 halaman
+        // Mumtaz / Jayyid jiddan
+        document.getElementById('ri-hal').value = nextHal;
       }
     } else if (prefix === 'rq') {
       document.getElementById('rq-juz').value = latest.juz || 1;
@@ -644,24 +681,60 @@ function autoFillReportForm(prefix, studentId) {
         
         const dariEl = document.getElementById('rq-ayat-dari');
         const sampaiEl = document.getElementById('rq-ayat-sampai');
+        const mx = getAyatCount(latest.juz || 1, latest.surat);
+        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1);
+        const repeatDari = latest.ayat_dari || 1;
+        const repeatSampai = latest.ayat_sampai || 1;
 
-        if (isBelumLancar) {
-          if (dariEl) dariEl.value = latest.ayat_dari || 1;
-          if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+        if (isRasib) {
+          if (dariEl) dariEl.value = repeatDari;
+          if (sampaiEl) sampaiEl.value = repeatSampai;
+          if (warnContainer) {
+            warnContainer.innerHTML = `
+              <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs">
+                <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+                  <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 leading-relaxed">
+                  <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                    <span>Perhatian: Setoran Sebelumnya Rasib (Harus Mengulang)!</span>
+                  </div>
+                  <p class="mt-0.5 text-rose-800">
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, bacaan <strong>Surat ${latest.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> ayat ini.
+                  </p>
+                  ${latest.catatan ? `<p class="mt-1 text-[11px] text-rose-700 italic border-l-2 border-rose-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                </div>
+              </div>
+            `;
+            warnContainer.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+          }
+        } else if (isJayyid) {
+          if (dariEl) dariEl.value = nextAyat;
+          if (sampaiEl) sampaiEl.value = nextAyat;
           if (warnContainer) {
             warnContainer.innerHTML = `
               <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
                 <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                  <i data-lucide="info" class="w-4 h-4"></i>
                 </div>
                 <div class="flex-1 leading-relaxed">
                   <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                    <span>Peringatan: Setoran Sebelumnya Belum Lancar!</span>
+                    <span>Keterangan: Setoran Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
                   </div>
                   <p class="mt-0.5 text-amber-800">
-                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, bacaan <strong>Surat ${latest.surat || '-'} Ayat ${latest.ayat_dari || 1}-${latest.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang ayat sebelumnya.
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, bacaan <strong>Surat ${latest.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
                   </p>
                   ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                  <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+                    <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+                    <button type="button" id="rq-btn-lanjut" onclick="applyJayyidChoice('rq', 'advance', { dari: ${nextAyat}, sampai: ${nextAyat} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+                      <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Ayat ${nextAyat}
+                    </button>
+                    <button type="button" id="rq-btn-ulang" onclick="applyJayyidChoice('rq', 'repeat', { dari: ${repeatDari}, sampai: ${repeatSampai} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+                      <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Ayat ${repeatDari}-${repeatSampai}
+                    </button>
+                  </div>
                 </div>
               </div>
             `;
@@ -669,8 +742,7 @@ function autoFillReportForm(prefix, studentId) {
             if (window.lucide) lucide.createIcons();
           }
         } else {
-          const mx = getAyatCount(latest.juz || 1, latest.surat);
-          const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+          // Mumtaz / Jayyid jiddan
           if (dariEl) dariEl.value = nextAyat; 
           if (sampaiEl) sampaiEl.value = nextAyat; 
         }
@@ -685,24 +757,60 @@ function autoFillReportForm(prefix, studentId) {
         
         const dariEl = document.getElementById('rh-ayat-dari');
         const sampaiEl = document.getElementById('rh-ayat-sampai');
+        const mx = getAyatCount(latest.juz || 30, latest.surat);
+        const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1);
+        const repeatDari = latest.ayat_dari || 1;
+        const repeatSampai = latest.ayat_sampai || 1;
 
-        if (isBelumLancar) {
-          if (dariEl) dariEl.value = latest.ayat_dari || 1;
-          if (sampaiEl) sampaiEl.value = latest.ayat_sampai || 1;
+        if (isRasib) {
+          if (dariEl) dariEl.value = repeatDari;
+          if (sampaiEl) sampaiEl.value = repeatSampai;
+          if (warnContainer) {
+            warnContainer.innerHTML = `
+              <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs">
+                <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+                  <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 leading-relaxed">
+                  <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                    <span>Perhatian: Setoran Hafalan Sebelumnya Rasib (Harus Mengulang)!</span>
+                  </div>
+                  <p class="mt-0.5 text-rose-800">
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, hafalan <strong>Surat ${latest.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> hafalan ini.
+                  </p>
+                  ${latest.catatan ? `<p class="mt-1 text-[11px] text-rose-700 italic border-l-2 border-rose-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                </div>
+              </div>
+            `;
+            warnContainer.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+          }
+        } else if (isJayyid) {
+          if (dariEl) dariEl.value = nextAyat;
+          if (sampaiEl) sampaiEl.value = nextAyat;
           if (warnContainer) {
             warnContainer.innerHTML = `
               <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
                 <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                  <i data-lucide="info" class="w-4 h-4"></i>
                 </div>
                 <div class="flex-1 leading-relaxed">
                   <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                    <span>Peringatan: Setoran Hafalan Sebelumnya Belum Lancar!</span>
+                    <span>Keterangan: Setoran Hafalan Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
                   </div>
                   <p class="mt-0.5 text-amber-800">
-                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, hafalan <strong>Surat ${latest.surat || '-'} Ayat ${latest.ayat_dari || 1}-${latest.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang hafalan ini.
+                    Pada tanggal <strong>${latest.tanggal || '-'}</strong>, hafalan <strong>Surat ${latest.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
                   </p>
                   ${latest.catatan ? `<p class="mt-1 text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">Catatan lalu: "${latest.catatan}"</p>` : ''}
+                  <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+                    <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+                    <button type="button" id="rh-btn-lanjut" onclick="applyJayyidChoice('rh', 'advance', { dari: ${nextAyat}, sampai: ${nextAyat} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+                      <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Ayat ${nextAyat}
+                    </button>
+                    <button type="button" id="rh-btn-ulang" onclick="applyJayyidChoice('rh', 'repeat', { dari: ${repeatDari}, sampai: ${repeatSampai} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+                      <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Ayat ${repeatDari}-${repeatSampai}
+                    </button>
+                  </div>
                 </div>
               </div>
             `;
@@ -710,8 +818,7 @@ function autoFillReportForm(prefix, studentId) {
             if (window.lucide) lucide.createIcons();
           }
         } else {
-          const mx = getAyatCount(latest.juz || 30, latest.surat);
-          const nextAyat = Math.min((latest.ayat_sampai || 0) + 1, mx || 1); // Tambah 1 ayat
+          // Mumtaz / Jayyid jiddan
           if (dariEl) dariEl.value = nextAyat;
           if (sampaiEl) sampaiEl.value = nextAyat;
         }

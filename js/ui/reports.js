@@ -22,7 +22,7 @@ function renderReportBacaan(el) {
           <div id="ri-warning-container" class="hidden"></div>
           <div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Jilid</label><input id="ri-jilid" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div><div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Halaman</label><input id="ri-hal" type="number" value="1" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="ri-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
+          <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Mumtaz">Mumtaz</option><option value="Jayyid jiddan">Jayyid jiddan</option><option value="Jayyid">Jayyid</option><option value="Rasib">Rasib</option></select></div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="ri-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportIqro()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Iqro</button>
         </div>
@@ -56,7 +56,7 @@ function renderReportBacaan(el) {
           </button>
           <div class="grid grid-cols-2 gap-4">
              <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rq-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
+             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Mumtaz">Mumtaz</option><option value="Jayyid jiddan">Jayyid jiddan</option><option value="Jayyid">Jayyid</option><option value="Rasib">Rasib</option></select></div>
           </div>
           <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rq-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan catatan perkembangan bacaan siswa..."></textarea></div>
           <button onclick="saveReportQuran()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-md transition">Simpan Laporan Qur'an</button>
@@ -99,7 +99,7 @@ function renderReportHafalan(el) {
         </button>
         <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label><input id="rh-date" type="date" value="${today()}" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm"></div>
-            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Lancar">Lancar</option><option value="Belum Lancar">Belum Lancar</option></select></div>
+            <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Status</label><select id="rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"><option value="Mumtaz">Mumtaz</option><option value="Jayyid jiddan">Jayyid jiddan</option><option value="Jayyid">Jayyid</option><option value="Rasib">Rasib</option></select></div>
         </div>
         <div><label class="block text-sm font-semibold text-slate-700 mb-1.5">Catatan Guru</label><textarea id="rh-catatan" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Masukkan catatan perkembangan hafalan siswa..."></textarea></div>
         <button onclick="saveReportHafalan()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold shadow-md mt-2 transition">Simpan Laporan Hafalan</button>
@@ -466,11 +466,9 @@ function renderReports(el) {
               let detail = r.report_type==='iqro'
                 ? `Jilid ${r.iqro_jilid} Hal ${r.iqro_halaman}` 
                 : `<span class="inline-flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 hover:underline font-medium" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: '${r.report_type}' })" title="Klik untuk membuka teks ayat"><i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400 hover:text-emerald-600 no-print"></i> Juz ${r.juz} ${r.surat} (${r.ayat_dari}-${r.ayat_sampai})</span>`;
-              const isLancar = r.status === 'Lancar';
-              const displayStatus = (r.status === 'Tidak Lancar' || r.status === 'Mengulang' || r.status === 'Belum Lancar') ? 'Belum Lancar' : (r.status || 'Lancar');
-              const color = isLancar 
-                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                : 'bg-amber-100 text-amber-800 border border-amber-200';
+              const statusInfo = getStatusBadgeStyle(r.status);
+              const displayStatus = statusInfo.label;
+              const color = statusInfo.badgeClass;
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
                 <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>

@@ -237,11 +237,9 @@ function renderReportHistory(el) {
                   detailText = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${(student?.name||'').replace(/'/g, "\\'")}', reportType: 'hafalan' })" title="Buka teks ayat"><span class="font-bold text-slate-800">Juz ${r.juz || 30}</span> - <span class="font-semibold text-slate-700">${r.surat || '-'}</span> <span class="text-slate-500 font-normal">(Ayat ${r.ayat_dari || 1}-${r.ayat_sampai || 1})</span> <i data-lucide="book-open" class="w-3.5 h-3.5 text-purple-500 ml-1 no-print"></i></span>`;
                 }
 
-                const isLancar = r.status === 'Lancar';
-                const displayStatus = (r.status === 'Tidak Lancar' || r.status === 'Mengulang' || r.status === 'Belum Lancar') ? 'Belum Lancar' : (r.status || 'Lancar');
-                const statusColor = isLancar 
-                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                  : 'bg-amber-100 text-amber-800 border border-amber-200';
+                const statusInfo = getStatusBadgeStyle(r.status);
+                const displayStatus = statusInfo.label;
+                const statusColor = statusInfo.badgeClass;
 
                 const rowNumber = historySortOrder === 'asc' ? (idx + 1) : (studentReports.length - idx);
 
@@ -408,12 +406,14 @@ function editHistoryReport(reportId) {
           </div>
         </div>
 
-        <!-- Status Kelancaran -->
+        <!-- Status Laporan -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Status Kelancaran</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Status Laporan</label>
           <select id="edit-rep-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
-            <option value="Lancar" ${report.status === 'Lancar' ? 'selected' : ''}>Lancar</option>
-            <option value="Belum Lancar" ${report.status !== 'Lancar' ? 'selected' : ''}>Belum Lancar</option>
+            <option value="Mumtaz" ${normalizeReportStatus(report.status) === 'Mumtaz' ? 'selected' : ''}>Mumtaz</option>
+            <option value="Jayyid jiddan" ${normalizeReportStatus(report.status) === 'Jayyid jiddan' ? 'selected' : ''}>Jayyid jiddan</option>
+            <option value="Jayyid" ${normalizeReportStatus(report.status) === 'Jayyid' ? 'selected' : ''}>Jayyid</option>
+            <option value="Rasib" ${normalizeReportStatus(report.status) === 'Rasib' ? 'selected' : ''}>Rasib</option>
           </select>
         </div>
 
