@@ -740,8 +740,7 @@ function computeStudentHalaqohProgress(student, allReports, periodFilter, custom
       ? `Iqro' Jld ${latestBacaan.iqro_jilid} Hal ${latestBacaan.iqro_halaman}`
       : `${latestBacaan.surat} Ayat ${latestBacaan.ayat_dari}-${latestBacaan.ayat_sampai}`;
     bacaanDate = latestBacaan.tanggal || '';
-    const bs = latestBacaan.status || 'Lancar';
-    bacaanStatus = (bs === 'Tidak Lancar' || bs === 'Mengulang' || bs === 'Belum Lancar') ? 'Belum Lancar' : bs;
+    bacaanStatus = latestBacaan.status ? normalizeReportStatus(latestBacaan.status) : 'Mumtaz';
   }
 
   let hafalanText = 'Belum ada setoran';
@@ -750,8 +749,7 @@ function computeStudentHalaqohProgress(student, allReports, periodFilter, custom
   if (latestHafalan) {
     hafalanText = `${latestHafalan.surat} Ayat ${latestHafalan.ayat_dari}-${latestHafalan.ayat_sampai}`;
     hafalanDate = latestHafalan.tanggal || '';
-    const hs = latestHafalan.status || 'Lancar';
-    hafalanStatus = (hs === 'Tidak Lancar' || hs === 'Mengulang' || hs === 'Belum Lancar') ? 'Belum Lancar' : hs;
+    hafalanStatus = latestHafalan.status ? normalizeReportStatus(latestHafalan.status) : 'Mumtaz';
   }
 
   // 3. Hitung Perkembangan Halaman & Ayat Sesuai Periode
@@ -1597,40 +1595,73 @@ function showHalaqohBacaanModal(studentId) {
     .filter(r => r.report_type === 'iqro')
     .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const latestIqro = iqroReports[0];
-  const isIqroBelumLancar = latestIqro && latestIqro.status !== 'Lancar';
+  const normIqroStatus = latestIqro ? normalizeReportStatus(latestIqro.status) : '';
+  const isIqroRasib = normIqroStatus === 'Rasib';
+  const isIqroJayyid = normIqroStatus === 'Jayyid';
 
   const quranReports = stReports
     .filter(r => r.report_type === 'quran')
     .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const latestQuran = quranReports[0];
-  const isQuranBelumLancar = latestQuran && latestQuran.status !== 'Lancar';
+  const normQuranStatus = latestQuran ? normalizeReportStatus(latestQuran.status) : '';
+  const isQuranRasib = normQuranStatus === 'Rasib';
+  const isQuranJayyid = normQuranStatus === 'Jayyid';
 
   // Nilai awal Iqro
   let initIqroJilid = 1;
   let initIqroHal = 1;
+  const repeatIqroHal = latestIqro ? (latestIqro.iqro_halaman || 1) : 1;
+  const nextIqroHal = latestIqro ? ((latestIqro.iqro_halaman || 0) + 1) : 1;
+
   if (latestIqro) {
     initIqroJilid = latestIqro.iqro_jilid || 1;
-    initIqroHal = isIqroBelumLancar ? (latestIqro.iqro_halaman || 1) : ((latestIqro.iqro_halaman || 0) + 1);
+    initIqroHal = isIqroRasib ? repeatIqroHal : nextIqroHal;
   } else if (student.iqro_jilid) {
     initIqroJilid = student.iqro_jilid || 1;
     initIqroHal = student.iqro_halaman || 1;
   }
 
   let iqroWarningHtml = '';
-  if (isIqroBelumLancar) {
+  if (isIqroRasib) {
+    iqroWarningHtml = `
+      <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-circle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+            <span>Perhatian: Setoran Iqro' Sebelumnya Rasib (Harus Mengulang)!</span>
+          </div>
+          <p class="mt-0.5 text-rose-800 text-[11px]">
+            Pada tanggal <strong>${latestIqro.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latestIqro.iqro_jilid || 1} Hal ${latestIqro.iqro_halaman || 1}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> halaman ini.
+          </p>
+          ${latestIqro.catatan ? `<p class="mt-1 text-[10px] text-rose-700 italic border-l-2 border-rose-300 pl-1.5">Catatan lalu: "${latestIqro.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
+  } else if (isIqroJayyid) {
     iqroWarningHtml = `
       <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
         <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <i data-lucide="info" class="w-4 h-4"></i>
         </div>
         <div class="flex-1 leading-relaxed">
           <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-            <span>Peringatan: Setoran Iqro' Sebelumnya Belum Lancar!</span>
+            <span>Keterangan: Setoran Iqro' Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
           </div>
           <p class="mt-0.5 text-amber-800 text-[11px]">
-            Pada tanggal <strong>${latestIqro.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latestIqro.iqro_jilid || 1} Hal ${latestIqro.iqro_halaman || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Halaman disetel mengulang halaman ini.
+            Pada tanggal <strong>${latestIqro.tanggal || '-'}</strong>, setoran <strong>Iqro' Jilid ${latestIqro.iqro_jilid || 1} Hal ${latestIqro.iqro_halaman || 1}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
           </p>
           ${latestIqro.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestIqro.catatan}"</p>` : ''}
+          <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+            <button type="button" id="hlq-ri-btn-lanjut" onclick="applyJayyidChoice('hlq-ri', 'advance', { hal: ${nextIqroHal} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+              <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Hal ${nextIqroHal}
+            </button>
+            <button type="button" id="hlq-ri-btn-ulang" onclick="applyJayyidChoice('hlq-ri', 'repeat', { hal: ${repeatIqroHal} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Hal ${repeatIqroHal}
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1641,18 +1672,24 @@ function showHalaqohBacaanModal(studentId) {
   let initQuranSurat = 'Al-Fatihah';
   let initQuranDari = 1;
   let initQuranSampai = 1;
+  let repeatQuranDari = 1;
+  let repeatQuranSampai = 1;
+  let nextQuranAyat = 1;
 
   if (latestQuran) {
     initQuranJuz = latestQuran.juz || 1;
     initQuranSurat = latestQuran.surat || 'Al-Fatihah';
-    if (isQuranBelumLancar) {
-      initQuranDari = latestQuran.ayat_dari || 1;
-      initQuranSampai = latestQuran.ayat_sampai || 1;
+    const mx = getAyatCount(initQuranJuz, initQuranSurat);
+    nextQuranAyat = Math.min((latestQuran.ayat_sampai || 0) + 1, mx || 1);
+    repeatQuranDari = latestQuran.ayat_dari || 1;
+    repeatQuranSampai = latestQuran.ayat_sampai || 1;
+
+    if (isQuranRasib) {
+      initQuranDari = repeatQuranDari;
+      initQuranSampai = repeatQuranSampai;
     } else {
-      const mx = getAyatCount(initQuranJuz, initQuranSurat);
-      const nextAyat = Math.min((latestQuran.ayat_sampai || 0) + 1, mx || 1);
-      initQuranDari = nextAyat;
-      initQuranSampai = nextAyat;
+      initQuranDari = nextQuranAyat;
+      initQuranSampai = nextQuranAyat;
     }
   } else {
     const listSurat = getSuratByJuz(1);
@@ -1660,20 +1697,46 @@ function showHalaqohBacaanModal(studentId) {
   }
 
   let quranWarningHtml = '';
-  if (isQuranBelumLancar) {
+  if (isQuranRasib) {
+    quranWarningHtml = `
+      <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-circle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+            <span>Perhatian: Setoran Al-Qur'an Sebelumnya Rasib (Harus Mengulang)!</span>
+          </div>
+          <p class="mt-0.5 text-rose-800 text-[11px]">
+            Pada tanggal <strong>${latestQuran.tanggal || '-'}</strong>, bacaan <strong>Surat ${latestQuran.surat || '-'} Ayat ${repeatQuranDari}-${repeatQuranSampai}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> ayat ini.
+          </p>
+          ${latestQuran.catatan ? `<p class="mt-1 text-[10px] text-rose-700 italic border-l-2 border-rose-300 pl-1.5">Catatan lalu: "${latestQuran.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
+  } else if (isQuranJayyid) {
     quranWarningHtml = `
       <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
         <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <i data-lucide="info" class="w-4 h-4"></i>
         </div>
         <div class="flex-1 leading-relaxed">
           <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-            <span>Peringatan: Setoran Al-Qur'an Sebelumnya Belum Lancar!</span>
+            <span>Keterangan: Setoran Al-Qur'an Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
           </div>
           <p class="mt-0.5 text-amber-800 text-[11px]">
-            Pada tanggal <strong>${latestQuran.tanggal || '-'}</strong>, bacaan <strong>Surat ${latestQuran.surat || '-'} Ayat ${latestQuran.ayat_dari || 1}-${latestQuran.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang ayat sebelumnya.
+            Pada tanggal <strong>${latestQuran.tanggal || '-'}</strong>, bacaan <strong>Surat ${latestQuran.surat || '-'} Ayat ${repeatQuranDari}-${repeatQuranSampai}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
           </p>
           ${latestQuran.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestQuran.catatan}"</p>` : ''}
+          <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+            <button type="button" id="hlq-rq-btn-lanjut" onclick="applyJayyidChoice('hlq-rq', 'advance', { dari: ${nextQuranAyat}, sampai: ${nextQuranAyat} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+              <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Ayat ${nextQuranAyat}
+            </button>
+            <button type="button" id="hlq-rq-btn-ulang" onclick="applyJayyidChoice('hlq-rq', 'repeat', { dari: ${repeatQuranDari}, sampai: ${repeatQuranSampai} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Ayat ${repeatQuranDari}-${repeatQuranSampai}
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1732,8 +1795,10 @@ function showHalaqohBacaanModal(studentId) {
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-ri-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-              <option value="Lancar">Lancar</option>
-              <option value="Belum Lancar">Belum Lancar</option>
+              <option value="Mumtaz">Mumtaz</option>
+              <option value="Jayyid jiddan">Jayyid jiddan</option>
+              <option value="Jayyid">Jayyid</option>
+              <option value="Rasib">Rasib</option>
             </select>
           </div>
         </div>
@@ -1784,8 +1849,10 @@ function showHalaqohBacaanModal(studentId) {
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-rq-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-              <option value="Lancar">Lancar</option>
-              <option value="Belum Lancar">Belum Lancar</option>
+              <option value="Mumtaz">Mumtaz</option>
+              <option value="Jayyid jiddan">Jayyid jiddan</option>
+              <option value="Jayyid">Jayyid</option>
+              <option value="Rasib">Rasib</option>
             </select>
           </div>
         </div>
@@ -1878,7 +1945,7 @@ async function saveHalaqohBacaan(studentId) {
     const jilid = parseInt(document.getElementById('hlq-ri-jilid').value) || 1;
     const hal = parseInt(document.getElementById('hlq-ri-hal').value) || 1;
     const tgl = document.getElementById('hlq-ri-date').value || today();
-    const status = document.getElementById('hlq-ri-status').value || 'Lancar';
+    const status = document.getElementById('hlq-ri-status').value || 'Mumtaz';
     const catatan = document.getElementById('hlq-ri-catatan').value.trim();
 
     res = await window.dataSdk.create({
@@ -1898,7 +1965,7 @@ async function saveHalaqohBacaan(studentId) {
     const ayatDari = parseInt(document.getElementById('hlq-rq-ayat-dari').value) || 1;
     const ayatSampai = parseInt(document.getElementById('hlq-rq-ayat-sampai').value) || 1;
     const tgl = document.getElementById('hlq-rq-date').value || today();
-    const status = document.getElementById('hlq-rq-status').value || 'Lancar';
+    const status = document.getElementById('hlq-rq-status').value || 'Mumtaz';
     const catatan = document.getElementById('hlq-rq-catatan').value.trim();
 
     res = await window.dataSdk.create({
@@ -1939,22 +2006,30 @@ function showHalaqohHafalanModal(studentId) {
     .filter(r => r.report_type === 'hafalan')
     .sort((a, b) => new Date(b.tanggal || 0) - new Date(a.tanggal || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
   const latestHafalan = hafalanReports[0];
-  const isHafalanBelumLancar = latestHafalan && latestHafalan.status !== 'Lancar';
+  const normHafalanStatus = latestHafalan ? normalizeReportStatus(latestHafalan.status) : '';
+  const isHafalanRasib = normHafalanStatus === 'Rasib';
+  const isHafalanJayyid = normHafalanStatus === 'Jayyid';
 
   let initJuz = 30;
   let initSurat = "An-Naba'";
   let initDari = 1;
   let initSampai = 1;
+  let repeatDari = 1;
+  let repeatSampai = 1;
+  let nextAyat = 1;
 
   if (latestHafalan) {
     initJuz = latestHafalan.juz || 30;
     initSurat = latestHafalan.surat;
-    if (isHafalanBelumLancar) {
-      initDari = latestHafalan.ayat_dari || 1;
-      initSampai = latestHafalan.ayat_sampai || 1;
+    const mx = getAyatCount(initJuz, initSurat);
+    nextAyat = Math.min((latestHafalan.ayat_sampai || 0) + 1, mx || 1);
+    repeatDari = latestHafalan.ayat_dari || 1;
+    repeatSampai = latestHafalan.ayat_sampai || 1;
+
+    if (isHafalanRasib) {
+      initDari = repeatDari;
+      initSampai = repeatSampai;
     } else {
-      const mx = getAyatCount(initJuz, initSurat);
-      const nextAyat = Math.min((latestHafalan.ayat_sampai || 0) + 1, mx || 1);
       initDari = nextAyat;
       initSampai = nextAyat;
     }
@@ -1983,20 +2058,46 @@ function showHalaqohHafalanModal(studentId) {
   }
 
   let hafalanWarningHtml = '';
-  if (isHafalanBelumLancar) {
+  if (isHafalanRasib) {
+    hafalanWarningHtml = `
+      <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-rose-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
+        <div class="p-1 bg-rose-200 text-rose-800 rounded-lg shrink-0 mt-0.5">
+          <i data-lucide="alert-circle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 leading-relaxed">
+          <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+            <span>Perhatian: Setoran Hafalan Sebelumnya Rasib (Harus Mengulang)!</span>
+          </div>
+          <p class="mt-0.5 text-rose-800 text-[11px]">
+            Pada tanggal <strong>${latestHafalan.tanggal || '-'}</strong>, hafalan <strong>Surat ${latestHafalan.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded">Rasib</span>. Siswa tersebut berstatus <strong>Rasib</strong>, maka <strong>harus mengulang</strong> hafalan ini.
+          </p>
+          ${latestHafalan.catatan ? `<p class="mt-1 text-[10px] text-rose-700 italic border-l-2 border-rose-300 pl-1.5">Catatan lalu: "${latestHafalan.catatan}"</p>` : ''}
+        </div>
+      </div>
+    `;
+  } else if (isHafalanJayyid) {
     hafalanWarningHtml = `
       <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-xs mb-1">
         <div class="p-1 bg-amber-200 text-amber-800 rounded-lg shrink-0 mt-0.5">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <i data-lucide="info" class="w-4 h-4"></i>
         </div>
         <div class="flex-1 leading-relaxed">
           <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-            <span>Peringatan: Setoran Hafalan Sebelumnya Belum Lancar!</span>
+            <span>Keterangan: Setoran Hafalan Sebelumnya Jayyid (Bisa Lanjut / Mengulang)!</span>
           </div>
           <p class="mt-0.5 text-amber-800 text-[11px]">
-            Pada tanggal <strong>${latestHafalan.tanggal || '-'}</strong>, hafalan <strong>Surat ${latestHafalan.surat || '-'} Ayat ${latestHafalan.ayat_dari || 1}-${latestHafalan.ayat_sampai || 1}</strong> tercatat <span class="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Belum Lancar</span>. Ayat disetel mengulang hafalan ini.
+            Pada tanggal <strong>${latestHafalan.tanggal || '-'}</strong>, hafalan <strong>Surat ${latestHafalan.surat || '-'} Ayat ${repeatDari}-${repeatSampai}</strong> berstatus <span class="font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">Jayyid</span>. Siswa tersebut <strong>Jayyid</strong>, jadi <strong>bisa lanjut</strong> dan <strong>bisa mengulang</strong>.
           </p>
           ${latestHafalan.catatan ? `<p class="mt-1 text-[10px] text-amber-700 italic border-l-2 border-amber-300 pl-1.5">Catatan lalu: "${latestHafalan.catatan}"</p>` : ''}
+          <div class="mt-2.5 pt-2 border-t border-amber-200 flex items-center gap-2 flex-wrap">
+            <span class="text-[11px] font-semibold text-amber-900">Pilih Aksi:</span>
+            <button type="button" id="hlq-rh-btn-lanjut" onclick="applyJayyidChoice('hlq-rh', 'advance', { dari: ${nextAyat}, sampai: ${nextAyat} })" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition">
+              <i data-lucide="arrow-right" class="w-3 h-3"></i> Lanjut Ayat ${nextAyat}
+            </button>
+            <button type="button" id="hlq-rh-btn-ulang" onclick="applyJayyidChoice('hlq-rh', 'repeat', { dari: ${repeatDari}, sampai: ${repeatSampai} })" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Ulang Ayat ${repeatDari}-${repeatSampai}
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -2061,8 +2162,10 @@ function showHalaqohHafalanModal(studentId) {
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
             <select id="hlq-rh-status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-purple-500 outline-none">
-              <option value="Lancar">Lancar</option>
-              <option value="Belum Lancar">Belum Lancar</option>
+              <option value="Mumtaz">Mumtaz</option>
+              <option value="Jayyid jiddan">Jayyid jiddan</option>
+              <option value="Jayyid">Jayyid</option>
+              <option value="Rasib">Rasib</option>
             </select>
           </div>
         </div>
@@ -2144,7 +2247,7 @@ async function saveHalaqohHafalan(studentId) {
   const ayatDari = parseInt(document.getElementById('hlq-rh-ayat-dari').value) || 1;
   const ayatSampai = parseInt(document.getElementById('hlq-rh-ayat-sampai').value) || 1;
   const tgl = document.getElementById('hlq-rh-date').value || today();
-  const status = document.getElementById('hlq-rh-status').value || 'Lancar';
+  const status = document.getElementById('hlq-rh-status').value || 'Mumtaz';
   const catatan = document.getElementById('hlq-rh-catatan').value.trim();
 
   const res = await window.dataSdk.create({
@@ -2318,11 +2421,9 @@ function showHalaqohHistoryModal(studentId, filterCategory = 'all') {
                     detail = `<span class="cursor-pointer hover:text-purple-700 hover:underline inline-flex items-center gap-1 font-medium text-slate-800" onclick="openQuranViewer({ surah: '${(r.surat||'').replace(/'/g, "\\'")}', fromAyah: ${r.ayat_dari||1}, toAyah: ${r.ayat_sampai||1}, studentName: '${safeStudentName}', reportType: 'hafalan' })" title="Buka teks ayat">Juz ${r.juz || 30} &bull; ${r.surat} (${r.ayat_dari}-${r.ayat_sampai}) <i data-lucide="book-open" class="w-3 h-3 text-purple-500"></i></span>`;
                   }
 
-                  const isLancar = r.status === 'Lancar';
-                  const displayStatus = (r.status === 'Tidak Lancar' || r.status === 'Mengulang' || r.status === 'Belum Lancar') ? 'Belum Lancar' : (r.status || 'Lancar');
-                  const statusColor = isLancar 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : 'bg-amber-50 text-amber-800 border border-amber-200';
+                  const statusInfo = getStatusBadgeStyle(r.status);
+                  const displayStatus = statusInfo.label;
+                  const statusColor = statusInfo.badgeClass;
 
                   return `
                     <tr class="hover:bg-slate-50 transition">

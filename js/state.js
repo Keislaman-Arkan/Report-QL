@@ -27,6 +27,103 @@ function getLatestStudentStatus(reportsList) {
   return Object.values(latest);
 }
 
+// --- NORMALISASI STATUS LAPORAN (Mumtaz, Jayyid jiddan, Jayyid, Rasib) ---
+function normalizeReportStatus(rawStatus) {
+  if (!rawStatus) return 'Mumtaz';
+  const s = String(rawStatus).trim();
+  const lower = s.toLowerCase();
+  if (lower === 'mumtaz') return 'Mumtaz';
+  if (lower === 'jayyid jiddan' || lower === 'jayyid-jiddan') return 'Jayyid jiddan';
+  if (lower === 'jayyid') return 'Jayyid';
+  if (lower === 'rasib') return 'Rasib';
+  // Kompatibilitas data lama:
+  if (lower === 'lancar') return 'Mumtaz';
+  if (lower === 'belum lancar' || lower === 'tidak lancar' || lower === 'mengulang') return 'Rasib';
+  return s;
+}
+
+function getStatusBadgeStyle(status) {
+  const norm = normalizeReportStatus(status);
+  if (norm === 'Mumtaz') {
+    return {
+      label: 'Mumtaz',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+      dotColor: 'bg-emerald-500',
+      textColor: '#047857'
+    };
+  } else if (norm === 'Jayyid jiddan') {
+    return {
+      label: 'Jayyid jiddan',
+      badgeClass: 'bg-sky-100 text-sky-800 border border-sky-300',
+      dotColor: 'bg-sky-500',
+      textColor: '#0284c7'
+    };
+  } else if (norm === 'Jayyid') {
+    return {
+      label: 'Jayyid',
+      badgeClass: 'bg-amber-100 text-amber-800 border border-amber-300',
+      dotColor: 'bg-amber-500',
+      textColor: '#b45309'
+    };
+  } else if (norm === 'Rasib') {
+    return {
+      label: 'Rasib',
+      badgeClass: 'bg-rose-100 text-rose-800 border border-rose-300',
+      dotColor: 'bg-rose-500',
+      textColor: '#e11d48'
+    };
+  }
+  return {
+    label: norm,
+    badgeClass: 'bg-slate-100 text-slate-700 border border-slate-300',
+    dotColor: 'bg-slate-400',
+    textColor: '#475569'
+  };
+}
+
+function applyJayyidChoice(prefix, mode, data) {
+  if (prefix === 'ri') {
+    const el = document.getElementById('ri-hal');
+    if (el && data.hal !== undefined) el.value = data.hal;
+  } else if (prefix === 'rq') {
+    const dariEl = document.getElementById('rq-ayat-dari');
+    const sampaiEl = document.getElementById('rq-ayat-sampai');
+    if (dariEl && data.dari !== undefined) dariEl.value = data.dari;
+    if (sampaiEl && data.sampai !== undefined) sampaiEl.value = data.sampai;
+  } else if (prefix === 'rh') {
+    const dariEl = document.getElementById('rh-ayat-dari');
+    const sampaiEl = document.getElementById('rh-ayat-sampai');
+    if (dariEl && data.dari !== undefined) dariEl.value = data.dari;
+    if (sampaiEl && data.sampai !== undefined) sampaiEl.value = data.sampai;
+  } else if (prefix === 'hlq-ri') {
+    const el = document.getElementById('hlq-ri-hal');
+    if (el && data.hal !== undefined) el.value = data.hal;
+  } else if (prefix === 'hlq-rq') {
+    const dariEl = document.getElementById('hlq-rq-ayat-dari');
+    const sampaiEl = document.getElementById('hlq-rq-ayat-sampai');
+    if (dariEl && data.dari !== undefined) dariEl.value = data.dari;
+    if (sampaiEl && data.sampai !== undefined) sampaiEl.value = data.sampai;
+  } else if (prefix === 'hlq-rh') {
+    const dariEl = document.getElementById('hlq-rh-ayat-dari');
+    const sampaiEl = document.getElementById('hlq-rh-ayat-sampai');
+    if (dariEl && data.dari !== undefined) dariEl.value = data.dari;
+    if (sampaiEl && data.sampai !== undefined) sampaiEl.value = data.sampai;
+  }
+
+  const btnLanjut = document.getElementById(`${prefix}-btn-lanjut`);
+  const btnUlang = document.getElementById(`${prefix}-btn-ulang`);
+  if (btnLanjut && btnUlang) {
+    if (mode === 'advance') {
+      btnLanjut.className = 'px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-emerald-400 flex items-center gap-1 transition';
+      btnUlang.className = 'px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition';
+    } else {
+      btnUlang.className = 'px-2.5 py-1 bg-amber-600 text-white rounded-lg text-[11px] font-bold shadow-xs ring-2 ring-amber-400 flex items-center gap-1 transition';
+      btnLanjut.className = 'px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium hover:bg-slate-300 flex items-center gap-1 transition';
+    }
+  }
+}
+
+
 // --- LOGIC PENILAIAN "TUNTAS" TARGET ---
 function getBacaanScore(type, jilid, hal) {
   if (type === 'quran') return 999999;

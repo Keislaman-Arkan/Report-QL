@@ -329,10 +329,14 @@ function renderStatistics(el) {
   const students = getStudents();
   const map = getGradeKelasMap();
   
-  const lancar = latestReports.filter(r => r.status === 'Lancar').length;
-  const belumLancar = latestReports.filter(r => r.status !== 'Lancar').length;
+  const countMumtaz = latestReports.filter(r => normalizeReportStatus(r.status) === 'Mumtaz').length;
+  const countJayyidJiddan = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid jiddan').length;
+  const countJayyid = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid').length;
+  const countRasib = latestReports.filter(r => normalizeReportStatus(r.status) === 'Rasib').length;
   const total = latestReports.length || 1;
-  const maxVal = Math.max(lancar, belumLancar, 1);
+  const maxVal = Math.max(countMumtaz, countJayyidJiddan, countJayyid, countRasib, 1);
+  const totalLulus = countMumtaz + countJayyidJiddan + countJayyid;
+  const pctLulus = latestReports.length > 0 ? Math.round(totalLulus / total * 100) : 0;
 
   const gradeStatsList = Object.keys(map).map(gradeName => {
     const ks = students.filter(s => s.grade === gradeName);
@@ -478,32 +482,54 @@ function renderStatistics(el) {
         <div>
           <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
             <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
-              <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-              Status Kelancaran Bacaan
+              <i data-lucide="award" class="w-5 h-5 text-emerald-600"></i>
+              Status Capaian Siswa (Update Terakhir)
             </h3>
-            <span class="text-xs text-slate-400">Update Terakhir</span>
+            <span class="text-xs text-slate-400">${latestReports.length} Siswa</span>
           </div>
-          <div class="space-y-5">
+          <div class="space-y-3.5">
             <div>
-              <div class="flex justify-between text-sm mb-1.5">
+              <div class="flex justify-between text-xs mb-1">
                 <span class="text-emerald-700 font-bold flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Lancar
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Mumtaz
                 </span>
-                <span class="font-bold text-slate-800">${lancar} <span class="text-slate-400 font-normal">(${Math.round(lancar / total * 100)}%)</span></span>
+                <span class="font-bold text-slate-800">${countMumtaz} <span class="text-slate-400 font-normal">(${Math.round(countMumtaz / total * 100)}%)</span></span>
               </div>
-              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                <div class="h-3 rounded-full bg-emerald-500 transition-all duration-300" style="width:${lancar / maxVal * 100}%"></div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full bg-emerald-500 transition-all duration-300" style="width:${countMumtaz / maxVal * 100}%"></div>
               </div>
             </div>
             <div>
-              <div class="flex justify-between text-sm mb-1.5">
-                <span class="text-amber-700 font-bold flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Belum Lancar
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-sky-700 font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Jayyid jiddan
                 </span>
-                <span class="font-bold text-slate-800">${belumLancar} <span class="text-slate-400 font-normal">(${Math.round(belumLancar / total * 100)}%)</span></span>
+                <span class="font-bold text-slate-800">${countJayyidJiddan} <span class="text-slate-400 font-normal">(${Math.round(countJayyidJiddan / total * 100)}%)</span></span>
               </div>
-              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                <div class="h-3 rounded-full bg-amber-500 transition-all duration-300" style="width:${belumLancar / maxVal * 100}%"></div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full bg-sky-500 transition-all duration-300" style="width:${countJayyidJiddan / maxVal * 100}%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-amber-700 font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Jayyid
+                </span>
+                <span class="font-bold text-slate-800">${countJayyid} <span class="text-slate-400 font-normal">(${Math.round(countJayyid / total * 100)}%)</span></span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full bg-amber-500 transition-all duration-300" style="width:${countJayyid / maxVal * 100}%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-rose-700 font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Rasib (Mengulang)
+                </span>
+                <span class="font-bold text-slate-800">${countRasib} <span class="text-slate-400 font-normal">(${Math.round(countRasib / total * 100)}%)</span></span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full bg-rose-500 transition-all duration-300" style="width:${countRasib / maxVal * 100}%"></div>
               </div>
             </div>
           </div>
@@ -515,8 +541,8 @@ function renderStatistics(el) {
             <div class="text-[11px] text-slate-400 font-medium">Siswa Disimak</div>
           </div>
           <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <div class="text-lg font-black text-emerald-600">${Math.round(lancar / total * 100)}%</div>
-            <div class="text-[11px] text-slate-400 font-medium">Tingkat Kelancaran</div>
+            <div class="text-lg font-black text-emerald-600">${pctLulus}%</div>
+            <div class="text-[11px] text-slate-400 font-medium">Tingkat Kelulusan</div>
           </div>
         </div>
       </div>
@@ -638,12 +664,14 @@ function exportStatsPDF() {
   const latestReports = getLatestStudentStatus(reports);
   const students = getStudents();
   const map = getGradeKelasMap();
-  const tol = getKetuntasanTolerance();
-  const lancar = latestReports.filter(r => r.status === 'Lancar').length;
-  const belumLancar = latestReports.filter(r => r.status !== 'Lancar').length;
+  const countMumtaz = latestReports.filter(r => normalizeReportStatus(r.status) === 'Mumtaz').length;
+  const countJayyidJiddan = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid jiddan').length;
+  const countJayyid = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid').length;
+  const countRasib = latestReports.filter(r => normalizeReportStatus(r.status) === 'Rasib').length;
   const total = latestReports.length || 1;
   const reportCount = reports.length;
-  const avg = latestReports.length > 0 ? Math.round(lancar / latestReports.length * 100) : 0;
+  const totalLulus = countMumtaz + countJayyidJiddan + countJayyid;
+  const avg = latestReports.length > 0 ? Math.round(totalLulus / latestReports.length * 100) : 0;
 
   const gradeStatsList = [];
   let grandTotalSiswa = 0;
@@ -749,11 +777,13 @@ function exportStatsPDF() {
         Periode Laporan: <strong>${getPeriodLabel()}</strong> &bull; Total Laporan Masuk: <strong>${reportCount}</strong> entri
       </div>
       
-      <h2>1. Status Kelancaran Bacaan (Berdasarkan Update Terakhir Siswa)</h2>
+      <h2>1. Status Capaian Laporan Siswa (Update Terakhir)</h2>
       <table>
         <tr style="background-color: #f1f5f9;"><th>Status</th><th>Jumlah Siswa</th><th>Persentase</th></tr>
-        <tr><td style="color: #047857; font-weight: bold;">✓ Lancar</td><td><strong>${lancar}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(lancar / total * 100) : 0}%</td></tr>
-        <tr><td style="color: #b45309; font-weight: bold;">⚠ Belum Lancar</td><td><strong>${belumLancar}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(belumLancar / total * 100) : 0}%</td></tr>
+        <tr><td style="color: #047857; font-weight: bold;">⭐ Mumtaz</td><td><strong>${countMumtaz}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(countMumtaz / total * 100) : 0}%</td></tr>
+        <tr><td style="color: #0284c7; font-weight: bold;">✓ Jayyid jiddan</td><td><strong>${countJayyidJiddan}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(countJayyidJiddan / total * 100) : 0}%</td></tr>
+        <tr><td style="color: #b45309; font-weight: bold;">• Jayyid</td><td><strong>${countJayyid}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(countJayyid / total * 100) : 0}%</td></tr>
+        <tr><td style="color: #e11d48; font-weight: bold;">⚠ Rasib (Mengulang)</td><td><strong>${countRasib}</strong> siswa</td><td>${latestReports.length > 0 ? Math.round(countRasib / total * 100) : 0}%</td></tr>
         <tr style="background-color: #ecfdf5; font-weight: bold;"><td>Total Siswa Disimak</td><td>${latestReports.length} siswa</td><td>100%</td></tr>
       </table>
       
@@ -826,9 +856,10 @@ function printStats() {
   const latestReports = getLatestStudentStatus(reports);
   const students = getStudents();
   const map = getGradeKelasMap();
-  const tol = getKetuntasanTolerance();
-  const lancar = latestReports.filter(r => r.status === 'Lancar').length;
-  const belumLancar = latestReports.filter(r => r.status !== 'Lancar').length;
+  const countMumtaz = latestReports.filter(r => normalizeReportStatus(r.status) === 'Mumtaz').length;
+  const countJayyidJiddan = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid jiddan').length;
+  const countJayyid = latestReports.filter(r => normalizeReportStatus(r.status) === 'Jayyid').length;
+  const countRasib = latestReports.filter(r => normalizeReportStatus(r.status) === 'Rasib').length;
   const total = latestReports.length || 1;
   const reportCount = reports.length;
 
@@ -953,7 +984,7 @@ function printStats() {
           Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} pukul ${new Date().toLocaleTimeString('id-ID')}
         </div>
         
-        <h2>1. Status Kelancaran Bacaan (Berdasarkan Update Terakhir Siswa)</h2>
+        <h2>1. Status Capaian Laporan Siswa (Update Terakhir)</h2>
         <table>
           <tr style="background-color: #f1f5f9;">
             <th style="border: 1px solid #cbd5e1; padding: 8px;">Status</th>
@@ -961,14 +992,24 @@ function printStats() {
             <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">Persentase</th>
           </tr>
           <tr>
-            <td style="font-weight:bold; color:#047857; border: 1px solid #cbd5e1; padding: 8px;">✓ Lancar</td>
-            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${lancar}</strong> siswa</td>
-            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(lancar / total * 100) : 0}%</td>
+            <td style="font-weight:bold; color:#047857; border: 1px solid #cbd5e1; padding: 8px;">⭐ Mumtaz</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${countMumtaz}</strong> siswa</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(countMumtaz / total * 100) : 0}%</td>
           </tr>
           <tr>
-            <td style="font-weight:bold; color:#b45309; border: 1px solid #cbd5e1; padding: 8px;">⚠ Belum Lancar</td>
-            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${belumLancar}</strong> siswa</td>
-            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(belumLancar / total * 100) : 0}%</td>
+            <td style="font-weight:bold; color:#0284c7; border: 1px solid #cbd5e1; padding: 8px;">✓ Jayyid jiddan</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${countJayyidJiddan}</strong> siswa</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(countJayyidJiddan / total * 100) : 0}%</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#b45309; border: 1px solid #cbd5e1; padding: 8px;">• Jayyid</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${countJayyid}</strong> siswa</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(countJayyid / total * 100) : 0}%</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold; color:#e11d48; border: 1px solid #cbd5e1; padding: 8px;">⚠ Rasib (Mengulang)</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;"><strong>${countRasib}</strong> siswa</td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${latestReports.length > 0 ? Math.round(countRasib / total * 100) : 0}%</td>
           </tr>
           <tr style="background-color: #ecfdf5; font-weight: bold;">
             <td style="border: 1px solid #cbd5e1; padding: 8px;">Total Siswa Disimak</td>
