@@ -50,12 +50,32 @@ window.dataSdk = {
   fetchAll: async function() {
     if (!supabaseClient) return;
     try {
-      const [usersData, studentsData, reportsData, settingsData] = await Promise.all([
-        this.fetchTableAll('users'),
-        this.fetchTableAll('students'),
-        this.fetchTableAll('reports'),
-        this.fetchTableAll('settings')
-      ]);
+      let usersData = [];
+      let studentsData = [];
+      let reportsData = [];
+      let settingsData = [];
+
+      // Keamanan Tingkat Lanjut: Isolasi Data Santri / Siswa (SEC-AUD-01)
+      // Jika role adalah Siswa, hanya muat profil & laporan miliknya sendiri
+      if (currentUser && currentUser.role === 'student') {
+        const [studentRes, reportsRes, settingsRows] = await Promise.all([
+          supabaseClient.from('students').select('*').eq('id', currentUser.id),
+          supabaseClient.from('reports').select('*').eq('student_id', currentUser.id),
+          this.fetchTableAll('settings')
+        ]);
+        studentsData = studentRes.data || [];
+        reportsData = reportsRes.data || [];
+        settingsData = settingsRows || [];
+        // Akun guru/users TIDAK dimuat ke browser siswa
+      } else {
+        // Role Guru / Admin memuat data lengkap untuk pengelolaan kurikulum
+        [usersData, studentsData, reportsData, settingsData] = await Promise.all([
+          this.fetchTableAll('users'),
+          this.fetchTableAll('students'),
+          this.fetchTableAll('reports'),
+          this.fetchTableAll('settings')
+        ]);
+      }
 
       let combinedData = [];
       usersData.forEach(u => combinedData.push({...u, __backendId: u.id, type: u.role === 'guru' ? 'teacher' : 'user'}));

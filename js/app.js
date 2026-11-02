@@ -57,9 +57,13 @@ function renderLogin(app) {
 
 
 async function handleLogin() {
-  const user = document.getElementById('login-user').value.trim();
+  const userRaw = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
-  if (!user || !pass) { showLoginError('Harap isi semua kolom'); return; }
+  if (!userRaw || !pass) { showLoginError('Harap isi semua kolom'); return; }
+  
+  // Sanitasi input pengguna untuk mencegah manipulasi filter PostgREST (SEC-AUD-04)
+  const user = userRaw.replace(/["\\]/g, '').trim();
+  if (!user) { showLoginError('Karakter tidak valid pada NIS / Username'); return; }
   
   const submitBtn = document.querySelector('#login-form button');
   if (submitBtn) {
