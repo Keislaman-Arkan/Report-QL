@@ -85,6 +85,16 @@ window.dataSdk = {
       table = 'settings';
       payload = { subject: data.subject, data: data.data };
     }
+    
+    // Pastikan kata sandi selalu di-hash sebelum disimpan
+    if (payload.password && typeof hashPassword === 'function' && !payload.password.startsWith('sha256:')) {
+      payload.password = await hashPassword(payload.password);
+    }
+    
+    // Pastikan kata sandi selalu di-hash sebelum disimpan
+    if (payload.password && typeof hashPassword === 'function' && !payload.password.startsWith('sha256:')) {
+      payload.password = await hashPassword(payload.password);
+    }
     const { data: insertedData, error } = await supabaseClient.from(table).insert([payload]).select();
     if (error) {
       console.error(`Gagal insert ke tabel ${table}:`, error);
@@ -108,6 +118,16 @@ window.dataSdk = {
     } else if (data.type === 'report') {
       table = 'reports';
       payload = { student_id: data.student_id, report_type: data.report_type, tanggal: data.tanggal, status: data.status, iqro_jilid: data.iqro_jilid, iqro_halaman: data.iqro_halaman, juz: data.juz, surat: data.surat, ayat_dari: data.ayat_dari, ayat_sampai: data.ayat_sampai, catatan: data.catatan };
+    }
+    
+    // Pastikan kata sandi baru selalu di-hash saat update
+    if (payload.password && typeof hashPassword === 'function' && !payload.password.startsWith('sha256:')) {
+      payload.password = await hashPassword(payload.password);
+    }
+    
+    // Pastikan kata sandi baru selalu di-hash saat update
+    if (payload.password && typeof hashPassword === 'function' && !payload.password.startsWith('sha256:')) {
+      payload.password = await hashPassword(payload.password);
     }
     const { error } = await supabaseClient.from(table).update(payload).eq('id', data.__backendId);
     if (error) {

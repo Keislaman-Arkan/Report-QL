@@ -118,9 +118,9 @@ function renderStudents(el) {
           <tbody id="student-table-body" class="divide-y divide-slate-50">
             ${students.length ? students.map(s => `
               <tr class="hover:bg-slate-50/50 transition">
-                <td class="px-4 py-3 font-bold text-slate-700 student-name-cell">${s.name}</td>
-                <td class="px-4 py-3 text-slate-500">${s.grade || '-'}</td>
-                <td class="px-4 py-3"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200">${s.kelas || '-'}</span></td>
+                <td class="px-4 py-3 font-bold text-slate-700 student-name-cell">${escapeHtml(s.name)}</td>
+                <td class="px-4 py-3 text-slate-500">${escapeHtml(s.grade || '-')}</td>
+                <td class="px-4 py-3"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200">${escapeHtml(s.kelas || '-')}</span></td>
                 <td class="px-4 py-3 text-xs font-semibold text-emerald-600">Jilid ${s.iqro_jilid||'-'} Hal ${s.iqro_halaman||'-'}</td>
                 <td class="px-4 py-3 text-xs font-semibold text-purple-600">${s.target_hafalan_surat ? `${s.target_hafalan_surat} (Ayt ${s.target_hafalan_ayat_dari||'-'}-${s.target_hafalan_ayat_sampai||'-'})` : 'Juz ' + (s.target_juz||'-')}</td>
                 ${!isVisitor?`<td class="px-4 py-3 flex justify-center gap-2">
@@ -428,7 +428,10 @@ async function updateStudent(id) {
   s.grade = document.getElementById('s-grade').value;
   s.kelas = document.getElementById('s-kelas').value;
   s.nis = document.getElementById('s-nis').value.trim();
-  s.password = document.getElementById('s-password').value.trim();
+  const rawPassInput = document.getElementById('s-password').value.trim();
+  if (rawPassInput && rawPassInput !== s.password) {
+    s.password = await hashPassword(rawPassInput);
+  }
   s.iqro_jilid = parseInt(document.getElementById('s-jilid').value);
   s.iqro_halaman = parseInt(document.getElementById('s-hal').value);
   
