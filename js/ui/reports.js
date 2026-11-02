@@ -385,9 +385,9 @@ function renderReports(el) {
         <h1 class="text-2xl font-bold uppercase text-slate-800">Laporan Perkembangan Belajar Al-Qur'an</h1>
         <p class="text-sm text-slate-500 mt-1">Sistem Informasi Qur'an Learning</p>
         <div class="text-xs text-slate-600 mt-3 flex justify-center gap-6 flex-wrap font-medium">
-          <span>Kategori: <strong class="text-slate-800">${reportFilterType === 'bacaan' ? 'Bacaan' : reportFilterType === 'hafalan' ? 'Hafalan' : 'Semua Kategori'}</strong></span>
-          <span>Tingkat: <strong class="text-slate-800">${reportFilterGrade || 'Semua Tingkat'}</strong></span>
-          <span>Kelas: <strong class="text-slate-800">${reportFilterClass || 'Semua Kelas'}</strong></span>
+          <span>Kategori: <strong class="text-slate-800">${escapeHtml(reportFilterType === 'bacaan' ? 'Bacaan' : reportFilterType === 'hafalan' ? 'Hafalan' : 'Semua Kategori')}</strong></span>
+          <span>Tingkat: <strong class="text-slate-800">${escapeHtml(reportFilterGrade || 'Semua Tingkat')}</strong></span>
+          <span>Kelas: <strong class="text-slate-800">${escapeHtml(reportFilterClass || 'Semua Kelas')}</strong></span>
           <span>Tanggal Cetak: <strong class="text-slate-800">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
         </div>
       </div>
@@ -471,12 +471,12 @@ function renderReports(el) {
               const color = statusInfo.badgeClass;
               const ketuntasanBadge = getKetuntasanBadge(r, student);
               return `<tr class="hover:bg-slate-50/50 transition">
-                <td class="px-5 py-3 whitespace-nowrap text-slate-500">${r.tanggal||'-'}</td>
-                <td class="px-5 py-3 font-semibold text-slate-800 report-student-name-cell">${student?.name||'-'} <span class="text-xs font-normal text-slate-400 block">${student?.kelas||''}</span></td>
-                <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${r.report_type}</span></td>
+                <td class="px-5 py-3 whitespace-nowrap text-slate-500">${escapeHtml(r.tanggal||'-')}</td>
+                <td class="px-5 py-3 font-semibold text-slate-800 report-student-name-cell">${escapeHtml(student?.name||'-')} <span class="text-xs font-normal text-slate-400 block">${escapeHtml(student?.kelas||'')}</span></td>
+                <td class="px-5 py-3 capitalize"><span class="bg-slate-100 px-2 py-1 rounded text-xs text-slate-600 border border-slate-200">${escapeHtml(r.report_type)}</span></td>
                 <td class="px-5 py-3 text-slate-600">${detail}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${displayStatus}</span></td>
-                <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate cursor-pointer hover:text-slate-900 transition-all duration-200" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas/menciutkan">${r.catatan||'-'}</td>
+                <td class="px-5 py-3 text-slate-600 max-w-[200px] truncate cursor-pointer hover:text-slate-900 transition-all duration-200" onclick="toggleNoteExpansion(this)" title="Klik untuk memperluas/menciutkan">${escapeHtml(r.catatan)||'-'}</td>
                 <td class="px-5 py-3">${getPerkembangan(r, getReports())}</td>
                 <td class="px-5 py-3">${ketuntasanBadge}</td>
               </tr>`;

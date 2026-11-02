@@ -387,12 +387,12 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
               Kelas Campuran
             </span>
           </div>
-          <h3 class="text-2xl md:text-3xl font-black tracking-tight">${activeHalaqoh.name}</h3>
+          <h3 class="text-2xl md:text-3xl font-black tracking-tight">${escapeHtml(activeHalaqoh.name)}</h3>
           <p class="text-emerald-100 text-sm mt-1 flex items-center gap-2">
             <i data-lucide="user-check" class="w-4 h-4 text-emerald-300"></i>
-            Guru Pengampu: <strong class="text-white">${activeHalaqoh.teacher_name || '-'}</strong>
+            Guru Pengampu: <strong class="text-white">${escapeHtml(activeHalaqoh.teacher_name || '-')}</strong>
           </p>
-          ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${activeHalaqoh.notes}</p>` : ''}
+          ${activeHalaqoh.notes ? `<p class="text-xs text-emerald-200/80 mt-1 italic">${escapeHtml(activeHalaqoh.notes)}</p>` : ''}
         </div>
 
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
@@ -476,8 +476,8 @@ function renderActiveHalaqohBody(activeHalaqoh, halaqohStudents, halaqohReports,
         </div>
         <p class="text-sm font-semibold text-slate-600">Sistem Manajemen Pembelajaran &amp; Tahsin/Tahfidz Al-Qur'an</p>
         <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-700 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 font-medium">
-          <div>Nama Halaqoh: <strong class="text-slate-900">${activeHalaqoh.name}</strong></div>
-          <div>Guru Pengampu: <strong class="text-slate-900">${activeHalaqoh.teacher_name || '-'}</strong></div>
+          <div>Nama Halaqoh: <strong class="text-slate-900">${escapeHtml(activeHalaqoh.name)}</strong></div>
+          <div>Guru Pengampu: <strong class="text-slate-900">${escapeHtml(activeHalaqoh.teacher_name || '-')}</strong></div>
           <div>Periode Laporan: <strong class="text-slate-900">${getHalaqohPeriodLabel(halaqohPeriodFilter, halaqohDateInput)}</strong></div>
           <div>Tanggal Cetak: <strong class="text-slate-900">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></div>
         </div>
@@ -584,12 +584,12 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
           <td class="halaqoh-row-number px-2.5 py-3 text-center text-xs font-semibold text-slate-400 w-10">${rowNumber}</td>
           <td class="px-3 py-3 font-bold text-slate-800">
             <div class="flex items-center gap-1.5">
-              <span>${st.name}</span>
+              <span>${escapeHtml(st.name)}</span>
             </div>
             <div class="text-[11px] text-slate-400 font-normal flex items-center gap-1.5 mt-0.5">
-              <span class="font-medium text-slate-600">${st.kelas || st.grade || '-'}</span>
+              <span class="font-medium text-slate-600">${escapeHtml(st.kelas || st.grade || '-')}</span>
               <span>&bull;</span>
-              <span>NIS: ${st.nis || '-'}</span>
+              <span>NIS: ${escapeHtml(st.nis || '-')}</span>
             </div>
           </td>
           <td class="px-2.5 py-2.5 text-center whitespace-nowrap no-print">
@@ -642,8 +642,8 @@ function renderHalaqohStudentRows(studentsList, reportsList) {
           <span class="text-[11px] text-slate-400 font-normal">NIS: ${st.nis || '-'}</span>
         </td>
         <td class="px-4 py-3.5 text-xs">
-          <div class="font-semibold text-slate-800 leading-snug">${st.kelas || '-'}</div>
-          <div class="text-[10px] text-slate-400 mt-0.5">${st.grade || ''}</div>
+          <div class="font-semibold text-slate-800 leading-snug">${escapeHtml(st.kelas || '-')}</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">${escapeHtml(st.grade || '')}</div>
         </td>
         <td class="px-5 py-3.5 text-xs">
           <div class="font-bold text-slate-800">${metrics.bacaanText}</div>
@@ -1462,16 +1462,16 @@ function renderCandidateStudentItems(candidateStudents) {
         <div class="flex items-center gap-3">
           <input type="checkbox" onchange="toggleStudentInHalaqoh('${st.__backendId}')" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer">
           <div>
-            <div class="font-bold text-sm">${st.name}</div>
+            <div class="font-bold text-sm">${escapeHtml(st.name)}</div>
             <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
               <span>NIS: ${st.nis || '-'}</span>
               <span>&bull;</span>
-              <span class="font-medium text-slate-600">${st.kelas || '-'}</span>
+              <span class="font-medium text-slate-600">${escapeHtml(st.kelas || '-')}</span>
             </div>
           </div>
         </div>
         <span class="grade-badge text-xs font-semibold px-2.5 py-1 rounded-lg ${isChecked ? 'bg-emerald-200/60 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
-          ${st.grade || '-'}
+          ${escapeHtml(st.grade || '-')}
         </span>
       </label>
     `;
@@ -1755,7 +1755,7 @@ function showHalaqohBacaanModal(studentId) {
           </div>
           <div>
             <h3 class="font-bold text-lg text-slate-800">Input Laporan Bacaan</h3>
-            <p class="text-xs text-slate-500">${student.name} &bull; NIS: ${student.nis || '-'} &bull; ${student.kelas || student.grade || '-'}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(student.name)} &bull; NIS: ${escapeHtml(student.nis || '-')} &bull; ${escapeHtml(student.kelas || student.grade || '-')}</p>
           </div>
         </div>
         <button onclick="closeHalaqohModal()" class="text-slate-400 hover:text-slate-600 p-1">
@@ -2330,7 +2330,7 @@ function showHalaqohHistoryModal(studentId, filterCategory = 'all') {
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <h3 class="font-bold text-lg text-slate-800">${student.name}</h3>
+              <h3 class="font-bold text-lg text-slate-800">${escapeHtml(student.name)}</h3>
               <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                 NIS: ${student.nis || '-'}
               </span>
