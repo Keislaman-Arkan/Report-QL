@@ -5,6 +5,79 @@ const cleanKey = (window.SUPABASE_ANON_KEY && !window.SUPABASE_ANON_KEY.includes
 window.SUPABASE_URL = cleanUrl;
 window.SUPABASE_ANON_KEY = cleanKey;
 
+// ============ UTILITY KEAMANAN SISTEM ============
+
+/**
+ * Sanitasi string untuk mencegah celah Cross-Site Scripting (XSS)
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
+/**
+ * Hash kata sandi menggunakan Web Crypto API (SHA-256 + Salt acak 16 byte)
+ */
+async function hashPassword(plainText, salt) {
+  if (!plainText) return '';
+  if (!salt) {
+    const array = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(array);
+    } else {
+      for (let i = 0; i < 16; i++) array[i] = Math.floor(Math.random() * 256);
+    }
+    salt = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  if (window.crypto && window.crypto.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(salt + ':' + plainText);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return 'sha256:' + salt + ':' + hashHex;
+    } catch (e) {
+      console.warn('Gagal melakukan subtle hash, fallback aktif:', e);
+      return plainText;
+    }
+  }
+  return plainText;
+}
+window.hashPassword = hashPassword;
+
+/**
+ * Verifikasi kata sandi terhadap hash atau teks warisan (kompatibilitas mundur)
+ */
+async function verifyPassword(plainText, storedHash) {
+  if (!storedHash && !plainText) return true;
+  if (!storedHash || !plainText) return false;
+  
+  const sHash = String(storedHash).trim();
+  const sPlain = String(plainText).trim();
+
+  if (sHash.startsWith('sha256:')) {
+    const parts = sHash.split(':');
+    if (parts.length === 3) {
+      const salt = parts[1];
+      const expected = await hashPassword(sPlain, salt);
+      return sHash === expected;
+    }
+  }
+  
+  // Kompatibilitas mundur untuk password lama yang belum di-hash
+  return sPlain === sHash;
+}
+window.verifyPassword = verifyPassword;
+
+
 const quranData = {
   1: [{name:'Al-Fatihah',ayat:7},{name:'Al-Baqarah',ayat:286}], 
   2: [{name:'Al-Baqarah',ayat:286}], 

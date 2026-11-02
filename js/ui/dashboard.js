@@ -315,7 +315,7 @@ function renderStudentDashboard(el) {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="showChangePasswordModal()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+          <button onclick="showAccountPasswordModal()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
             <i data-lucide="key" class="w-3.5 h-3.5"></i> Ubah Sandi
           </button>
           <button onclick="handleLogout()" class="bg-emerald-700/60 hover:bg-emerald-700 text-white border border-emerald-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
@@ -332,8 +332,8 @@ function renderStudentDashboard(el) {
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold border border-emerald-100 uppercase">Profil Siswa</span>
-          <h2 class="text-xl font-bold text-slate-800 mt-2">${student.name}</h2>
-          <p class="text-xs text-slate-500 mt-1">NIS: <span class="font-semibold text-slate-700">${student.nis || '-'}</span></p>
+          <h2 class="text-xl font-bold text-slate-800 mt-2">${escapeHtml(student.name)}</h2>
+          <p class="text-xs text-slate-500 mt-1">NIS: <span class="font-semibold text-slate-700">${escapeHtml(student.nis || '-')}</span></p>
         </div>
         <div class="flex flex-col items-start sm:items-end text-left sm:text-right gap-2">
           <span class="bg-slate-100 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-slate-200">${student.grade} - Kelas ${student.kelas}</span>

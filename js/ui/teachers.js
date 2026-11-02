@@ -14,9 +14,9 @@ function renderTeachers(el) {
         <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 card-hover flex items-start gap-4">
           <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center shrink-0"><i data-lucide="user" class="w-6 h-6 text-emerald-600"></i></div>
           <div class="flex-1 min-w-0">
-            <h4 class="font-bold text-slate-800 truncate">${t.name}</h4>
-            <p class="text-xs text-slate-500 mt-1 truncate">NIP: ${t.nip||'-'}</p>
-            <p class="text-xs text-emerald-600 font-medium mt-1">${t.specialization||'Guru'}</p>
+            <h4 class="font-bold text-slate-800 truncate">${escapeHtml(t.name)}</h4>
+            <p class="text-xs text-slate-500 mt-1 truncate">NIP: ${escapeHtml(t.nip||'-')}</p>
+            <p class="text-xs text-emerald-600 font-medium mt-1">${escapeHtml(t.specialization||'Guru')}</p>
           </div>
           ${!isVisitor?`<button onclick="deleteTeacher('${t.__backendId}')" class="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`:''}
         </div>

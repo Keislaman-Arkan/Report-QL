@@ -55,34 +55,212 @@ function renderLogin(app) {
   </div>`;
 }
 
-function handleLogin() {
+
+async function handleLogin() {
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
-  if (!user || !pass) { showLoginError('Harap isi semua field'); return; }
+  if (!user || !pass) { showLoginError('Harap isi semua kolom'); return; }
   
-  if (isStudentLoginMode) {
-    const students = getStudents();
-    const found = students.find(s => 
-      (s.nis === user || s.name.toLowerCase() === user.toLowerCase()) && 
-      (s.password === pass || (!s.password && (pass === '123456' || pass === s.nis)))
-    );
-    if (found) {
-      currentUser = { name: found.name, role: 'student', id: found.__backendId, kelas: found.kelas, grade: found.grade };
+  const submitBtn = document.querySelector('#login-form button');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="inline-flex items-center gap-2">Memverifikasi...</span>';
+  }
+
+  try {
+    if (!supabaseClient) {
+      showLoginError('Koneksi database belum terhubung');
+      return;
+    }
+
+    if (isStudentLoginMode) {
+      // Query hanya siswa yang cocok berdasarkan NIS atau nama (tanpa unduh seluruh tabel)
+      const { data: students, error } = await supabaseClient
+        .from('students')
+        .select('*')
+        .or(`nis.eq."${user}",name.ilike."${user}"`);
+
+      if (error) {
+        console.error("Login error:", error);
+        showLoginError('Terjadi kesalahan saat memeriksa akun');
+        return;
+      }
+
+      let matchedStudent = null;
+      if (students && students.length > 0) {
+        for (const s of students) {
+          const expected = s.password || s.nis || '123456';
+          const isMatch = await verifyPassword(pass, expected);
+          if (isMatch) {
+            matchedStudent = s;
+            // Upgrade otomatis password lama ke sha256 ber-salt
+            if (!s.password || !s.password.startsWith('sha256:')) {
+              const newHash = await hashPassword(pass);
+              await supabaseClient.from('students').update({ password: newHash }).eq('id', s.id);
+            }
+            break;
+          }
+        }
+      }
+
+      if (matchedStudent) {
+        currentUser = {
+          name: matchedStudent.name,
+          role: 'student',
+          id: matchedStudent.id,
+          kelas: matchedStudent.kelas,
+          grade: matchedStudent.grade
+        };
+        saveSession();
+        // Muat data hanya setelah otentikasi valid
+        await window.dataSdk.fetchAll();
+        render();
+        return;
+      }
+      showLoginError('NIS / Nama atau kata sandi salah');
+      return;
+    }
+
+    // Login Guru / Admin
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .or(`name.eq."${user}",email.eq."${user}"`);
+
+    if (error) {
+      console.error("Login error:", error);
+      showLoginError('Terjadi kesalahan saat memeriksa akun');
+      return;
+    }
+
+    let matchedUser = null;
+    if (users && users.length > 0) {
+      for (const u of users) {
+        const isMatch = await verifyPassword(pass, u.password);
+        if (isMatch) {
+          matchedUser = u;
+          // Upgrade otomatis password lama ke hash aman
+          if (u.password && !u.password.startsWith('sha256:')) {
+            const newHash = await hashPassword(pass);
+            await supabaseClient.from('users').update({ password: newHash }).eq('id', u.id);
+          }
+          break;
+        }
+      }
+    }
+
+    // Perlindungan instalasi baru: Jika database belum memiliki Admin sama sekali
+    if (!matchedUser && user === 'admin' && pass === 'admin123') {
+      const { data: anyAdmin } = await supabaseClient.from('users').select('id').eq('role', 'admin').limit(1);
+      if (!anyAdmin || anyAdmin.length === 0) {
+        showFirstTimeAdminSetupModal();
+        return;
+      }
+    }
+
+    if (matchedUser) {
+      currentUser = {
+        name: matchedUser.name,
+        role: matchedUser.role,
+        id: matchedUser.id,
+        email: matchedUser.email
+      };
       saveSession();
+      // Muat data aplikasi setelah otentikasi berhasil
+      await window.dataSdk.fetchAll();
       render();
       return;
     }
-    showLoginError('NIS / Nama atau password salah');
+
+    showLoginError('Username / Email atau password salah');
+  } catch (err) {
+    console.error('Login exception:', err);
+    showLoginError('Gagal memproses login');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = isStudentLoginMode ? 'Masuk sebagai Siswa' : 'Masuk';
+    }
+  }
+}
+
+function showFirstTimeAdminSetupModal() {
+  const modal = document.createElement('div');
+  modal.id = 'first-admin-modal';
+  modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 fade-in space-y-4">
+      <div class="text-center">
+        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-600">
+          <i data-lucide="shield-alert" class="w-6 h-6"></i>
+        </div>
+        <h3 class="font-bold text-lg text-slate-800">Inisialisasi Admin Pertama</h3>
+        <p class="text-xs text-slate-500 mt-1">Belum ada akun Administrator di database. Buat kata sandi baru yang aman untuk akun Admin Anda sekarang.</p>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Username Admin</label>
+          <input id="init-admin-user" type="text" value="admin" class="w-full px-3 py-2 border rounded-xl text-sm outline-none bg-slate-50" readonly>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru</label>
+          <input id="init-admin-pass" type="password" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Minimal 6 karakter">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi Kata Sandi</label>
+          <input id="init-admin-confirm" type="password" class="w-full px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Ulangi kata sandi">
+        </div>
+      </div>
+      <p id="init-admin-err" class="text-rose-600 text-xs font-medium hidden"></p>
+      <div class="flex gap-2 pt-2">
+        <button onclick="document.getElementById('first-admin-modal').remove()" class="flex-1 bg-slate-100 py-2.5 rounded-xl text-sm font-semibold text-slate-700">Batal</button>
+        <button onclick="saveFirstTimeAdmin()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md">Simpan Admin</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons();
+}
+
+async function saveFirstTimeAdmin() {
+  const pass = document.getElementById('init-admin-pass').value;
+  const confirm = document.getElementById('init-admin-confirm').value;
+  const errEl = document.getElementById('init-admin-err');
+  
+  if (!pass || pass.length < 6) {
+    errEl.textContent = 'Kata sandi minimal 6 karakter';
+    errEl.classList.remove('hidden');
     return;
   }
-  
-  const allAccounts = allData.filter(d => d.type === 'user' || d.type === 'teacher');
-  const found = allAccounts.find(u => (u.name === user || u.email === user) && u.password === pass);
-  
-  if (found) { currentUser = { name: found.name, role: found.role, id: found.__backendId }; saveSession(); render(); return; }
-  if (user === 'admin' && pass === 'admin123') { currentUser = { name: 'Admin', role: 'admin', id: 'default' }; saveSession(); render(); return; }
-  showLoginError('Username atau password salah');
+  if (pass !== confirm) {
+    errEl.textContent = 'Konfirmasi kata sandi tidak cocok';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const hashed = await hashPassword(pass);
+  const { data, error } = await supabaseClient.from('users').insert([{
+    name: 'Admin',
+    email: 'admin@quranlearning.local',
+    password: hashed,
+    role: 'admin',
+    specialization: 'Administrator Sistem'
+  }]).select().single();
+
+  if (error) {
+    errEl.textContent = 'Gagal membuat admin: ' + error.message;
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  currentUser = { name: data.name, role: data.role, id: data.id, email: data.email };
+  saveSession();
+  document.getElementById('first-admin-modal').remove();
+  showToast('Akun Administrator berhasil dibuat!', 'success');
+  await window.dataSdk.fetchAll();
+  render();
 }
+
 
 function loginAsVisitor() { currentUser = { name: 'Pengunjung', role: 'visitor', id: 'visitor' }; saveSession(); render(); }
 function showLoginError(msg) { const el = document.getElementById('login-error'); el.textContent = msg; el.classList.remove('hidden'); }
@@ -116,7 +294,15 @@ function renderMain(app) {
       <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4"></i></div>
       <h1 class="font-bold text-lg">Qur'an Learning</h1>
     </div>
-    <button onclick="toggleSidebar()" class="p-2 bg-emerald-700 rounded-lg hover:bg-emerald-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
+    
+    <div class="flex items-center gap-1.5">
+      <button onclick="showAccountPasswordModal()" class="p-2 bg-emerald-700/80 hover:bg-emerald-600 rounded-lg transition" title="Ubah Kata Sandi"><i data-lucide="key" class="w-5 h-5"></i></button>
+      
+    <div class="flex items-center gap-1.5">
+      <button onclick="showAccountPasswordModal()" class="p-2 bg-emerald-700/80 hover:bg-emerald-600 rounded-lg transition" title="Ubah Kata Sandi"><i data-lucide="key" class="w-5 h-5"></i></button>
+      <button onclick="toggleSidebar()" class="p-2 bg-emerald-700 rounded-lg hover:bg-emerald-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
+    </div>
+    </div>
   </header>
 
   <!-- Sidebar Backdrop (Mobile) -->
@@ -126,11 +312,11 @@ function renderMain(app) {
   <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-64 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white flex flex-col h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-50 shadow-2xl md:shadow-none pt-[env(safe-area-inset-top)] md:pt-0 pb-[env(safe-area-inset-bottom)]">
     <div class="p-5 border-b border-emerald-700 hidden md:block cursor-pointer hover:bg-emerald-800/50 transition" onclick="refreshAndGoHome()">
       <h1 class="font-bold text-lg flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5 text-emerald-300"></i> Qur'an Learning</h1>
-      <p class="text-emerald-300 text-xs mt-1 ml-7">${currentUser.name} (${currentUser.role})</p>
+      <p class="text-emerald-300 text-xs mt-1 ml-7">${escapeHtml(currentUser.name)} (${escapeHtml(currentUser.role)})</p>
     </div>
     <div class="p-5 border-b border-emerald-700 md:hidden flex justify-between items-center">
        <div>
-         <p class="font-semibold">${currentUser.name}</p>
+         <p class="font-semibold">${escapeHtml(currentUser.name)}</p>
          <p class="text-emerald-300 text-xs">${currentUser.role}</p>
        </div>
        <button onclick="toggleSidebar()" class="p-1"><i data-lucide="x" class="w-6 h-6"></i></button>

@@ -28,8 +28,8 @@ function renderUserManagement(el) {
             </tr>
             ${users.map(u => `
               <tr class="hover:bg-slate-50/50 transition">
-                <td class="px-5 py-3 font-medium text-slate-700">${u.name}</td>
-                <td class="px-5 py-3 text-slate-500">${u.email||'-'}</td>
+                <td class="px-5 py-3 font-medium text-slate-700">${escapeHtml(u.name)}</td>
+                <td class="px-5 py-3 text-slate-500">${escapeHtml(u.email||'-')}</td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='guru'?'bg-blue-100 text-blue-700':'bg-slate-100 text-slate-700'}">${u.role.toUpperCase()}</span></td>
                 <td class="px-5 py-3 flex justify-center">
                   <button onclick="deleteUser('${u.__backendId}')" class="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -107,8 +107,8 @@ function renderGuruAccount(el) {
           <tbody class="divide-y divide-slate-50">
             ${gurus.length ? gurus.map(g => `
               <tr class="hover:bg-slate-50/50 transition">
-                <td class="px-5 py-3 font-semibold text-slate-800">${g.name}</td>
-                <td class="px-5 py-3 text-slate-600"><code class="bg-slate-100 px-3 py-1.5 rounded-lg text-xs border border-slate-200">${g.email || g.name}</code></td>
+                <td class="px-5 py-3 font-semibold text-slate-800">${escapeHtml(g.name)}</td>
+                <td class="px-5 py-3 text-slate-600"><code class="bg-slate-100 px-3 py-1.5 rounded-lg text-xs border border-slate-200">${escapeHtml(g.email || g.name)}</code></td>
                 <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700"><i data-lucide="check" class="w-3 h-3 inline mr-1"></i>Aktif</span></td>
                 <td class="px-5 py-3 flex justify-center gap-2">
                   <button onclick="editGuruAccount('${g.__backendId}')" title="Edit Detail" class="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition"><i data-lucide="edit" class="w-4 h-4"></i></button>
