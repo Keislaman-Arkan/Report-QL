@@ -297,11 +297,7 @@ function renderMain(app) {
     
     <div class="flex items-center gap-1.5">
       <button onclick="showAccountPasswordModal()" class="p-2 bg-emerald-700/80 hover:bg-emerald-600 rounded-lg transition" title="Ubah Kata Sandi"><i data-lucide="key" class="w-5 h-5"></i></button>
-      
-    <div class="flex items-center gap-1.5">
-      <button onclick="showAccountPasswordModal()" class="p-2 bg-emerald-700/80 hover:bg-emerald-600 rounded-lg transition" title="Ubah Kata Sandi"><i data-lucide="key" class="w-5 h-5"></i></button>
       <button onclick="toggleSidebar()" class="p-2 bg-emerald-700 rounded-lg hover:bg-emerald-600"><i data-lucide="menu" class="w-6 h-6"></i></button>
-    </div>
     </div>
   </header>
 
